@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -45,6 +44,9 @@ func normalizeChannelTestEndpoint(channel *model.Channel, modelName, endpointTyp
 	normalized := strings.TrimSpace(endpointType)
 	if normalized != "" {
 		return normalized
+	}
+	if common.IsImageGenerationModel(modelName) {
+		return string(constant.EndpointTypeImageGeneration)
 	}
 	if strings.HasSuffix(modelName, ratio_setting.CompactModelSuffix) {
 		return string(constant.EndpointTypeOpenAIResponseCompact)
@@ -542,15 +544,24 @@ func settleTestQuota(info *relaycommon.RelayInfo, priceData types.PriceData, usa
 
 	quota := 0
 	if !priceData.UsePrice {
-		quota = usage.PromptTokens + int(math.Round(float64(usage.CompletionTokens)*priceData.CompletionRatio))
-		quota = int(math.Round(float64(quota) * priceData.ModelRatio))
-		if priceData.ModelRatio != 0 && quota <= 0 {
+		quotaValue := (float64(usage.PromptTokens) + float64(usage.CompletionTokens)*priceData.CompletionRatio) *
+			priceData.ModelRatio * priceData.GroupRatioInfo.GroupRatio
+		var clamp *common.QuotaClamp
+		quota, clamp = common.QuotaRoundChecked(quotaValue)
+		if info != nil && info.QuotaClamp == nil {
+			info.QuotaClamp = clamp
+		}
+		if priceData.ModelRatio*priceData.GroupRatioInfo.GroupRatio != 0 && quota <= 0 {
 			quota = 1
 		}
 		return quota, nil
 	}
 
-	return int(priceData.ModelPrice * common.QuotaPerUnit), nil
+	quota, clamp := common.QuotaRoundChecked(priceData.ModelPrice * common.QuotaPerUnit * priceData.GroupRatioInfo.GroupRatio)
+	if info != nil && info.QuotaClamp == nil {
+		info.QuotaClamp = clamp
+	}
+	return quota, nil
 }
 
 func buildTestLogOther(c *gin.Context, info *relaycommon.RelayInfo, priceData types.PriceData, usage *dto.Usage, tieredResult *billingexpr.TieredResult) map[string]interface{} {

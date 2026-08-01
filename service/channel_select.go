@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -86,17 +87,25 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 	var err error
 	selectGroup := param.TokenGroup
 	userGroup := common.GetContextKeyString(param.Ctx, constant.ContextKeyUserGroup)
+	orderedGroups := make([]string, 0)
+	crossGroupRetry := false
 
 	if param.TokenGroup == "auto" {
 		if len(setting.GetAutoGroups()) == 0 {
 			return nil, selectGroup, errors.New("auto groups is not enabled")
 		}
-		autoGroups := GetUserAutoGroup(userGroup)
+		orderedGroups = GetUserAutoGroup(userGroup)
+		crossGroupRetry = common.GetContextKeyBool(param.Ctx, constant.ContextKeyTokenCrossGroupRetry)
+	} else if fallbackGroups, ok := common.GetContextKeyType[[]string](param.Ctx, constant.ContextKeyTokenFallbackGroups); ok && len(fallbackGroups) > 0 {
+		orderedGroups = append(orderedGroups, param.TokenGroup)
+		orderedGroups = append(orderedGroups, fallbackGroups...)
+		crossGroupRetry = true
+	}
 
+	if len(orderedGroups) > 0 {
 		// startGroupIndex: the group index to start searching from
 		// startGroupIndex: 开始搜索的分组索引
 		startGroupIndex := 0
-		crossGroupRetry := common.GetContextKeyBool(param.Ctx, constant.ContextKeyTokenCrossGroupRetry)
 
 		if lastGroupIndex, exists := common.GetContextKey(param.Ctx, constant.ContextKeyAutoGroupIndex); exists {
 			if idx, ok := lastGroupIndex.(int); ok {
@@ -104,8 +113,8 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			}
 		}
 
-		for i := startGroupIndex; i < len(autoGroups); i++ {
-			autoGroup := autoGroups[i]
+		for i := startGroupIndex; i < len(orderedGroups); i++ {
+			selectedGroup := orderedGroups[i]
 			// Calculate priorityRetry for current group
 			// 计算当前分组的 priorityRetry
 			priorityRetry := param.GetRetry()
@@ -114,13 +123,16 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			if i > startGroupIndex {
 				priorityRetry = 0
 			}
-			logger.LogDebug(param.Ctx, "Auto selecting group: %s, priorityRetry: %d", autoGroup, priorityRetry)
+			logger.LogDebug(param.Ctx, "Selecting ordered group: %s, priorityRetry: %d", selectedGroup, priorityRetry)
 
-			channel, _ = model.GetRandomSatisfiedChannel(autoGroup, param.ModelName, priorityRetry, param.RequestPath)
+			channel, err = model.GetRandomSatisfiedChannelExcluding(selectedGroup, param.ModelName, priorityRetry, param.RequestPath, usedChannelIDs(param.Ctx))
+			if err != nil {
+				return nil, selectedGroup, err
+			}
 			if channel == nil {
 				// Current group has no available channel for this model, try next group
 				// 当前分组没有该模型的可用渠道，尝试下一个分组
-				logger.LogDebug(param.Ctx, "No available channel in group %s for model %s at priorityRetry %d, trying next group", autoGroup, param.ModelName, priorityRetry)
+				logger.LogDebug(param.Ctx, "No available channel in group %s for model %s at priorityRetry %d, trying next group", selectedGroup, param.ModelName, priorityRetry)
 				// 重置状态以尝试下一个分组
 				common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroupIndex, i+1)
 				common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroupRetryIndex, 0)
@@ -129,9 +141,9 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 				param.SetRetry(0)
 				continue
 			}
-			common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroup, autoGroup)
-			selectGroup = autoGroup
-			logger.LogDebug(param.Ctx, "Auto selected group: %s", autoGroup)
+			common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroup, selectedGroup)
+			selectGroup = selectedGroup
+			logger.LogDebug(param.Ctx, "Selected ordered group: %s", selectedGroup)
 
 			// Prepare state for next retry
 			// 为下一次重试准备状态
@@ -140,7 +152,7 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 				// This request still uses current group, but next retry will use next group
 				// 当前分组已用完所有重试次数，准备切换到下一个分组
 				// 本次请求仍使用当前分组，但下次重试将使用下一个分组
-				logger.LogDebug(param.Ctx, "Current group %s retries exhausted (priorityRetry=%d >= RetryTimes=%d), preparing switch to next group for next retry", autoGroup, priorityRetry, common.RetryTimes)
+				logger.LogDebug(param.Ctx, "Current group %s retries exhausted (priorityRetry=%d >= RetryTimes=%d), preparing switch to next group for next retry", selectedGroup, priorityRetry, common.RetryTimes)
 				common.SetContextKey(param.Ctx, constant.ContextKeyAutoGroupIndex, i+1)
 				// Reset retry counter so outer loop can continue for next group
 				// 重置重试计数器，以便外层循环可以为下一个分组继续
@@ -154,10 +166,25 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			break
 		}
 	} else {
-		channel, err = model.GetRandomSatisfiedChannel(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath)
+		channel, err = model.GetRandomSatisfiedChannelExcluding(param.TokenGroup, param.ModelName, param.GetRetry(), param.RequestPath, usedChannelIDs(param.Ctx))
 		if err != nil {
 			return nil, param.TokenGroup, err
 		}
 	}
 	return channel, selectGroup, nil
+}
+
+func usedChannelIDs(ctx *gin.Context) map[int]struct{} {
+	used := ctx.GetStringSlice("use_channel")
+	if len(used) == 0 {
+		return nil
+	}
+	excluded := make(map[int]struct{}, len(used))
+	for _, value := range used {
+		id, err := strconv.Atoi(value)
+		if err == nil && id > 0 {
+			excluded[id] = struct{}{}
+		}
+	}
+	return excluded
 }

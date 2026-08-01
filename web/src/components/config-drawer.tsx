@@ -279,8 +279,8 @@ function PresetConfig() {
                 className='absolute inset-0 rounded-md'
                 style={{
                   background:
-                    preset.value === 'default'
-                      ? 'linear-gradient(135deg, oklch(0.68 0.2 25) 0%, oklch(0.8 0.17 85) 25%, oklch(0.72 0.18 155) 50%, oklch(0.66 0.19 245) 75%, oklch(0.68 0.2 315) 100%)'
+                    preset.value === 'aurora'
+                      ? 'linear-gradient(135deg, oklch(0.55 0.19 285) 0%, oklch(0.64 0.2 255) 38%, oklch(0.72 0.15 175) 72%, oklch(0.47 0.08 260) 100%)'
                       : `linear-gradient(135deg, ${preset.swatches[0]} 0%, ${preset.swatches[1] ?? preset.swatches[0]} 100%)`,
                 }}
               />

@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/gin-gonic/gin"
@@ -175,6 +176,10 @@ func AddToken(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
 		return
 	}
+	if err := service.ValidateTokenFallbackGroups(c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	// 非无限额度时，检查额度值是否超出有效范围
 	if !token.UnlimitedQuota {
 		if token.RemainQuota < 0 {
@@ -221,6 +226,7 @@ func AddToken(c *gin.Context) {
 		AllowIps:           token.AllowIps,
 		Group:              token.Group,
 		CrossGroupRetry:    token.CrossGroupRetry,
+		FallbackGroups:     token.FallbackGroups,
 	}
 	err = cleanToken.Insert()
 	if err != nil {
@@ -259,6 +265,12 @@ func UpdateToken(c *gin.Context) {
 	if len(token.Name) > 50 {
 		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
 		return
+	}
+	if statusOnly == "" {
+		if err := service.ValidateTokenFallbackGroups(c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
+			common.ApiError(c, err)
+			return
+		}
 	}
 	if !token.UnlimitedQuota {
 		if token.RemainQuota < 0 {
@@ -299,6 +311,7 @@ func UpdateToken(c *gin.Context) {
 		cleanToken.AllowIps = token.AllowIps
 		cleanToken.Group = token.Group
 		cleanToken.CrossGroupRetry = token.CrossGroupRetry
+		cleanToken.FallbackGroups = token.FallbackGroups
 	}
 	err = cleanToken.Update()
 	if err != nil {

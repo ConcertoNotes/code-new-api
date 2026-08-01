@@ -112,6 +112,18 @@ func SyncChannelCache(frequency int) {
 }
 
 func GetRandomSatisfiedChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
+	return getRandomSatisfiedChannel(group, model, retry, requestPath, nil)
+}
+
+// GetRandomSatisfiedChannelExcluding selects a channel using the normal
+// priority/weight rules while avoiding channels already used by this request.
+// If every channel at the selected priority is excluded, the normal candidate
+// set is retained so a single-channel priority can still be retried.
+func GetRandomSatisfiedChannelExcluding(group string, model string, retry int, requestPath string, excluded map[int]struct{}) (*Channel, error) {
+	return getRandomSatisfiedChannel(group, model, retry, requestPath, excluded)
+}
+
+func getRandomSatisfiedChannel(group string, model string, retry int, requestPath string, excluded map[int]struct{}) (*Channel, error) {
 	// if memory cache is disabled, get channel directly from database
 	if !common.MemoryCacheEnabled {
 		return GetChannel(group, model, retry, requestPath)
@@ -170,6 +182,21 @@ func GetRandomSatisfiedChannel(group string, model string, retry int, requestPat
 			}
 		} else {
 			return nil, fmt.Errorf("数据库一致性错误，渠道# %d 不存在，请联系管理员修复", channelId)
+		}
+	}
+	if len(excluded) > 0 && len(targetChannels) > 1 {
+		available := make([]*Channel, 0, len(targetChannels))
+		for _, channel := range targetChannels {
+			if _, skip := excluded[channel.Id]; !skip {
+				available = append(available, channel)
+			}
+		}
+		if len(available) > 0 {
+			targetChannels = available
+			sumWeight = 0
+			for _, channel := range targetChannels {
+				sumWeight += channel.GetWeight()
+			}
 		}
 	}
 

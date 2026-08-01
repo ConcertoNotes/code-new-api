@@ -20,9 +20,10 @@ import { Code, Table, Plus, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 
 type JsonEditorProps = {
   value: string
@@ -284,14 +285,15 @@ export function JsonEditor({
           </Button>
         </div>
       ) : (
-        <JsonCodeEditor
+        <Textarea
           value={jsonValue}
-          onChange={handleJsonChange}
+          onChange={(e) => handleJsonChange(e.target.value)}
           placeholder={
             template ? JSON.stringify(template, null, 2) : '{"key": "value"}'
           }
           disabled={disabled}
-          ariaLabel={t('JSON')}
+          rows={8}
+          className={cn('font-mono text-sm')}
         />
       )}
     </div>

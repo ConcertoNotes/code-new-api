@@ -3,6 +3,8 @@ package dto
 import (
 	"encoding/json"
 	"reflect"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -14,6 +16,8 @@ import (
 // MaxImageN caps the image generation count. Without this bound a huge or
 // wrapped-negative n overflows quota calculation into a negative charge.
 const MaxImageN = 128
+
+var imageTierPromptPattern = regexp.MustCompile(`(?i)(?:^|[^a-z0-9])([124])\s*k(?:[^a-z0-9]|$)`)
 
 type ImageRequest struct {
 	Model             string          `json:"model"`
@@ -164,10 +168,67 @@ func (i *ImageRequest) GetTokenCountMeta() *types.TokenCountMeta {
 	// independent billing dimensions. Fixed-price pre-consume stores this on
 	// PriceData, and image settlement reuses or replaces the same "n" ratio.
 	return &types.TokenCountMeta{
-		CombineText:     i.Prompt,
-		MaxTokens:       1584,
-		ImagePriceRatio: sizeRatio * qualityRatio,
-		BillingRatios:   map[string]float64{"n": float64(imageN)},
+		CombineText:      i.Prompt,
+		MaxTokens:        1584,
+		ImagePriceRatio:  sizeRatio * qualityRatio,
+		ImageBillingTier: ResolveImageBillingTier(i.Size, i.Prompt),
+		BillingRatios:    map[string]float64{"n": float64(imageN)},
+	}
+}
+
+// ResolveImageBillingTier normalizes Cherry Studio/OpenAI-compatible image
+// sizes to the 1K/2K/4K price tiers. A structured size always wins. When a
+// client only mentions the resolution in the prompt, exactly one distinct tier
+// is accepted; ambiguous prompts safely fall back to the 2K tier.
+func ResolveImageBillingTier(size, prompt string) string {
+	if tier, ok := ClassifyImageBillingTier(size); ok {
+		return tier
+	}
+
+	found := ""
+	for _, match := range imageTierPromptPattern.FindAllStringSubmatch(prompt, -1) {
+		tier := match[1] + "K"
+		if found != "" && found != tier {
+			return "2K"
+		}
+		found = tier
+	}
+	if found != "" {
+		return found
+	}
+	return "2K"
+}
+
+func ClassifyImageBillingTier(size string) (string, bool) {
+	normalized := strings.ToLower(strings.TrimSpace(size))
+	switch normalized {
+	case "1k":
+		return "1K", true
+	case "2k":
+		return "2K", true
+	case "4k":
+		return "4K", true
+	case "", "auto":
+		return "", false
+	}
+
+	parts := strings.Split(normalized, "x")
+	if len(parts) != 2 {
+		return "", false
+	}
+	width, widthErr := strconv.Atoi(strings.TrimSpace(parts[0]))
+	height, heightErr := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if widthErr != nil || heightErr != nil || width <= 0 || height <= 0 {
+		return "", false
+	}
+	maxEdge := max(width, height)
+	switch {
+	case maxEdge <= 1024:
+		return "1K", true
+	case maxEdge <= 2048:
+		return "2K", true
+	default:
+		return "4K", true
 	}
 }
 

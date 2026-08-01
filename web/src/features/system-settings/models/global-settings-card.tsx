@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import * as z from 'zod'
 
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { StatusBadge } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -39,6 +38,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 
 import {
   SettingsForm,
@@ -157,6 +157,21 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
 
   const pingEnabled = form.watch('general_setting.ping_interval_enabled')
 
+  const formatJsonField = (
+    field:
+      | 'global.thinking_model_blacklist'
+      | 'global.chat_completions_to_responses_policy'
+  ) => {
+    const raw = form.getValues(field)
+    if (!raw || !raw.trim()) return
+    try {
+      const formatted = JSON.stringify(JSON.parse(raw), null, 2)
+      form.setValue(field, formatted, { shouldDirty: true })
+    } catch {
+      toast.error(t('Invalid JSON format'))
+    }
+  }
+
   const onSubmit = async (values: GlobalModelSettingsFormValues) => {
     const flattenedDefaults = flattenGlobalValues(defaultValues)
     const flattenedValues = flattenGlobalValues(values)
@@ -218,14 +233,11 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
                   {t('Models that skip thinking suffix processing')}
                 </FormLabel>
                 <FormControl>
-                  <JsonCodeEditor
-                    value={field.value}
-                    onChange={(value) => field.onChange(value)}
-                    name={field.name}
-                    onBlur={field.onBlur}
-                    textareaRef={field.ref}
+                  <Textarea
+                    rows={4}
                     placeholder={`${t('Example:')}\n${thinkingBlacklistExample}`}
-                    heightClassName='h-32 min-h-32 max-h-32'
+                    {...field}
+                    onChange={(event) => field.onChange(event.target.value)}
                   />
                 </FormControl>
                 <FormDescription>
@@ -233,6 +245,18 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
                     'Models listed here will not automatically append or remove -thinking / -nothinking suffixes.'
                   )}
                 </FormDescription>
+                <div className='flex flex-wrap gap-2'>
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    onClick={() =>
+                      formatJsonField('global.thinking_model_blacklist')
+                    }
+                  >
+                    {t('Format JSON')}
+                  </Button>
+                </div>
                 <FormMessage />
               </FormItem>
             )}
@@ -268,13 +292,11 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
                 <FormItem>
                   <FormLabel>{t('Policy JSON')}</FormLabel>
                   <FormControl>
-                    <JsonCodeEditor
-                      value={field.value}
-                      onChange={(value) => field.onChange(value)}
-                      name={field.name}
-                      onBlur={field.onBlur}
-                      textareaRef={field.ref}
+                    <Textarea
+                      rows={8}
                       placeholder={`${t('Example (specific channels):')}\n${chatToResponsesPolicyExample}\n\n${t('Example (all channels):')}\n${chatToResponsesPolicyAllChannelsExample}`}
+                      {...field}
+                      onChange={(event) => field.onChange(event.target.value)}
                     />
                   </FormControl>
                   <FormDescription>
@@ -308,6 +330,18 @@ export function GlobalSettingsCard({ defaultValues }: GlobalSettingsCardProps) {
                       }
                     >
                       {t('Fill example (all channels)')}
+                    </Button>
+                    <Button
+                      type='button'
+                      variant='outline'
+                      size='sm'
+                      onClick={() =>
+                        formatJsonField(
+                          'global.chat_completions_to_responses_policy'
+                        )
+                      }
+                    >
+                      {t('Format JSON')}
                     </Button>
                   </div>
                   <FormMessage />

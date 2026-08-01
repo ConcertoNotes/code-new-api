@@ -171,6 +171,39 @@ func TestSettleTestQuotaUsesTieredBilling(t *testing.T) {
 	require.Equal(t, "stream", result.MatchedTier)
 }
 
+func TestSettleTestQuotaAppliesGroupRatioToTokenBilling(t *testing.T) {
+	info := &relaycommon.RelayInfo{}
+	quota, result := settleTestQuota(info, types.PriceData{
+		ModelRatio:      2,
+		CompletionRatio: 3,
+		GroupRatioInfo: types.GroupRatioInfo{
+			GroupRatio: 0.25,
+		},
+	}, &dto.Usage{
+		PromptTokens:     1000,
+		CompletionTokens: 200,
+	})
+
+	assert.Equal(t, 800, quota)
+	assert.Nil(t, result)
+	assert.Nil(t, info.QuotaClamp)
+}
+
+func TestSettleTestQuotaAppliesGroupRatioToFixedPriceBilling(t *testing.T) {
+	info := &relaycommon.RelayInfo{}
+	quota, result := settleTestQuota(info, types.PriceData{
+		UsePrice:   true,
+		ModelPrice: 0.01,
+		GroupRatioInfo: types.GroupRatioInfo{
+			GroupRatio: 0.25,
+		},
+	}, &dto.Usage{})
+
+	assert.Equal(t, common.QuotaRound(0.01*common.QuotaPerUnit*0.25), quota)
+	assert.Nil(t, result)
+	assert.Nil(t, info.QuotaClamp)
+}
+
 func TestBuildTestLogOtherInjectsTieredInfo(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())

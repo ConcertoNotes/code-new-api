@@ -64,6 +64,61 @@ func TestModelPriceHelperTieredUsesPreloadedRequestInput(t *testing.T) {
 	require.Equal(t, common.QuotaPerUnit, info.TieredBillingSnapshot.QuotaPerUnit)
 }
 
+func TestModelPriceHelperUsesFinalGroupSpecificBillingExpr(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	saved := map[string]string{}
+	require.NoError(t, config.GlobalConfig.SaveToDB(func(key, value string) error {
+		saved[key] = value
+		return nil
+	}))
+	t.Cleanup(func() {
+		require.NoError(t, config.GlobalConfig.LoadFromDB(saved))
+	})
+
+	require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
+		"billing_setting.billing_mode":       `{"glm-5.2":"tiered_expr"}`,
+		"billing_setting.billing_expr":       `{"glm-5.2":"tier(\"base\", p * 2 + c * 8)"}`,
+		"billing_setting.group_billing_expr": `{"国模分组1":{"glm-5.2":"tier(\"group_1\", p * 4 + c * 14)"},"国模分组2":{"glm-5.2":"tier(\"group_2\", p * 1 + c * 5)"}}`,
+		"group_ratio_setting.group_ratio":    `{"default":0.5,"国模分组1":0.9,"国模分组2":0.25}`,
+	}))
+
+	tests := []struct {
+		group              string
+		expectedQuota      int
+		expectedGroupRatio float64
+		expectedTier       string
+	}{
+		{group: "国模分组1", expectedQuota: 2700, expectedGroupRatio: 1, expectedTier: "group_1"},
+		{group: "国模分组2", expectedQuota: 750, expectedGroupRatio: 1, expectedTier: "group_2"},
+		{group: "default", expectedQuota: 700, expectedGroupRatio: 0.5, expectedTier: "base"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.group, func(t *testing.T) {
+			ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+			ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+			info := &relaycommon.RelayInfo{
+				OriginModelName: "glm-5.2",
+				UserGroup:       test.group,
+				UsingGroup:      test.group,
+				BillingRequestInput: &billingexpr.RequestInput{
+					Body: []byte(`{}`),
+				},
+			}
+
+			priceData, err := ModelPriceHelper(ctx, info, 1000, &types.TokenCountMeta{MaxTokens: 100})
+
+			require.NoError(t, err)
+			require.Equal(t, test.expectedQuota, priceData.QuotaToPreConsume)
+			require.Equal(t, test.expectedGroupRatio, priceData.GroupRatioInfo.GroupRatio)
+			require.NotNil(t, info.TieredBillingSnapshot)
+			require.Equal(t, test.expectedTier, info.TieredBillingSnapshot.EstimatedTier)
+			require.Equal(t, test.expectedGroupRatio, info.TieredBillingSnapshot.GroupRatio)
+		})
+	}
+}
+
 func TestModelPriceHelperTieredPreConsumeMaxTokensFallback(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -271,4 +326,42 @@ func TestModelPriceHelperRequestBillingRatiosOnlyApplyToFixedPrice(t *testing.T)
 	require.Equal(t, "QuotaFromFloat", clamp.Op)
 	require.Equal(t, common.QuotaClampOverflow, clamp.Kind)
 	require.Nil(t, info.Billing)
+}
+
+func TestModelPriceHelperUsesConfiguredImageGenerationTierPrice(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	savedModelPrices := ratio_setting.ModelPrice2JSONString()
+	savedImagePrices := ratio_setting.ImageGenerationPrice2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedModelPrices))
+		require.NoError(t, ratio_setting.UpdateImageGenerationPriceByJSONString(savedImagePrices))
+	})
+
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(`{"tiered-image-model":0.01}`))
+	require.NoError(t, ratio_setting.UpdateImageGenerationPriceByJSONString(
+		`{"tiered-image-model":{"1K":0.02,"2K":0.04,"4K":0.08}}`,
+	))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("group", "default")
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "tiered-image-model",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+	}
+	meta := &types.TokenCountMeta{
+		ImageBillingTier: "4K",
+		ImagePriceRatio:  3,
+		BillingRatios:    map[string]float64{"n": 2},
+	}
+
+	priceData, err := ModelPriceHelper(ctx, info, 0, meta)
+
+	require.NoError(t, err)
+	require.True(t, priceData.UsePrice)
+	require.Equal(t, 0.08, priceData.ModelPrice)
+	// Tier price replaces the legacy size/quality multiplier; image count still applies.
+	expectedQuota, err := common.QuotaFromFloatStrict(0.08 * common.QuotaPerUnit * 2 * ratio_setting.GetGroupRatio("default"))
+	require.NoError(t, err)
+	require.Equal(t, expectedQuota, priceData.QuotaToPreConsume)
 }

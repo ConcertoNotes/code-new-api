@@ -20,11 +20,12 @@ import { Code, Plus, Table, Trash2 } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
 
 type ModelMappingEditorProps = {
   value: string
@@ -326,14 +327,17 @@ export function ModelMappingEditor(props: ModelMappingEditorProps) {
           </Button>
         </TabsContent>
         <TabsContent value='json'>
-          <JsonCodeEditor
+          <Textarea
             value={jsonValue}
-            onChange={handleJsonChange}
+            onChange={(e) => handleJsonChange(e.target.value)}
             placeholder={t('{"original-model": "replacement-model"}')}
             disabled={props.disabled}
-            className={jsonError ? 'border-destructive' : undefined}
+            rows={8}
+            className={cn(
+              'font-mono text-sm',
+              jsonError && 'border-destructive'
+            )}
             aria-invalid={Boolean(jsonError)}
-            ariaLabel={t('Model Mapping')}
           />
         </TabsContent>
       </Tabs>

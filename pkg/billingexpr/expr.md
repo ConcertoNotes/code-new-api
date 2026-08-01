@@ -82,6 +82,7 @@ Powered by [expr-lang/expr](https://github.com/expr-lang/expr). Expressions are 
 | `hour` | `hour(tz) → int` | Current hour in timezone (0-23) |
 | `minute` | `minute(tz) → int` | Current minute (0-59) |
 | `weekday` | `weekday(tz) → int` | Day of week (0=Sunday, 6=Saturday) |
+| `year` | `year(tz) → int` | Year (for example, 2026) |
 | `month` | `month(tz) → int` | Month (1-12) |
 | `day` | `day(tz) → int` | Day of month (1-31) |
 | `max` | `max(a, b) → float64` | Math max |

@@ -28,6 +28,13 @@ export const Route = createFileRoute(
   '/_authenticated/system-settings/content/$section'
 )({
   beforeLoad: ({ params }) => {
+    if (params.section === 'announcements') {
+      throw redirect({
+        to: '/system-settings/site/$section',
+        params: { section: 'notice' },
+      })
+    }
+
     const validSections = CONTENT_SECTION_IDS as unknown as string[]
     if (!validSections.includes(params.section)) {
       throw redirect({

@@ -1,6 +1,7 @@
 .github
 .git
 *.md
+*.tar.gz
 .vscode
 .gitignore
 Makefile
@@ -9,4 +10,7 @@ docs
 .gocache
 /web/node_modules
 /web/dist
+/web/classic
+/web/default
+/homepage-*.html
 !THIRD-PARTY-LICENSES.md

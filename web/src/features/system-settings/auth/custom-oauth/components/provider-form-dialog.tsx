@@ -23,7 +23,6 @@ import { useTranslation } from 'react-i18next'
 
 import { CopyButton } from '@/components/copy-button'
 import { Dialog } from '@/components/dialog'
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -46,6 +45,7 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 
 import {
   SettingsForm,
@@ -604,16 +604,12 @@ export function ProviderFormDialog(props: ProviderFormDialogProps) {
                 <FormItem>
                   <FormLabel>{t('Access Policy (JSON)')}</FormLabel>
                   <FormControl>
-                    <JsonCodeEditor
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      name={field.name}
-                      onBlur={field.onBlur}
-                      textareaRef={field.ref}
+                    <Textarea
                       placeholder={t(
                         'Optional JSON policy to restrict access based on user info fields'
                       )}
-                      heightClassName='h-40 min-h-40 max-h-40'
+                      className='min-h-[80px] font-mono text-xs'
+                      {...field}
                     />
                   </FormControl>
                   <FormDescription>

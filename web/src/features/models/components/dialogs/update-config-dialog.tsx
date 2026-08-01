@@ -26,7 +26,6 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { Dialog } from '@/components/dialog'
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -42,6 +41,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 
 import { getDeployment, updateDeployment } from '../../api'
 import { deploymentsQueryKeys } from '../../lib'
@@ -398,14 +398,10 @@ export function UpdateConfigDialog({
                         <FormItem>
                           <FormLabel>{t('Env (JSON object)')}</FormLabel>
                           <FormControl>
-                            <JsonCodeEditor
-                              value={field.value || ''}
-                              onChange={field.onChange}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              textareaRef={field.ref}
+                            <Textarea
+                              className='min-h-40 font-mono text-xs'
                               placeholder='{"KEY":"VALUE"}'
-                              heightClassName='h-40 min-h-40 max-h-40'
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -419,14 +415,10 @@ export function UpdateConfigDialog({
                         <FormItem>
                           <FormLabel>{t('Secret env (JSON object)')}</FormLabel>
                           <FormControl>
-                            <JsonCodeEditor
-                              value={field.value || ''}
-                              onChange={field.onChange}
-                              name={field.name}
-                              onBlur={field.onBlur}
-                              textareaRef={field.ref}
+                            <Textarea
+                              className='min-h-40 font-mono text-xs'
                               placeholder='{"SECRET":"VALUE"}'
-                              heightClassName='h-40 min-h-40 max-h-40'
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />

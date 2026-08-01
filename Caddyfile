@@ -1,0 +1,19 @@
+code.strova.top {
+    reverse_proxy new-api:3000
+}
+
+codex.strova.top {
+    reverse_proxy codex2api:8080
+}
+
+draw.strova.top {
+    handle_path /qiniu/* {
+        reverse_proxy http://tj2onpkq1.hd-bkt.clouddn.com {
+            header_up Host tj2onpkq1.hd-bkt.clouddn.com
+        }
+    }
+
+    handle {
+        reverse_proxy novanovastudio-nginx:80
+    }
+}

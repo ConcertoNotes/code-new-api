@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { SettingsPage } from '../components/settings-page'
-import type { SiteSettings } from '../types'
+import type { SiteSettings, SystemOption } from '../types'
 import {
   SITE_DEFAULT_SECTION,
   getSiteSectionContent,
@@ -26,6 +26,8 @@ import {
 
 const defaultSiteSettings: SiteSettings = {
   Notice: '',
+  'console_setting.announcements': '[]',
+  'console_setting.announcements_enabled': true,
   SystemName: 'New API',
   Logo: '',
   Footer: '',
@@ -38,6 +40,30 @@ const defaultSiteSettings: SiteSettings = {
   SidebarModulesAdmin: '',
 }
 
+function resolveSiteSettings(
+  settings: SiteSettings,
+  raw: SystemOption[] | undefined
+): SiteSettings {
+  if (
+    !raw ||
+    raw.some((option) => option.key === 'console_setting.announcements')
+  ) {
+    return settings
+  }
+
+  const legacyAnnouncements = raw.find(
+    (option) => option.key === 'Announcements'
+  )?.value
+  if (legacyAnnouncements === undefined) {
+    return settings
+  }
+
+  return {
+    ...settings,
+    'console_setting.announcements': legacyAnnouncements,
+  }
+}
+
 export function SiteSettings() {
   return (
     <SettingsPage
@@ -46,6 +72,7 @@ export function SiteSettings() {
       defaultSection={SITE_DEFAULT_SECTION}
       getSectionContent={getSiteSectionContent}
       getSectionMeta={getSiteSectionMeta}
+      resolveSettings={resolveSiteSettings}
     />
   )
 }

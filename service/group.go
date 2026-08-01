@@ -1,12 +1,47 @@
 package service
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
+
+const MaxTokenFallbackGroups = 8
+
+func ValidateTokenFallbackGroups(userGroup, primaryGroup string, fallbackGroups []string) error {
+	if len(fallbackGroups) == 0 {
+		return nil
+	}
+	if primaryGroup == "" || primaryGroup == "auto" {
+		return errors.New("兜底分组仅支持指定的主分组")
+	}
+	if len(fallbackGroups) > MaxTokenFallbackGroups {
+		return fmt.Errorf("兜底分组最多允许 %d 个", MaxTokenFallbackGroups)
+	}
+
+	usableGroups := GetUserUsableGroups(userGroup)
+	if _, ok := usableGroups[primaryGroup]; !ok || !ratio_setting.ContainsGroupRatio(primaryGroup) {
+		return fmt.Errorf("无权访问主分组 %s", primaryGroup)
+	}
+	seen := map[string]struct{}{primaryGroup: {}}
+	for _, group := range fallbackGroups {
+		if group == "" || group == "auto" {
+			return errors.New("兜底分组不能包含空分组或 auto 分组")
+		}
+		if _, exists := seen[group]; exists {
+			return fmt.Errorf("分组 %s 重复", group)
+		}
+		if _, ok := usableGroups[group]; !ok || !ratio_setting.ContainsGroupRatio(group) {
+			return fmt.Errorf("无权访问兜底分组 %s", group)
+		}
+		seen[group] = struct{}{}
+	}
+	return nil
+}
 
 func GetUserUsableGroups(userGroup string) map[string]string {
 	groupsCopy := setting.GetUserUsableGroupsCopy()

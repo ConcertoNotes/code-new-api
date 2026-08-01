@@ -63,7 +63,6 @@ import {
   sideDrawerSectionClassName,
   sideDrawerSwitchItemClassName,
 } from '@/components/drawer-layout'
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { JsonEditor } from '@/components/json-editor'
 import { MultiSelect } from '@/components/multi-select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -3913,18 +3912,17 @@ export function ChannelMutateDrawer({
                                       </div>
                                     </div>
                                     <FormControl>
-                                      <JsonCodeEditor
+                                      <Textarea
                                         value={field.value || ''}
                                         onChange={field.onChange}
-                                        name={field.name}
-                                        onBlur={field.onBlur}
-                                        textareaRef={field.ref}
                                         disabled={
                                           sensitiveLocked || isSubmitting
                                         }
+                                        rows={8}
                                         placeholder={t(
                                           'Override request parameters. Cannot override stream parameter.'
                                         )}
+                                        className='max-h-72 min-h-40 resize-y overflow-auto font-mono text-xs'
                                       />
                                     </FormControl>
                                     <FormMessage />
@@ -3988,6 +3986,25 @@ export function ChannelMutateDrawer({
                                         </Button>
                                         <Button
                                           type='button'
+                                          variant='outline'
+                                          size='sm'
+                                          onClick={() => {
+                                            try {
+                                              const parsed = JSON.parse(
+                                                field.value || '{}'
+                                              )
+                                              field.onChange(
+                                                JSON.stringify(parsed, null, 2)
+                                              )
+                                            } catch {
+                                              /* ignore invalid JSON */
+                                            }
+                                          }}
+                                        >
+                                          {t('Format')}
+                                        </Button>
+                                        <Button
+                                          type='button'
                                           variant='ghost'
                                           size='sm'
                                           onClick={() => field.onChange('')}
@@ -3997,19 +4014,17 @@ export function ChannelMutateDrawer({
                                       </div>
                                     </div>
                                     <FormControl>
-                                      <JsonCodeEditor
+                                      <Textarea
+                                        className='font-mono text-sm'
+                                        rows={6}
                                         value={field.value || ''}
                                         onChange={field.onChange}
-                                        name={field.name}
-                                        onBlur={field.onBlur}
-                                        textareaRef={field.ref}
                                         disabled={
                                           sensitiveLocked || isSubmitting
                                         }
                                         placeholder={t(
                                           'Enter JSON to override request headers'
                                         )}
-                                        heightClassName='h-40 min-h-40 max-h-40'
                                       />
                                     </FormControl>
                                     <FormDescription className='text-xs'>

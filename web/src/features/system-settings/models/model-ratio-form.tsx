@@ -49,6 +49,7 @@ import {
 
 type ModelFormValues = {
   ModelPrice: string
+  ImageGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -59,6 +60,7 @@ type ModelFormValues = {
   ExposeRatioEnabled: boolean
   BillingMode: string
   BillingExpr: string
+  GroupBillingExpr: string
 }
 
 type ModelRatioFormProps = {
@@ -73,6 +75,7 @@ type ModelRatioFormProps = {
 
 type ModelJsonFieldName =
   | 'ModelPrice'
+  | 'ImageGenerationPrice'
   | 'ModelRatio'
   | 'CacheRatio'
   | 'CreateCacheRatio'
@@ -80,6 +83,7 @@ type ModelJsonFieldName =
   | 'ImageRatio'
   | 'AudioRatio'
   | 'AudioCompletionRatio'
+  | 'GroupBillingExpr'
 
 const modelJsonFields: Array<{
   name: ModelJsonFieldName
@@ -91,6 +95,12 @@ const modelJsonFields: Array<{
     labelKey: 'Model fixed pricing',
     descriptionKey:
       'JSON map of model → USD cost per request. Takes precedence over ratio based billing.',
+  },
+  {
+    name: 'ImageGenerationPrice',
+    labelKey: 'Image generation pricing',
+    descriptionKey:
+      'JSON map of model → 1K/2K/4K USD price per generated image. Structured size parameters take priority; an unambiguous prompt resolution is used as fallback.',
   },
   {
     name: 'ModelRatio',
@@ -130,6 +140,12 @@ const modelJsonFields: Array<{
     labelKey: 'Audio completion ratio',
     descriptionKey: 'Ratio applied to audio completions for streaming models.',
   },
+  {
+    name: 'GroupBillingExpr',
+    labelKey: 'Group-specific model pricing',
+    descriptionKey:
+      'JSON map of group to model to billing expression. Prices are final customer prices and do not apply the group ratio again.',
+  },
 ]
 
 function ModelJsonTextareaField(props: {
@@ -149,9 +165,6 @@ function ModelJsonTextareaField(props: {
             <JsonCodeEditor
               value={field.value}
               onChange={(value) => field.onChange(value)}
-              name={field.name}
-              onBlur={field.onBlur}
-              textareaRef={field.ref}
             />
           </FormControl>
           <FormDescription className='text-xs leading-5'>

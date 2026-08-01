@@ -457,6 +457,7 @@ func TokenAuth() func(c *gin.Context) {
 
 		userGroup := userCache.Group
 		tokenGroup := token.Group
+		fallbackGroups := token.FallbackGroups.Values()
 		if tokenGroup != "" {
 			// check common.UserUsableGroups[userGroup]
 			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
@@ -471,6 +472,12 @@ func TokenAuth() func(c *gin.Context) {
 				}
 			}
 			userGroup = tokenGroup
+		}
+		if len(fallbackGroups) > 0 {
+			if err := service.ValidateTokenFallbackGroups(common.GetContextKeyString(c, constant.ContextKeyUserGroup), tokenGroup, fallbackGroups); err != nil {
+				abortWithOpenAiMessage(c, http.StatusForbidden, err.Error())
+				return
+			}
 		}
 		common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
 
@@ -502,6 +509,7 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	}
 	common.SetContextKey(c, constant.ContextKeyTokenGroup, token.Group)
 	common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, token.CrossGroupRetry)
+	common.SetContextKey(c, constant.ContextKeyTokenFallbackGroups, token.FallbackGroups.Values())
 	if len(parts) > 1 {
 		if model.IsAdmin(token.UserId) {
 			c.Set("specific_channel_id", parts[1])

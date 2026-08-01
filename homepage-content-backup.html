@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 模型聚合平台</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+                   'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #292524;
+      background: #faf8f4;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== Hero ===== */
+    .hero {
+      text-align: center;
+      padding: 120px 20px 100px;
+      background: linear-gradient(150deg, #451a03 0%, #78350f 45%, #b45309 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before,
+    .hero::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(90px);
+    }
+    .hero::before {
+      top: -80px; left: -40px;
+      width: 380px; height: 380px;
+      background: rgba(217,119,6,0.25);
+    }
+    .hero::after {
+      bottom: -100px; right: -60px;
+      width: 450px; height: 450px;
+      background: rgba(234,88,12,0.15);
+    }
+    .hero h1 {
+      font-size: 56px;
+      font-weight: 700;
+      letter-spacing: -0.005em;
+      line-height: 1.07;
+      margin-bottom: 12px;
+      color: #fff;
+      position: relative;
+    }
+    .hero .subtitle {
+      font-size: 28px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .hero .desc {
+      font-size: 21px;
+      color: rgba(255,255,255,0.65);
+      font-weight: 400;
+      max-width: 500px;
+      margin: 0 auto 40px;
+      line-height: 1.38;
+      position: relative;
+    }
+
+    /* ===== 按钮 ===== */
+    .btn-primary {
+      display: inline-block;
+      padding: 14px 32px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 980px;
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 500;
+      transition: background 0.3s, transform 0.2s;
+      position: relative;
+    }
+    .btn-primary:hover {
+      background: rgba(255,255,255,0.28);
+      transform: translateY(-1px);
+    }
+    /* 浅色区域按钮 */
+    .btn-solid {
+      display: inline-block;
+      padding: 14px 32px;
+      background: #b45309;
+      color: #fff;
+      border-radius: 980px;
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 500;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .btn-solid:hover {
+      background: #92400e;
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      display: inline-block;
+      padding: 12px 28px;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 17px;
+      font-weight: 400;
+      transition: color 0.3s;
+      position: relative;
+    }
+    .btn-secondary:hover { color: #fff; text-decoration: underline; }
+
+    /* ===== 容器 ===== */
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 80px 20px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: 48px;
+      font-weight: 600;
+      letter-spacing: -0.003em;
+      line-height: 1.08;
+      margin-bottom: 12px;
+      color: #292524;
+    }
+    .section-desc {
+      text-align: center;
+      font-size: 21px;
+      color: #78716c;
+      margin-bottom: 56px;
+      line-height: 1.38;
+    }
+
+    /* ===== 特性区域 ===== */
+    .features-section {
+      background: linear-gradient(180deg, #faf8f4 0%, #f5f0e8 50%, #faf8f4 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .features-section::before {
+      content: '';
+      position: absolute;
+      top: 15%; right: -5%;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(180,83,9,0.04);
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      position: relative;
+    }
+    @media (max-width: 734px) {
+      .features { grid-template-columns: 1fr; }
+    }
+    .feature-card {
+      background: rgba(255,253,250,0.65);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,253,250,0.8);
+      border-radius: 20px;
+      padding: 40px 36px;
+      transition: transform 0.3s, box-shadow 0.3s;
+      box-shadow: 0 2px 16px rgba(120,53,15,0.04);
+    }
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(180,83,9,0.08);
+    }
+    .feature-card .icon { font-size: 40px; margin-bottom: 16px; }
+    .feature-card h3 {
+      font-size: 24px; font-weight: 600;
+      margin-bottom: 8px; color: #292524;
+    }
+    .feature-card p {
+      font-size: 17px; color: #78716c; line-height: 1.47;
+    }
+
+    /* ===== 模型区域 ===== */
+    .models-section {
+      background: linear-gradient(180deg, #faf8f4, #f5f0e8, #faf8f4);
+      padding: 80px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .models-section::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 500px; height: 350px;
+      background: radial-gradient(ellipse, rgba(217,119,6,0.04), transparent 70%);
+      pointer-events: none;
+    }
+    .model-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      max-width: 980px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .model-tag {
+      background: rgba(255,253,250,0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 10px 20px;
+      border-radius: 980px;
+      font-size: 15px;
+      color: #292524;
+      border: 1px solid rgba(255,253,250,0.75);
+      transition: all 0.3s;
+      box-shadow: 0 2px 8px rgba(120,53,15,0.03);
+    }
+    .model-tag:hover {
+      background: rgba(255,253,250,0.9);
+      border-color: rgba(180,83,9,0.2);
+      box-shadow: 0 4px 16px rgba(180,83,9,0.08);
+    }
+
+    /* ===== 步骤 ===== */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 40px;
+    }
+    @media (max-width: 734px) {
+      .steps { grid-template-columns: 1fr; gap: 32px; }
+    }
+    .step { text-align: center; }
+    .step-number {
+      width: 52px; height: 52px;
+      background: rgba(255,253,250,0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,253,250,0.75);
+      color: #b45309;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 22px;
+      font-weight: 700;
+      box-shadow: 0 4px 16px rgba(180,83,9,0.06);
+    }
+    .step h3 {
+      font-size: 24px; font-weight: 600;
+      margin-bottom: 8px; color: #292524;
+    }
+    .step p {
+      font-size: 17px; color: #78716c; line-height: 1.47;
+    }
+
+    /* ===== 底部 CTA ===== */
+    .cta {
+      text-align: center;
+      padding: 80px 20px;
+      background: linear-gradient(150deg, #78350f 0%, #451a03 45%, #b45309 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .cta::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -30px;
+      width: 300px; height: 300px;
+      border-radius: 50%;
+      background: rgba(217,119,6,0.18);
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .cta h2 {
+      font-size: 48px; font-weight: 600;
+      margin-bottom: 12px; color: #fff;
+      position: relative;
+    }
+    .cta p {
+      font-size: 21px;
+      color: rgba(255,255,255,0.7);
+      margin-bottom: 32px;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <section class="hero">
+    <h1>我爱code</h1>
+    <p class="subtitle">AI 模型聚合平台</p>
+    <p class="desc">专注 Codex 模型中转服务，价格更低，速度更快，稳定可靠</p>
+    <a href="/console" class="btn-primary">开始使用</a>
+    <a href="#features" class="btn-secondary">进一步了解 &gt;</a>
+  </section>
+
+  <!-- 特性 -->
+  <div class="features-section">
+    <div class="container" id="features">
+      <h2 class="section-title">为什么选择我们</h2>
+      <p class="section-desc">简单、快速、可靠</p>
+      <div class="features">
+        <div class="feature-card">
+          <div class="icon">🚀</div>
+          <h3>极速响应</h3>
+          <p>全球节点加速，低延迟高可用，让每一次请求都快人一步。</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">💰</div>
+          <h3>超低价格</h3>
+          <p>官方价格一折起，按量计费不浪费，用多少付多少。</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔒</div>
+          <h3>安全稳定</h3>
+          <p>企业级安全保障，99.9% 可用性，数据传输全程加密。</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🔄</div>
+          <h3>无缝兼容</h3>
+          <p>完全兼容 OpenAI 格式，一键切换零成本，无需改动代码。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Codex 能力 -->
+  <section class="models-section">
+    <h2 class="section-title">专注 Codex 模型</h2>
+    <p class="section-desc">强大的代码生成与理解能力，为开发者而生</p>
+    <div class="model-tags">
+      <span class="model-tag">代码生成</span>
+      <span class="model-tag">代码补全</span>
+      <span class="model-tag">代码解释</span>
+      <span class="model-tag">Bug 修复</span>
+      <span class="model-tag">代码重构</span>
+      <span class="model-tag">多语言支持</span>
+      <span class="model-tag">OpenAI 兼容</span>
+    </div>
+  </section>
+
+  <!-- 使用步骤 -->
+  <div class="container">
+    <h2 class="section-title">三步开始使用</h2>
+    <p class="section-desc">简单到不需要文档</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>注册账号</h3>
+        <p>点击"开始使用"，几秒完成注册</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>获取密钥</h3>
+        <p>在控制台创建你的 API Key</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>开始调用</h3>
+        <p>替换 API 地址，即刻使用</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部 CTA -->
+  <section class="cta">
+    <h2>准备好了吗？</h2>
+    <p>立即注册，开启你的 AI 之旅</p>
+    <a href="/console" class="btn-primary">免费注册</a>
+  </section>
+
+</body>
+</html>
+

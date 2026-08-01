@@ -24,7 +24,6 @@ import { toast } from 'sonner'
 
 import { Dialog } from '@/components/dialog'
 import { GroupBadge } from '@/components/group-badge'
-import { JsonCodeEditor } from '@/components/json-code-editor'
 import { StatusBadge } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,6 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
 
 import {
   editTagChannels,
@@ -370,12 +370,13 @@ export function EditTagDialog({ open, onOpenChange }: EditTagDialogProps) {
                 {t('(Optional: redirect model names)')}
               </span>
             </Label>
-            <JsonCodeEditor
+            <Textarea
               id='model-mapping'
               value={modelMapping}
-              onChange={setModelMapping}
+              onChange={(e) => setModelMapping(e.target.value)}
               placeholder={'{\n  "gpt-3.5-turbo": "gpt-3.5-turbo-0125"\n}'}
-              heightClassName='h-40 min-h-40 max-h-40'
+              rows={4}
+              className='font-mono text-sm'
             />
             <div className='flex gap-2'>
               <Button

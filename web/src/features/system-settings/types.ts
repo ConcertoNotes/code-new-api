@@ -108,6 +108,8 @@ export type SystemTaskListResponse = {
 
 export type SiteSettings = {
   Notice: string
+  'console_setting.announcements': string
+  'console_setting.announcements_enabled': boolean
   SystemName: string
   Logo: string
   Footer: string
@@ -167,11 +169,9 @@ export type AuthSettings = {
 
 export type ContentSettings = {
   'console_setting.api_info': string
-  'console_setting.announcements': string
   'console_setting.faq': string
   'console_setting.uptime_kuma_groups': string
   'console_setting.api_info_enabled': boolean
-  'console_setting.announcements_enabled': boolean
   'console_setting.faq_enabled': boolean
   'console_setting.uptime_kuma_enabled': boolean
   DataExportEnabled: boolean
@@ -206,6 +206,7 @@ export type ModelSettings = {
   'grok.violation_deduction_enabled': boolean
   'grok.violation_deduction_amount': number
   ModelPrice: string
+  ImageGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -216,6 +217,7 @@ export type ModelSettings = {
   ExposeRatioEnabled: boolean
   'billing_setting.billing_mode': string
   'billing_setting.billing_expr': string
+  'billing_setting.group_billing_expr': string
   'tool_price_setting.prices': string
   TopupGroupRatio: string
   GroupRatio: string
@@ -260,6 +262,7 @@ export type BillingSettings = {
   DisplayInCurrencyEnabled: boolean
   DisplayTokenStatEnabled: boolean
   ModelPrice: string
+  ImageGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -270,6 +273,7 @@ export type BillingSettings = {
   ExposeRatioEnabled: boolean
   'billing_setting.billing_mode': string
   'billing_setting.billing_expr': string
+  'billing_setting.group_billing_expr': string
   'tool_price_setting.prices': string
   TopupGroupRatio: string
   GroupRatio: string

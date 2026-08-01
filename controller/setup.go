@@ -135,6 +135,20 @@ func PostSetup(c *gin.Context) {
 		return
 	}
 
+	// When self-use mode is enabled, disable all registration to prevent unauthorized signups
+	if req.SelfUseModeEnabled {
+		common.RegisterEnabled = false
+		common.PasswordRegisterEnabled = false
+		if err = model.UpdateOption("RegisterEnabled", "false"); err != nil {
+			c.JSON(200, gin.H{"success": false, "message": "保存注册设置失败: " + err.Error()})
+			return
+		}
+		if err = model.UpdateOption("PasswordRegisterEnabled", "false"); err != nil {
+			c.JSON(200, gin.H{"success": false, "message": "保存密码注册设置失败: " + err.Error()})
+			return
+		}
+	}
+
 	err = model.UpdateOption("DemoSiteEnabled", boolToString(req.DemoSiteEnabled))
 	if err != nil {
 		c.JSON(200, gin.H{

@@ -198,10 +198,14 @@ func getModelListGroups(c *gin.Context) (modelListGroups, error) {
 	if tokenGroup != "" {
 		group = tokenGroup
 	}
+	ownerGroups := []string{group}
+	if fallbackGroups, ok := common.GetContextKeyType[[]string](c, constant.ContextKeyTokenFallbackGroups); ok {
+		ownerGroups = append(ownerGroups, fallbackGroups...)
+	}
 	return modelListGroups{
 		userGroup:   userGroup,
 		tokenGroup:  tokenGroup,
-		ownerGroups: []string{group},
+		ownerGroups: ownerGroups,
 	}, nil
 }
 

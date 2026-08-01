@@ -32,6 +32,79 @@ For commercial licensing, please contact support@quantumnous.com
  *   blocks so an explicit user choice overrides the preset's default radius.
  */
 
+/* ── Aurora ───────────────────────────────────────────────────────────── */
+[data-theme-preset='aurora'] {
+  --background: oklch(0.955 0.025 245);
+  --foreground: oklch(0.19 0.035 260);
+  --primary: oklch(0.57 0.19 260);
+  --primary-foreground: oklch(0.99 0.005 240);
+  --secondary: oklch(0.91 0.04 225);
+  --secondary-foreground: oklch(0.27 0.06 255);
+  --ring: oklch(0.62 0.17 255);
+  --chart-1: oklch(0.61 0.2 258);
+  --chart-2: oklch(0.67 0.16 190);
+  --chart-3: oklch(0.63 0.17 305);
+  --chart-4: oklch(0.73 0.14 155);
+  --chart-5: oklch(0.67 0.17 330);
+  --sidebar-primary: oklch(0.57 0.19 260);
+  --sidebar-primary-foreground: oklch(0.99 0.005 240);
+  --sidebar-ring: oklch(0.62 0.17 255);
+  --app-canvas-background:
+    radial-gradient(
+      circle at 12% 18%,
+      oklch(0.76 0.15 285 / 48%),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 82% 12%,
+      oklch(0.8 0.13 180 / 46%),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 58% 86%,
+      oklch(0.72 0.17 245 / 40%),
+      transparent 44%
+    ),
+    linear-gradient(145deg, oklch(0.96 0.025 265), oklch(0.93 0.035 205));
+  --app-canvas-background-size: 145% 145%, 150% 150%, 140% 140%, 100% 100%;
+  --radius: 0.75rem;
+}
+
+.dark [data-theme-preset='aurora'] {
+  --background: oklch(0.245 0.045 265);
+  --foreground: oklch(0.96 0.015 230);
+  --primary: oklch(0.7 0.17 252);
+  --primary-foreground: oklch(0.16 0.04 265);
+  --secondary: oklch(0.34 0.07 248);
+  --secondary-foreground: oklch(0.94 0.025 220);
+  --ring: oklch(0.73 0.16 248);
+  --chart-1: oklch(0.75 0.16 250);
+  --chart-2: oklch(0.78 0.14 185);
+  --chart-3: oklch(0.75 0.15 305);
+  --chart-4: oklch(0.8 0.14 155);
+  --chart-5: oklch(0.75 0.16 330);
+  --sidebar-primary: oklch(0.7 0.17 252);
+  --sidebar-primary-foreground: oklch(0.16 0.04 265);
+  --sidebar-ring: oklch(0.73 0.16 248);
+  --app-canvas-background:
+    radial-gradient(
+      circle at 10% 16%,
+      oklch(0.58 0.19 295 / 42%),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 86% 10%,
+      oklch(0.66 0.17 180 / 34%),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at 56% 88%,
+      oklch(0.58 0.2 245 / 40%),
+      transparent 46%
+    ),
+    linear-gradient(145deg, oklch(0.2 0.055 280), oklch(0.22 0.045 225));
+}
+
 /* ── Underground ──────────────────────────────────────────────────────── */
 [data-theme-preset='underground'] {
   --primary: oklch(0.5315 0.0694 156.19);

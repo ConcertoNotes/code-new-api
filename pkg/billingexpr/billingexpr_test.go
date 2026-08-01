@@ -796,7 +796,7 @@ func TestTimeFunctions_ValidTimezone(t *testing.T) {
 }
 
 func TestTimeFunctions_AllFunctionsCompile(t *testing.T) {
-	exprStr := `tier("default", p) * (hour("Asia/Shanghai") >= 0 ? 1 : 1) * (minute("UTC") >= 0 ? 1 : 1) * (weekday("UTC") >= 0 ? 1 : 1) * (month("UTC") >= 1 ? 1 : 1) * (day("UTC") >= 1 ? 1 : 1)`
+	exprStr := `tier("default", p) * (hour("Asia/Shanghai") >= 0 ? 1 : 1) * (minute("UTC") >= 0 ? 1 : 1) * (weekday("UTC") >= 0 ? 1 : 1) * (year("UTC") >= 2026 ? 1 : 1) * (month("UTC") >= 1 ? 1 : 1) * (day("UTC") >= 1 ? 1 : 1)`
 	cost, _, err := billingexpr.RunExpr(exprStr, billingexpr.TokenParams{P: 500})
 	if err != nil {
 		t.Fatal(err)

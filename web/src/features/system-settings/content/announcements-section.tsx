@@ -77,6 +77,7 @@ type Announcement = {
 type AnnouncementsSectionProps = {
   enabled: boolean
   data: string
+  titleKey?: string
 }
 
 const announcementSchema = z.object({
@@ -129,14 +130,11 @@ const typeOptions = [
   },
 ]
 
-export function AnnouncementsSection({
-  enabled,
-  data,
-}: AnnouncementsSectionProps) {
+export function AnnouncementsSection(props: AnnouncementsSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [isEnabled, setIsEnabled] = useState(enabled)
+  const [isEnabled, setIsEnabled] = useState(props.enabled)
   const [hasChanges, setHasChanges] = useState(false)
   const [selectedIds, setSelectedIds] = useState<number[]>([])
   const [showDialog, setShowDialog] = useState(false)
@@ -157,7 +155,7 @@ export function AnnouncementsSection({
 
   useEffect(() => {
     try {
-      const parsed = JSON.parse(data || '[]')
+      const parsed = JSON.parse(props.data || '[]')
       if (Array.isArray(parsed)) {
         setAnnouncements(
           parsed.map((item, idx) => ({
@@ -169,11 +167,11 @@ export function AnnouncementsSection({
     } catch {
       setAnnouncements([])
     }
-  }, [data])
+  }, [props.data])
 
   useEffect(() => {
-    setIsEnabled(enabled)
-  }, [enabled])
+    setIsEnabled(props.enabled)
+  }, [props.enabled])
 
   const handleToggleEnabled = async (checked: boolean) => {
     try {
@@ -310,7 +308,7 @@ export function AnnouncementsSection({
   }
 
   return (
-    <SettingsSection title={t('Announcements')}>
+    <SettingsSection title={t(props.titleKey ?? 'Announcements')}>
       <div className='space-y-4'>
         <div className='flex flex-wrap items-center justify-between gap-2'>
           <div className='flex flex-wrap items-center gap-2'>

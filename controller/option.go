@@ -10,6 +10,7 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/console_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
@@ -20,6 +21,7 @@ import (
 
 var completionRatioMetaOptionKeys = []string{
 	"ModelPrice",
+	"ImageGenerationPrice",
 	"ModelRatio",
 	"CompletionRatio",
 	"CacheRatio",
@@ -235,6 +237,15 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
+	case "billing_setting.group_billing_expr":
+		err = billing_setting.ValidateGroupBillingExpr(option.Value.(string))
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"success": false,
+				"message": err.Error(),
+			})
+			return
+		}
 	case "ImageRatio":
 		err = ratio_setting.UpdateImageRatioByJSONString(option.Value.(string))
 		if err != nil {
@@ -335,7 +346,28 @@ func UpdateOption(c *gin.Context) {
 			return
 		}
 	}
-	err = model.UpdateOption(option.Key, option.Value.(string))
+	if option.Key == "GroupRatio" {
+		var validGroups map[string]float64
+		if err = common.UnmarshalJsonStr(option.Value.(string), &validGroups); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		prunedExpr, changed, pruneErr := billing_setting.PruneGroupBillingExpr(validGroups)
+		if pruneErr != nil {
+			common.ApiError(c, pruneErr)
+			return
+		}
+		if changed {
+			err = model.UpdateOptionsBulk(map[string]string{
+				option.Key:                           option.Value.(string),
+				"billing_setting.group_billing_expr": prunedExpr,
+			})
+		} else {
+			err = model.UpdateOption(option.Key, option.Value.(string))
+		}
+	} else {
+		err = model.UpdateOption(option.Key, option.Value.(string))
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return
