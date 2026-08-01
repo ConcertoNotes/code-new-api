@@ -31,7 +31,24 @@ import { Button } from '@/components/ui/button'
 // Bump this suffix to force all visitors to re-accept after a wording change.
 const STORAGE_KEY = 'overseas_disclaimer_accepted_v1'
 
-const DISCLAIMER = {
+type AgreementSection = {
+  heading: string
+  paragraphs: string[]
+}
+
+type DisclaimerCopy = {
+  title: string
+  intro: string
+  items: string[]
+  footer: string
+  agree: string
+  leave: string
+  agreementTitle?: string
+  agreementIntro?: string
+  agreementSections?: AgreementSection[]
+}
+
+const DISCLAIMER: Record<'zh' | 'en', DisclaimerCopy> = {
   zh: {
     title: '服务声明与免责条款',
     intro: '请在使用本服务前仔细阅读以下声明：',
@@ -194,8 +211,8 @@ export function DisclaimerDialog() {
                   <div key={section.heading}>
                     <p className='text-sm font-medium'>{section.heading}</p>
                     <div className='mt-1 space-y-1.5'>
-                      {section.paragraphs.map((p, i) => (
-                        <p key={i} className='text-muted-foreground text-xs leading-6'>
+                      {section.paragraphs.map((p) => (
+                        <p key={`${section.heading}-${p}`} className='text-muted-foreground text-xs leading-6'>
                           {p}
                         </p>
                       ))}
