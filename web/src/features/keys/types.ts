@@ -35,6 +35,7 @@ export const apiKeySchema = z.object({
   accessed_time: z.number(),
   group: z.string().nullish().default(''),
   fallback_groups: z.array(z.string()).optional().default([]),
+  auto_groups: z.array(z.string()).nullish().default(null),
   cross_group_retry: z
     .preprocess((v) => {
       if (v === 1) return true
@@ -93,7 +94,13 @@ export interface ApiKeyFormData {
   allow_ips: string
   group: string
   fallback_groups: string[]
+  auto_groups: string[]
   cross_group_retry: boolean
+}
+
+export interface TokenAutoGroupsConfig {
+  groups: string[]
+  max_count: number
 }
 
 // ============================================================================

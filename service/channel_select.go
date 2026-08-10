@@ -8,7 +8,6 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
-	"github.com/QuantumNous/new-api/setting"
 	"github.com/gin-gonic/gin"
 )
 
@@ -91,10 +90,11 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 	crossGroupRetry := false
 
 	if param.TokenGroup == "auto" {
-		if len(setting.GetAutoGroups()) == 0 {
+		autoGroups := GetRequestAutoGroups(param.Ctx, userGroup)
+		if len(autoGroups) == 0 {
 			return nil, selectGroup, errors.New("auto groups is not enabled")
 		}
-		orderedGroups = GetUserAutoGroup(userGroup)
+		orderedGroups = append(orderedGroups, autoGroups...)
 		crossGroupRetry = common.GetContextKeyBool(param.Ctx, constant.ContextKeyTokenCrossGroupRetry)
 	} else if fallbackGroups, ok := common.GetContextKeyType[[]string](param.Ctx, constant.ContextKeyTokenFallbackGroups); ok && len(fallbackGroups) > 0 {
 		orderedGroups = append(orderedGroups, param.TokenGroup)

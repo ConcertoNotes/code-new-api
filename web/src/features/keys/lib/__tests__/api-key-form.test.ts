@@ -60,6 +60,7 @@ describe('API key fallback groups', () => {
       accessed_time: 1,
       group: 'primary',
       fallback_groups: ['backup-b', 'backup-a'],
+      auto_groups: null,
       cross_group_retry: false,
       model_limits_enabled: false,
       model_limits: '',
