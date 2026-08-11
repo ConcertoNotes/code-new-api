@@ -30,6 +30,8 @@ func TestConvertImageEditRequestMultipart(t *testing.T) {
 		require.NoError(t, writer.WriteField("prompt", prompt))
 		require.NoError(t, writer.WriteField("stream", "true"))
 		require.NoError(t, writer.WriteField("partial_images", "3"))
+		require.NoError(t, writer.WriteField("response_format", "b64_json"))
+		require.NoError(t, writer.WriteField("size", "1024x1024"))
 		part, err := writer.CreateFormFile("image", "input.png")
 		require.NoError(t, err)
 		_, err = part.Write([]byte("fake image"))
@@ -47,9 +49,11 @@ func TestConvertImageEditRequestMultipart(t *testing.T) {
 			RelayMode: relayconstant.RelayModeImagesEdits,
 		}
 		request := dto.ImageRequest{
-			Model:  "gpt-image-1",
-			Prompt: prompt,
-			Stream: common.GetPointer(true),
+			Model:          "gpt-image-1",
+			Prompt:         prompt,
+			ResponseFormat: "b64_json",
+			Size:           "4k",
+			Stream:         common.GetPointer(true),
 		}
 
 		converted, err := (&Adaptor{}).ConvertImageRequest(c, info, request)
@@ -65,6 +69,8 @@ func TestConvertImageEditRequestMultipart(t *testing.T) {
 		require.Equal(t, prompt, replayedRequest.PostForm.Get("prompt"))
 		require.Equal(t, "true", replayedRequest.PostForm.Get("stream"))
 		require.Equal(t, "3", replayedRequest.PostForm.Get("partial_images"))
+		require.Equal(t, "b64_json", replayedRequest.PostForm.Get("response_format"))
+		require.Equal(t, "4k", replayedRequest.PostForm.Get("size"))
 		require.Len(t, replayedRequest.MultipartForm.File["image"], 1)
 
 		file, err := replayedRequest.MultipartForm.File["image"][0].Open()

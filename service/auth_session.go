@@ -64,25 +64,11 @@ func createLoginSession(userID int, expectedAuthVersion int64, loginMethod, ip, 
 	if expectedAuthVersion > 0 && user.AuthVersion != expectedAuthVersion {
 		return nil, ErrLoginSessionRevoked
 	}
-	now := time.Now().Unix()
-	activeCount, err := model.CountActiveUserSessions(userID, now)
-	if err != nil {
-		return nil, err
-	}
-	if activeCount >= int64(common.UserSessionActiveLimit) {
-		return nil, model.ErrUserSessionLimit
-	}
-	issuanceCount, err := model.CountUserSessionsCreatedSince(userID, now-common.UserSessionIssuanceWindowSeconds)
-	if err != nil {
-		return nil, err
-	}
-	if issuanceCount >= int64(common.UserSessionIssuanceLimit) {
-		return nil, model.ErrUserSessionIssuanceLimit
-	}
 	refreshSecret, err := common.GenerateRandomCharsKey(64)
 	if err != nil {
 		return nil, err
 	}
+	now := time.Now().Unix()
 	session := &model.UserSession{
 		SID:             uuid.NewString(),
 		UserID:          userID,
@@ -387,10 +373,6 @@ func truncateAuthMetadata(value string, max int) string {
 
 func authSessionErrorCode(err error) (int, string) {
 	switch {
-	case errors.Is(err, model.ErrUserSessionLimit):
-		return http.StatusConflict, "AUTH_SESSION_LIMIT"
-	case errors.Is(err, model.ErrUserSessionIssuanceLimit):
-		return http.StatusTooManyRequests, "AUTH_SESSION_ISSUANCE_LIMIT"
 	case errors.Is(err, ErrLoginSessionMismatch):
 		return http.StatusConflict, "AUTH_SESSION_MISMATCH"
 	case errors.Is(err, ErrRefreshRace):

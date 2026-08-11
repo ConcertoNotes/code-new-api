@@ -17,3 +17,7 @@ draw.strova.top {
         reverse_proxy novanovastudio-nginx:80
     }
 }
+
+price.strova.top {
+    reverse_proxy price-models:3000
+}

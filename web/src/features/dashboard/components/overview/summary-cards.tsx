@@ -19,85 +19,19 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight, Flame, ShieldCheck, TrendingDown } from 'lucide-react'
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { StaggerContainer, StaggerItem } from '@/components/page-transition'
 import { Button } from '@/components/ui/button'
-import { getUserQuotaDates } from '@/features/dashboard/api'
+import { getUserUsageSummary } from '@/features/dashboard/api'
 import { useSummaryCardsConfig } from '@/features/dashboard/hooks/use-dashboard-config'
-import type { QuotaDataItem } from '@/features/dashboard/types'
 import { useStatus } from '@/hooks/use-status'
-import { getCurrencyLabel, isCurrencyDisplayEnabled } from '@/lib/currency'
-import { formatNumber, formatQuota } from '@/lib/format'
-import { computeTimeRange } from '@/lib/time'
+import { formatQuotaWithCurrency, getCurrencyDisplay } from '@/lib/currency'
+import { formatCompactNumber, formatNumber, formatQuota } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { StatCard } from '../ui/stat-card'
-
-const SUMMARY_SPARKLINE_BUCKETS = 12
-
-type SummarySparklineKey = 'balance' | 'usage' | 'requests'
-
-function getBucketIndex(
-  timestamp: number,
-  start: number,
-  end: number,
-  bucketCount: number
-): number {
-  if (end <= start) return 0
-  const ratio = (timestamp - start) / (end - start)
-  return Math.min(bucketCount - 1, Math.max(0, Math.floor(ratio * bucketCount)))
-}
-
-function buildSummarySparklines(
-  data: QuotaDataItem[],
-  currentBalance: number,
-  start: number,
-  end: number
-): Record<SummarySparklineKey, number[]> {
-  const usage = Array.from({ length: SUMMARY_SPARKLINE_BUCKETS }, () => 0)
-  const requests = Array.from({ length: SUMMARY_SPARKLINE_BUCKETS }, () => 0)
-
-  for (const item of data) {
-    const timestamp = Number(item.created_at) || start
-    const index = getBucketIndex(
-      timestamp,
-      start,
-      end,
-      SUMMARY_SPARKLINE_BUCKETS
-    )
-    usage[index] += Number(item.quota) || 0
-    requests[index] += Number(item.count) || 0
-  }
-
-  let balance = currentBalance
-  const balanceTrend = Array.from(
-    { length: SUMMARY_SPARKLINE_BUCKETS },
-    () => 0
-  )
-
-  for (let index = SUMMARY_SPARKLINE_BUCKETS - 1; index >= 0; index--) {
-    balanceTrend[index] = Math.max(0, balance)
-    balance += usage[index]
-  }
-
-  return {
-    balance: balanceTrend,
-    usage,
-    requests,
-  }
-}
-
-function getSummarySparkline(
-  key: string,
-  sparklineData: Record<SummarySparklineKey, number[]>
-): number[] | undefined {
-  if (key === 'usage') return sparklineData.usage
-  if (key === 'requests') return sparklineData.requests
-  return undefined
-}
 
 function getRunwayDays(
   remainQuota: number,
@@ -139,78 +73,33 @@ const HEALTH_CONFIG: Record<
 export function SummaryCards() {
   const { t } = useTranslation()
   const user = useAuthStore((state) => state.auth.user)
-  const { status, loading } = useStatus()
+  const { loading } = useStatus()
 
-  const summaryTimeRange = useMemo(() => computeTimeRange(1), [])
   const remainQuota = Number(user?.quota ?? 0)
-  const usedQuota = Number(user?.used_quota ?? 0)
-  const requestCount = Number(user?.request_count ?? 0)
 
-  const usageTrendQuery = useQuery({
-    queryKey: [
-      'dashboard',
-      'overview',
-      'summary-sparklines',
-      summaryTimeRange.start_timestamp,
-      summaryTimeRange.end_timestamp,
-    ],
-    queryFn: async () =>
-      getUserQuotaDates({
-        start_timestamp: summaryTimeRange.start_timestamp,
-        end_timestamp: summaryTimeRange.end_timestamp,
-        default_time: 'hour',
-      }),
+  const usageSummaryQuery = useQuery({
+    queryKey: ['dashboard', 'overview', 'usage-summary'],
+    queryFn: getUserUsageSummary,
     staleTime: 60 * 1000,
   })
 
-  const summaryValues = useMemo(() => {
-    return {
-      usedDisplay: formatQuota(usedQuota),
-      requestCountDisplay: formatNumber(requestCount),
-    }
-  }, [requestCount, usedQuota])
-
-  const currencyEnabledFromStore = isCurrencyDisplayEnabled()
-  const statusCurrencyFlag =
-    typeof status?.display_in_currency === 'boolean'
-      ? Boolean(status.display_in_currency)
-      : undefined
-  const currencyEnabled =
-    statusCurrencyFlag !== undefined
-      ? statusCurrencyFlag
-      : currencyEnabledFromStore
-  const currencyLabel = currencyEnabled ? getCurrencyLabel() : 'Tokens'
-
-  const sparklineData = useMemo(
-    () =>
-      buildSummarySparklines(
-        usageTrendQuery.data?.data ?? [],
-        remainQuota,
-        summaryTimeRange.start_timestamp,
-        summaryTimeRange.end_timestamp
-      ),
-    [
-      remainQuota,
-      summaryTimeRange.end_timestamp,
-      summaryTimeRange.start_timestamp,
-      usageTrendQuery.data?.data,
-    ]
-  )
-
-  const recentUsage = useMemo(
-    () =>
-      (usageTrendQuery.data?.data ?? []).reduce(
-        (total, item) => total + (Number(item.quota) || 0),
-        0
-      ),
-    [usageTrendQuery.data?.data]
-  )
+  const recentUsage = usageSummaryQuery.data?.data.last_24_hours.quota ?? 0
+  const totalUsage = usageSummaryQuery.data?.data.all_time.quota ?? 0
+  const quotaPerUnit = getCurrencyDisplay().config.quotaPerUnit
+  const formatUSD = (amount: number) =>
+    new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 4,
+    }).format(amount)
+  const formatOfficialQuotaUSD = (officialQuota: number) =>
+    formatUSD(officialQuota / quotaPerUnit)
 
   const healthLevel = getHealthLevel(remainQuota, recentUsage)
   const healthCfg = HEALTH_CONFIG[healthLevel]
   const runwayDays = getRunwayDays(remainQuota, recentUsage)
 
-  const todayUsageDisplay = formatQuota(recentUsage)
   let runwayDisplay: string
   if (runwayDays !== null) {
     if (runwayDays < 1) {
@@ -227,25 +116,42 @@ export function SummaryCards() {
   }
 
   const items = useSummaryCardsConfig({
-    ...summaryValues,
-    todayUsageDisplay,
-    currencyEnabled,
-    currencyLabel,
+    recentUsageDisplay: formatQuotaWithCurrency(recentUsage),
+    recentOfficialDisplay: formatOfficialQuotaUSD(
+      usageSummaryQuery.data?.data.last_24_hours.official_quota ?? 0
+    ),
+    totalUsageDisplay: formatQuotaWithCurrency(totalUsage),
+    totalOfficialDisplay: formatOfficialQuotaUSD(
+      usageSummaryQuery.data?.data.all_time.official_quota ?? 0
+    ),
+    recentRequestCountDisplay: formatNumber(
+      usageSummaryQuery.data?.data.last_24_hours.requests ?? 0
+    ),
+    totalRequestCountDisplay: formatNumber(
+      usageSummaryQuery.data?.data.all_time.requests ?? 0
+    ),
+    recentTokenCountDisplay: formatCompactNumber(
+      usageSummaryQuery.data?.data.last_24_hours.total_tokens ?? 0
+    ),
+    recentInputOutputDisplay: `${formatCompactNumber(
+      usageSummaryQuery.data?.data.last_24_hours.input_tokens ?? 0
+    )} / ${formatCompactNumber(
+      usageSummaryQuery.data?.data.last_24_hours.output_tokens ?? 0
+    )}`,
+    totalTokenCountDisplay: formatCompactNumber(
+      usageSummaryQuery.data?.data.all_time.total_tokens ?? 0
+    ),
   }).map((config, index) => {
-    const tones = ['accent-1', 'accent-2', 'accent-3'] as const
+    const tones = ['accent-1', 'accent-2', 'accent-3', 'accent-1'] as const
 
     return {
       key: config.key,
       title: config.title,
       value: config.value,
       desc: config.description,
+      details: config.details,
       icon: config.icon,
       tone: tones[index] ?? 'accent-3',
-      sparkline:
-        config.key === 'todayUsage'
-          ? sparklineData.usage
-          : getSummarySparkline(config.key, sparklineData),
-      sparklineVariant: 'line' as const,
     }
   })
 
@@ -263,7 +169,7 @@ export function SummaryCards() {
               </p>
             </div>
           </div>
-          <StaggerContainer className='grid grid-cols-3 gap-1.5 sm:gap-3'>
+          <StaggerContainer className='grid grid-cols-2 gap-1.5 sm:gap-3 xl:grid-cols-4'>
             {items.map((it) => (
               <StaggerItem
                 key={it.key}
@@ -273,11 +179,11 @@ export function SummaryCards() {
                   title={it.title}
                   value={it.value}
                   description={it.desc}
+                  details={it.details}
                   icon={it.icon}
                   tone={it.tone}
-                  sparkline={it.sparkline}
-                  sparklineVariant={it.sparklineVariant}
-                  loading={loading}
+                  loading={loading || usageSummaryQuery.isLoading}
+                  error={usageSummaryQuery.isError}
                   compactMobile
                 />
               </StaggerItem>

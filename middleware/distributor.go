@@ -111,7 +111,7 @@ func Distribute() func(c *gin.Context) {
 							userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
 							autoGroups := service.GetRequestAutoGroups(c, userGroup)
 							for _, g := range autoGroups {
-								if model.IsChannelEnabledForGroupModel(g, modelRequest.Model, preferred.Id) {
+								if model.IsChannelHighestPriorityForGroupModel(g, modelRequest.Model, preferred.Id, c.Request.URL.Path) {
 									selectGroup = g
 									common.SetContextKey(c, constant.ContextKeyAutoGroup, g)
 									channel = preferred
@@ -120,7 +120,7 @@ func Distribute() func(c *gin.Context) {
 									break
 								}
 							}
-						} else if model.IsChannelEnabledForGroupModel(usingGroup, modelRequest.Model, preferred.Id) {
+						} else if model.IsChannelHighestPriorityForGroupModel(usingGroup, modelRequest.Model, preferred.Id, c.Request.URL.Path) {
 							channel = preferred
 							selectGroup = usingGroup
 							affinityUsable = true

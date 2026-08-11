@@ -21,6 +21,7 @@ import { api } from '@/lib/api'
 import type {
   FlowQuotaDataItem,
   QuotaDataItem,
+  UserUsageSummary,
   UptimeGroupResult,
 } from './types'
 
@@ -48,6 +49,14 @@ export async function getUserQuotaDates(
     endpoint,
     { params }
   )
+  return res.data
+}
+
+export async function getUserUsageSummary() {
+  const res = await api.get<{
+    success: boolean
+    data: UserUsageSummary
+  }>('/api/data/self/summary')
   return res.data
 }
 

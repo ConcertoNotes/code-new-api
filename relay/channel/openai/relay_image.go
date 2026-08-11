@@ -49,6 +49,11 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 		return nil, types.WithOpenAIError(*oaiError, resp.StatusCode)
 	}
 
+	responseBody, err = addOpenAIImageBase64(responseBody, service.GetImageFromUrl)
+	if err != nil {
+		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusBadGateway)
+	}
+
 	updateOpenAIImageCount(info, gjson.GetBytes(responseBody, "data.#").Int())
 
 	// 写入新的 response body
@@ -57,6 +62,35 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 	normalizeOpenAIUsage(&usageResp.Usage)
 	applyUsagePostProcessing(info, &usageResp.Usage, responseBody)
 	return &usageResp.Usage, nil
+}
+
+func addOpenAIImageBase64(responseBody []byte, download func(string) (string, string, error)) ([]byte, error) {
+	imageCount := gjson.GetBytes(responseBody, "data.#").Int()
+	for i := int64(0); i < imageCount; i++ {
+		path := "data." + strconv.FormatInt(i, 10)
+		if b64JSON := gjson.GetBytes(responseBody, path+".b64_json"); b64JSON.Type == gjson.String && b64JSON.String() != "" {
+			continue
+		}
+
+		imageURL := gjson.GetBytes(responseBody, path+".url")
+		if imageURL.Type != gjson.String || strings.TrimSpace(imageURL.String()) == "" {
+			continue
+		}
+
+		_, base64Data, err := download(imageURL.String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert upstream image data[%d] to b64_json: %w", i, err)
+		}
+		if base64Data == "" {
+			return nil, fmt.Errorf("upstream image data[%d] converted to empty b64_json", i)
+		}
+
+		responseBody, err = sjson.SetBytes(responseBody, path+".b64_json", base64Data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode upstream image data[%d]: %w", i, err)
+		}
+	}
+	return responseBody, nil
 }
 
 // normalizeOpenAIUsage maps the OpenAI Images usage shape (input_tokens /

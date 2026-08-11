@@ -207,7 +207,12 @@ function BarSparkline(props: { values?: number[]; tone: StatCardTone }) {
 
 function StatCardDetails(props: { details: StatCardDetail[] }) {
   return (
-    <div className='grid grid-cols-2 gap-2'>
+    <div
+      className={cn(
+        'grid gap-2',
+        props.details.length > 1 ? 'grid-cols-2' : 'grid-cols-1'
+      )}
+    >
       {props.details.map((detail) => (
         <div
           key={detail.label}
@@ -325,7 +330,9 @@ export function StatCard(props: StatCardProps) {
 
       {valueContent}
 
-      <div className='hidden sm:block'>{visualization}</div>
+      <div className={cn(!props.details?.length && 'hidden sm:block')}>
+        {visualization}
+      </div>
     </div>
   )
 }

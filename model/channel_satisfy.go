@@ -42,6 +42,70 @@ func IsChannelEnabledForAnyGroupModel(groups []string, modelName string, channel
 	return false
 }
 
+// IsChannelHighestPriorityForGroupModel reports whether channelID is eligible
+// in the highest currently available priority tier for this request. This keeps
+// affinity within a tier without allowing it to pin traffic to a fallback tier
+// after a higher-priority channel becomes available again.
+func IsChannelHighestPriorityForGroupModel(group string, modelName string, channelID int, requestPath string) bool {
+	if group == "" || modelName == "" || channelID <= 0 {
+		return false
+	}
+	if !common.MemoryCacheEnabled {
+		var abilities []Ability
+		DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, modelName, true).Find(&abilities)
+		abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, modelName)
+		if len(abilities) == 0 {
+			normalized := ratio_setting.FormatMatchingModelName(modelName)
+			if normalized != "" && normalized != modelName {
+				DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, normalized, true).Find(&abilities)
+				abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, modelName)
+			}
+		}
+		var highestPriority int64
+		var channelPriority int64
+		hasHighestPriority := false
+		channelFound := false
+		for _, ability := range abilities {
+			priority := int64(0)
+			if ability.Priority != nil {
+				priority = *ability.Priority
+			}
+			if !hasHighestPriority || priority > highestPriority {
+				highestPriority = priority
+				hasHighestPriority = true
+			}
+			if ability.ChannelId == channelID {
+				channelPriority = priority
+				channelFound = true
+			}
+		}
+		return channelFound && hasHighestPriority && channelPriority == highestPriority
+	}
+
+	channelSyncLock.RLock()
+	defer channelSyncLock.RUnlock()
+
+	if group2model2channels == nil {
+		return false
+	}
+	channels := filterChannelsByRequestPathAndModel(group2model2channels[group][modelName], requestPath, modelName)
+	if len(channels) == 0 {
+		normalized := ratio_setting.FormatMatchingModelName(modelName)
+		if normalized != "" && normalized != modelName {
+			channels = filterChannelsByRequestPathAndModel(group2model2channels[group][normalized], requestPath, modelName)
+		}
+	}
+	if len(channels) == 0 || !isChannelIDInList(channels, channelID) {
+		return false
+	}
+	channel, ok := channelsIDM[channelID]
+	if !ok {
+		return false
+	}
+	highest, ok := channelsIDM[channels[0]]
+	return ok && channel.GetPriority() == highest.GetPriority()
+}
+
 func isChannelEnabledForGroupModelDB(group string, modelName string, channelID int) bool {
 	var count int64
 	err := DB.Model(&Ability{}).

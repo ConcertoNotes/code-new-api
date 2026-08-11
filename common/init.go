@@ -137,9 +137,6 @@ func InitEnv() {
 }
 
 func initUserSessionSettings() {
-	UserSessionActiveLimit = positiveUserSessionEnv("USER_SESSION_ACTIVE_LIMIT", DefaultUserSessionActiveLimit)
-	UserSessionIssuanceLimit = positiveUserSessionEnv("USER_SESSION_ISSUANCE_LIMIT", DefaultUserSessionIssuanceLimit)
-	UserSessionIssuanceWindowSeconds = int64(positiveUserSessionEnv("USER_SESSION_ISSUANCE_WINDOW_SECONDS", DefaultUserSessionIssuanceWindowSeconds))
 	UserSessionRevokedRetentionDays = positiveUserSessionEnv("USER_SESSION_REVOKED_RETENTION_DAYS", DefaultUserSessionRevokedRetentionDays)
 	UserSessionHourlyAlertThreshold = positiveUserSessionEnv("USER_SESSION_HOURLY_ALERT_THRESHOLD", DefaultUserSessionHourlyAlertThreshold)
 
@@ -150,17 +147,6 @@ func initUserSessionSettings() {
 			DefaultUserSessionRevokedRetentionDays,
 		))
 		UserSessionRevokedRetentionDays = DefaultUserSessionRevokedRetentionDays
-	}
-	retentionSeconds := int64(UserSessionRevokedRetentionDays) * secondsPerDay
-	if UserSessionIssuanceWindowSeconds > retentionSeconds {
-		configuredWindow := UserSessionIssuanceWindowSeconds
-		UserSessionIssuanceWindowSeconds = retentionSeconds
-		SysError(fmt.Sprintf(
-			"USER_SESSION_ISSUANCE_WINDOW_SECONDS exceeds revoked retention; configured_window_seconds=%d revoked_retention_seconds=%d effective_window_seconds=%d",
-			configuredWindow,
-			retentionSeconds,
-			UserSessionIssuanceWindowSeconds,
-		))
 	}
 }
 

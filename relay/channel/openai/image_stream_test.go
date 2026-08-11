@@ -35,6 +35,26 @@ func newImageTestContext(t *testing.T, body, contentType string, isStream bool) 
 	return c, recorder, resp, info
 }
 
+func TestAddOpenAIImageBase64(t *testing.T) {
+	body := `{"created":1710000000,"data":[{"url":"https://images.example/generated.png","revised_prompt":"draw a cat"}],"usage":{"input_tokens":3}}`
+	converted, err := addOpenAIImageBase64([]byte(body), func(url string) (string, string, error) {
+		require.Equal(t, "https://images.example/generated.png", url)
+		return "image/png", "encoded-image", nil
+	})
+	require.NoError(t, err)
+	require.JSONEq(t, `{"created":1710000000,"data":[{"url":"https://images.example/generated.png","b64_json":"encoded-image","revised_prompt":"draw a cat"}],"usage":{"input_tokens":3}}`, string(converted))
+}
+
+func TestAddOpenAIImageBase64PreservesExistingBase64(t *testing.T) {
+	body := []byte(`{"data":[{"b64_json":"already-encoded"}]}`)
+	converted, err := addOpenAIImageBase64(body, func(string) (string, string, error) {
+		t.Fatal("download must not be called for an existing b64_json value")
+		return "", "", nil
+	})
+	require.NoError(t, err)
+	require.JSONEq(t, string(body), string(converted))
+}
+
 func TestOpenaiImageDoResponseUsesInfoIsStream(t *testing.T) {
 	oldMode := gin.Mode()
 	gin.SetMode(gin.TestMode)

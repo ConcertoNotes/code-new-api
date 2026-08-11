@@ -31,8 +31,6 @@ var (
 	ErrUserSessionRefreshInvalid        = errors.New("user session refresh token is invalid")
 	ErrUserSessionRefreshRace           = errors.New("user session refresh is already in progress")
 	ErrUserSessionRefreshReuse          = errors.New("user session refresh token was reused")
-	ErrUserSessionLimit                 = errors.New("active user session limit reached")
-	ErrUserSessionIssuanceLimit         = errors.New("user session issuance limit reached")
 	errUserSessionCacheObservationStale = errors.New("user session cache observation is stale")
 )
 
@@ -777,34 +775,31 @@ func DeleteExpiredUserSessions(now int64) error {
 	if now <= 0 {
 		now = time.Now().Unix()
 	}
-	if common.UserSessionRevokedRetentionDays <= 0 || common.UserSessionIssuanceWindowSeconds <= 0 {
+	if common.UserSessionRevokedRetentionDays <= 0 {
 		return ErrUserSessionInvalid
 	}
-	issuanceCutoff := now - common.UserSessionIssuanceWindowSeconds
 	revokedBefore := now - int64(common.UserSessionRevokedRetentionDays)*24*60*60
-	return deleteExpiredUserSessionsBefore(now, issuanceCutoff, revokedBefore)
+	return deleteExpiredUserSessionsBefore(now, revokedBefore)
 }
 
 func DeleteOldRevokedUserSessions(now int64) error {
 	if now <= 0 {
 		now = time.Now().Unix()
 	}
-	if common.UserSessionRevokedRetentionDays <= 0 || common.UserSessionIssuanceWindowSeconds <= 0 {
+	if common.UserSessionRevokedRetentionDays <= 0 {
 		return ErrUserSessionInvalid
 	}
-	issuanceCutoff := now - common.UserSessionIssuanceWindowSeconds
 	revokedBefore := now - int64(common.UserSessionRevokedRetentionDays)*24*60*60
-	return deleteRevokedUserSessionsBefore(revokedBefore, issuanceCutoff)
+	return deleteRevokedUserSessionsBefore(revokedBefore)
 }
 
-func deleteExpiredUserSessionsBefore(expiredBefore, issuanceCutoff, revokedBefore int64) error {
+func deleteExpiredUserSessionsBefore(expiredBefore, revokedBefore int64) error {
 	for {
 		var sids []string
 		if err := DB.Model(&UserSession{}).
 			Where(
-				"expires_at < ? AND created_at <= ? AND (status <> ? OR revoked_at <= 0 OR revoked_at < ?)",
+				"expires_at < ? AND (status <> ? OR revoked_at <= 0 OR revoked_at < ?)",
 				expiredBefore,
-				issuanceCutoff,
 				UserSessionStatusRevoked,
 				revokedBefore,
 			).
@@ -821,9 +816,8 @@ func deleteExpiredUserSessionsBefore(expiredBefore, issuanceCutoff, revokedBefor
 			}
 			if err := DB.Where("sid IN ?", sids[start:end]).
 				Where(
-					"expires_at < ? AND created_at <= ? AND (status <> ? OR revoked_at <= 0 OR revoked_at < ?)",
+					"expires_at < ? AND (status <> ? OR revoked_at <= 0 OR revoked_at < ?)",
 					expiredBefore,
-					issuanceCutoff,
 					UserSessionStatusRevoked,
 					revokedBefore,
 				).
@@ -834,15 +828,14 @@ func deleteExpiredUserSessionsBefore(expiredBefore, issuanceCutoff, revokedBefor
 	}
 }
 
-func deleteRevokedUserSessionsBefore(revokedBefore, issuanceCutoff int64) error {
+func deleteRevokedUserSessionsBefore(revokedBefore int64) error {
 	for {
 		var sids []string
 		if err := DB.Model(&UserSession{}).
 			Where(
-				"status = ? AND revoked_at > 0 AND revoked_at < ? AND created_at <= ?",
+				"status = ? AND revoked_at > 0 AND revoked_at < ?",
 				UserSessionStatusRevoked,
 				revokedBefore,
-				issuanceCutoff,
 			).
 			Order("revoked_at").Limit(userSessionCleanupScanLimit).Pluck("sid", &sids).Error; err != nil {
 			return err
@@ -857,10 +850,9 @@ func deleteRevokedUserSessionsBefore(revokedBefore, issuanceCutoff int64) error 
 			}
 			if err := DB.Where("sid IN ?", sids[start:end]).
 				Where(
-					"status = ? AND revoked_at > 0 AND revoked_at < ? AND created_at <= ?",
+					"status = ? AND revoked_at > 0 AND revoked_at < ?",
 					UserSessionStatusRevoked,
 					revokedBefore,
-					issuanceCutoff,
 				).
 				Delete(&UserSession{}).Error; err != nil {
 				return err

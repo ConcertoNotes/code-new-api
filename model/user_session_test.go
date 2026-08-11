@@ -45,20 +45,11 @@ func setupUserSessionTest(t *testing.T) {
 	require.NoError(t, DB.AutoMigrate(&User{}, &UserSession{}))
 	require.NoError(t, DB.Exec("DELETE FROM user_sessions").Error)
 	oldRedisEnabled := common.RedisEnabled
-	oldActiveLimit := common.UserSessionActiveLimit
-	oldIssuanceLimit := common.UserSessionIssuanceLimit
-	oldIssuanceWindow := common.UserSessionIssuanceWindowSeconds
 	oldRevokedRetention := common.UserSessionRevokedRetentionDays
 	common.RedisEnabled = false
-	common.UserSessionActiveLimit = common.DefaultUserSessionActiveLimit
-	common.UserSessionIssuanceLimit = common.DefaultUserSessionIssuanceLimit
-	common.UserSessionIssuanceWindowSeconds = int64(common.DefaultUserSessionIssuanceWindowSeconds)
 	common.UserSessionRevokedRetentionDays = common.DefaultUserSessionRevokedRetentionDays
 	t.Cleanup(func() {
 		common.RedisEnabled = oldRedisEnabled
-		common.UserSessionActiveLimit = oldActiveLimit
-		common.UserSessionIssuanceLimit = oldIssuanceLimit
-		common.UserSessionIssuanceWindowSeconds = oldIssuanceWindow
 		common.UserSessionRevokedRetentionDays = oldRevokedRetention
 	})
 }
@@ -502,7 +493,6 @@ func TestDeleteExpiredUserSessionsLoopsInChunksAndRechecksPredicate(t *testing.T
 	setupUserSessionTest(t)
 	now := time.Now().Unix()
 	common.UserSessionRevokedRetentionDays = 7
-	common.UserSessionIssuanceWindowSeconds = 3600
 	oldCreatedAt := now - 7200
 	rows := make([]UserSession, 0, userSessionCleanupScanLimit+5)
 	race := newTestUserSession("cleanup-race", 1009, now-1000)
@@ -562,7 +552,7 @@ func TestDeleteExpiredUserSessionsLoopsInChunksAndRechecksPredicate(t *testing.T
 	assert.Equal(t, 4, deleteCalls, "expired and retained-revoked scans each delete in bounded chunks")
 	var remaining []UserSession
 	require.NoError(t, DB.Order("sid").Find(&remaining).Error)
-	require.Len(t, remaining, 6)
+	require.Len(t, remaining, 5)
 	remainingSIDs := make([]string, 0, len(remaining))
 	for _, session := range remaining {
 		remainingSIDs = append(remainingSIDs, session.SID)
@@ -570,7 +560,6 @@ func TestDeleteExpiredUserSessionsLoopsInChunksAndRechecksPredicate(t *testing.T
 	assert.ElementsMatch(t, []string{
 		race.SID,
 		recentRevoked.SID,
-		recentIssuedExpired.SID,
 		expiryBoundary.SID,
 		revokedBoundary.SID,
 		live.SID,

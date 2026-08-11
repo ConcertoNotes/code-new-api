@@ -33,6 +33,7 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 	if err != nil {
 		return types.NewError(fmt.Errorf("failed to copy request to ImageRequest: %w", err), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
+	applyImageModelResolutionTier(request)
 
 	err = helper.ModelMappedHelper(c, info, request)
 	if err != nil {
@@ -153,4 +154,17 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 
 	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), logContent)
 	return nil
+}
+
+func applyImageModelResolutionTier(request *dto.ImageRequest) {
+	if request == nil {
+		return
+	}
+	model := strings.ToLower(strings.TrimSpace(request.Model))
+	for _, tier := range []string{"1k", "2k", "4k"} {
+		if strings.HasSuffix(model, "-"+tier) {
+			request.Size = tier
+			return
+		}
+	}
 }

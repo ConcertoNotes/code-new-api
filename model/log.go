@@ -615,6 +615,103 @@ type Stat struct {
 	Tpm   int `json:"tpm"`
 }
 
+type UsageSummaryPeriod struct {
+	Quota         int64   `json:"quota"`
+	OfficialQuota float64 `json:"official_quota"`
+	Requests      int64   `json:"requests"`
+	InputTokens   int64   `json:"input_tokens"`
+	OutputTokens  int64   `json:"output_tokens"`
+	TotalTokens   int64   `json:"total_tokens"`
+}
+
+type UserUsageSummary struct {
+	WindowStart int64              `json:"window_start"`
+	WindowEnd   int64              `json:"window_end"`
+	Last24Hours UsageSummaryPeriod `json:"last_24_hours"`
+	AllTime     UsageSummaryPeriod `json:"all_time"`
+}
+
+// GetUserUsageSummary returns site-wide data when userID is zero. Consume logs
+// written before official_quota was introduced fall back to reversing the
+// recorded group multiplier.
+func GetUserUsageSummary(userID int, windowStart int64, windowEnd int64) (UserUsageSummary, error) {
+	var row struct {
+		RecentQuota         int64
+		RecentOfficialQuota float64
+		RecentRequests      int64
+		RecentInputTokens   int64
+		RecentOutputTokens  int64
+		TotalQuota          int64
+		TotalOfficialQuota  float64
+		TotalRequests       int64
+		TotalInputTokens    int64
+		TotalOutputTokens   int64
+	}
+
+	groupRatioExpression := "COALESCE(CASE WHEN json_valid(other) THEN CAST(json_extract(other, '$.group_ratio') AS REAL) END, 1)"
+	recordedOfficialQuotaExpression := "CASE WHEN json_valid(other) THEN CAST(json_extract(other, '$.official_quota') AS REAL) END"
+	switch common.LogDatabaseType() {
+	case common.DatabaseTypeMySQL:
+		groupRatioExpression = "COALESCE(CASE WHEN JSON_VALID(other) THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(other, '$.group_ratio')) AS DECIMAL(20, 8)) END, 1)"
+		recordedOfficialQuotaExpression = "CASE WHEN JSON_VALID(other) THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(other, '$.official_quota')) AS DECIMAL(20, 8)) END"
+	case common.DatabaseTypePostgreSQL:
+		groupRatioExpression = "COALESCE(CAST(CASE WHEN other = '' THEN NULL ELSE CAST(other AS jsonb) ->> 'group_ratio' END AS DOUBLE PRECISION), 1)"
+		recordedOfficialQuotaExpression = "CAST(CASE WHEN other = '' THEN NULL ELSE CAST(other AS jsonb) ->> 'official_quota' END AS DOUBLE PRECISION)"
+	case common.DatabaseTypeClickHouse:
+		groupRatioExpression = "if(JSONExtractFloat(other, 'group_ratio') > 0, JSONExtractFloat(other, 'group_ratio'), 1)"
+		recordedOfficialQuotaExpression = "if(JSONHas(other, 'official_quota'), JSONExtractFloat(other, 'official_quota'), NULL)"
+	}
+	officialQuotaExpression := fmt.Sprintf(
+		"COALESCE(%s, CASE WHEN %s > 0 THEN quota / %s ELSE quota END)",
+		recordedOfficialQuotaExpression,
+		groupRatioExpression,
+		groupRatioExpression,
+	)
+	selectExpression := fmt.Sprintf(`
+			COALESCE(SUM(CASE WHEN created_at >= ? THEN quota ELSE 0 END), 0) AS recent_quota,
+			COALESCE(SUM(CASE WHEN created_at >= ? THEN %s ELSE 0 END), 0) AS recent_official_quota,
+			COALESCE(SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END), 0) AS recent_requests,
+			COALESCE(SUM(CASE WHEN created_at >= ? THEN prompt_tokens ELSE 0 END), 0) AS recent_input_tokens,
+			COALESCE(SUM(CASE WHEN created_at >= ? THEN completion_tokens ELSE 0 END), 0) AS recent_output_tokens,
+			COALESCE(SUM(quota), 0) AS total_quota,
+			COALESCE(SUM(%s), 0) AS total_official_quota,
+			COUNT(*) AS total_requests,
+			COALESCE(SUM(prompt_tokens), 0) AS total_input_tokens,
+			COALESCE(SUM(completion_tokens), 0) AS total_output_tokens`, officialQuotaExpression, officialQuotaExpression)
+
+	query := LOG_DB.Table("logs").
+		Select(selectExpression, windowStart, windowStart, windowStart, windowStart, windowStart).
+		Where("type = ? AND created_at <= ?", LogTypeConsume, windowEnd)
+	if userID > 0 {
+		query = query.Where("user_id = ?", userID)
+	}
+	err := query.Scan(&row).Error
+	if err != nil {
+		return UserUsageSummary{}, err
+	}
+
+	return UserUsageSummary{
+		WindowStart: windowStart,
+		WindowEnd:   windowEnd,
+		Last24Hours: UsageSummaryPeriod{
+			Quota:         row.RecentQuota,
+			OfficialQuota: row.RecentOfficialQuota,
+			Requests:      row.RecentRequests,
+			InputTokens:   row.RecentInputTokens,
+			OutputTokens:  row.RecentOutputTokens,
+			TotalTokens:   row.RecentInputTokens + row.RecentOutputTokens,
+		},
+		AllTime: UsageSummaryPeriod{
+			Quota:         row.TotalQuota,
+			OfficialQuota: row.TotalOfficialQuota,
+			Requests:      row.TotalRequests,
+			InputTokens:   row.TotalInputTokens,
+			OutputTokens:  row.TotalOutputTokens,
+			TotalTokens:   row.TotalInputTokens + row.TotalOutputTokens,
+		},
+	}, nil
+}
+
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {
 	tx := LOG_DB.Table("logs").Select("COALESCE(sum(quota), 0) quota")
 

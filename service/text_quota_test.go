@@ -114,6 +114,31 @@ func TestCalculateTextQuotaSummaryUsesSplitClaudeCacheCreationRatios(t *testing.
 	require.Equal(t, 118, summary.Quota)
 }
 
+func TestCalculateTextQuotaSummaryRecordsStandardCostBeforeGroupMultiplier(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(w)
+
+	relayInfo := &relaycommon.RelayInfo{
+		OriginModelName: "discounted-model",
+		PriceData: hosttypes.PriceData{
+			ModelRatio:      1,
+			CompletionRatio: 5,
+			GroupRatioInfo:  hosttypes.GroupRatioInfo{GroupRatio: 0.2},
+		},
+		StartTime: time.Now(),
+	}
+	usage := &dto.Usage{
+		PromptTokens:     1000,
+		CompletionTokens: 100,
+	}
+
+	summary := calculateTextQuotaSummary(ctx, relayInfo, usage)
+
+	assert.Equal(t, 300, summary.Quota)
+	assert.True(t, summary.OfficialQuota.Equal(decimal.NewFromInt(1500)))
+}
+
 func TestCalculateTextQuotaSummaryUsesAnthropicUsageSemanticFromUpstreamUsage(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
@@ -642,6 +667,7 @@ func TestComposeTieredTextQuotaFallbackKeepsToolCallSurcharges(t *testing.T) {
 	quota := composeTieredTextQuota(relayInfo, summary, 1250, nil)
 
 	require.Equal(t, int64(12500), summary.ToolCallSurchargeQuota.Round(0).IntPart())
+	require.Equal(t, int64(10000), summary.OfficialToolSurcharge.Round(0).IntPart())
 	require.Equal(t, 13750, quota)
 }
 
