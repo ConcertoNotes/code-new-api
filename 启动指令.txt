@@ -1,0 +1,7 @@
+cd /www/projects/new-api
+git pull --ff-only origin main
+docker compose pull new-api
+docker compose up -d --no-deps new-api
+docker compose ps new-api
+docker inspect new-api --format '{{.State.Health.Status}}'
+curl -fsS https://code.strova.top/api/status
