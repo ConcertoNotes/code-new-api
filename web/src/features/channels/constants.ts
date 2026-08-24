@@ -299,6 +299,53 @@ export const DEFAULT_CHANNEL_VALUES = {
 export const CHANNELS_TABLE_PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 // ============================================================================
+// Channel Test Endpoints (label values are i18n keys)
+// ============================================================================
+
+export const CHANNEL_TEST_ENDPOINT_OPTIONS = [
+  { value: 'auto', label: 'Auto detect (default)' },
+  { value: 'openai', label: 'OpenAI (/v1/chat/completions)' },
+  { value: 'openai-response', label: 'OpenAI Responses (/v1/responses)' },
+  {
+    value: 'openai-response-compact',
+    label: 'OpenAI Response Compaction (/v1/responses/compact)',
+  },
+  { value: 'anthropic', label: 'Anthropic (/v1/messages)' },
+  {
+    value: 'gemini',
+    label: 'Gemini (/v1beta/models/{model}:generateContent)',
+  },
+  { value: 'jina-rerank', label: 'Jina Rerank (/v1/rerank)' },
+  {
+    value: 'image-generation',
+    label: 'Image Generation (/v1/images/generations)',
+  },
+  {
+    value: 'openai-video',
+    label: 'OpenAI Video (/v1/videos)',
+  },
+  {
+    value: 'video-generation',
+    label: 'Video Generation (/v1/video/generations)',
+  },
+  { value: 'embeddings', label: 'Embeddings (/v1/embeddings)' },
+] as const
+
+export const CHANNEL_TEST_DISABLED_ENDPOINTS = new Set([
+  'openai-video',
+  'video-generation',
+])
+
+export const CHANNEL_TEST_STREAM_INCOMPATIBLE_ENDPOINTS = new Set([
+  'embeddings',
+  'image-generation',
+  'jina-rerank',
+  'openai-response-compact',
+  'openai-video',
+  'video-generation',
+])
+
+// ============================================================================
 // Sort Options (label values are i18n keys)
 // ============================================================================
 

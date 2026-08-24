@@ -27,6 +27,8 @@ plans
 electron/node_modules
 electron/dist
 /data/
+/new-api-*.dump
+/new-api-db-*.sql
 .gomodcache/
 .gocache-temp
 .gopath

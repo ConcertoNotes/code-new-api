@@ -72,6 +72,14 @@ import {
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { VideoResolutionPriceEditor } from '@/components/video-resolution-price-editor'
+import {
+  createVideoResolutionPriceRows,
+  hasConfiguredVideoResolutionPrice,
+  hasDuplicateVideoResolution,
+  videoResolutionPriceRowsToRecord,
+  type VideoResolutionPriceRow,
+} from '@/components/video-resolution-pricing'
 import {
   useSystemOptions,
   getOptionValue,
@@ -109,7 +117,7 @@ const extendedModelFormSchema = z.object({
 
 type ExtendedModelFormValues = z.infer<typeof extendedModelFormSchema>
 
-type PricingMode = 'per-token' | 'per-request'
+type PricingMode = 'per-token' | 'per-request' | 'per-video'
 type PricingSubMode = 'ratio' | 'price'
 
 type ModelMutateDrawerProps = {
@@ -133,7 +141,14 @@ export function ModelMutateDrawer({
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [promptPrice, setPromptPrice] = useState('')
   const [completionPrice, setCompletionPrice] = useState('')
+  const [videoPriceRows, setVideoPriceRows] = useState<
+    VideoResolutionPriceRow[]
+  >(() => createVideoResolutionPriceRows())
   const [oldModelName, setOldModelName] = useState<string>('')
+  const videoPrices = useMemo(
+    () => videoResolutionPriceRowsToRecord(videoPriceRows),
+    [videoPriceRows]
+  )
 
   // Fetch vendors for dropdown
   const { data: vendorsData } = useQuery({
@@ -183,6 +198,7 @@ export function ModelMutateDrawer({
       'claude.thinking_adapter_budget_tokens_percentage': 0.8,
       ModelPrice: '',
       ImageGenerationPrice: '{}',
+      VideoGenerationPrice: '{}',
       ModelRatio: '',
       CacheRatio: '',
       CompletionRatio: '',
@@ -203,6 +219,7 @@ export function ModelMutateDrawer({
       DefaultUseAutoGroup: false,
       CreateCacheRatio: '',
       'group_ratio_setting.group_special_usable_group': '{}',
+      'group_ratio_setting.group_user_allowlist': '{}',
       'grok.violation_deduction_enabled': false,
       'grok.violation_deduction_amount': 0,
       RetryTimes: 0,
@@ -287,6 +304,9 @@ export function ModelMutateDrawer({
     if (open && isEditing && modelData?.data) {
       const model = modelData.data
       setOldModelName(model.model_name)
+      setPromptPrice('')
+      setCompletionPrice('')
+      setAdvancedOpen(false)
 
       // Base model data reset
       const baseModelData = {
@@ -339,6 +359,9 @@ export function ModelMutateDrawer({
           modelSettings.AudioCompletionRatio,
           { fallback: {}, silent: true }
         )
+        const videoPriceMap = safeJsonParse<
+          Record<string, Record<string, number>>
+        >(modelSettings.VideoGenerationPrice, { fallback: {}, silent: true })
 
         // Extract ratio config for this model
         const modelName = model.model_name
@@ -349,16 +372,23 @@ export function ModelMutateDrawer({
         const imageRatio = imageMap[modelName]
         const audioRatio = audioMap[modelName]
         const audioCompletionRatio = audioCompletionMap[modelName]
+        const videoPricesForModel = videoPriceMap[modelName] || {}
 
         // Determine pricing mode
-        if (price !== undefined && price !== null) {
+        if (Object.keys(videoPricesForModel).length > 0) {
+          setPricingMode('per-video')
+          setVideoPriceRows(createVideoResolutionPriceRows(videoPricesForModel))
+          form.reset(baseModelData)
+        } else if (price !== undefined && price !== null) {
           setPricingMode('per-request')
+          setVideoPriceRows(createVideoResolutionPriceRows())
           form.reset({
             ...baseModelData,
             price: price.toString(),
           })
         } else {
           setPricingMode('per-token')
+          setVideoPriceRows(createVideoResolutionPriceRows())
           if (ratio !== undefined && ratio !== null) {
             const tokenPrice = ratio * 2
             setPromptPrice(tokenPrice.toString())
@@ -383,6 +413,7 @@ export function ModelMutateDrawer({
       } else {
         // If system settings not loaded yet, just load base model data
         setPricingMode('per-token')
+        setVideoPriceRows(createVideoResolutionPriceRows())
         form.reset(baseModelData)
         setAdvancedOpen(false)
       }
@@ -393,6 +424,7 @@ export function ModelMutateDrawer({
       setPricingSubMode('ratio')
       setPromptPrice('')
       setCompletionPrice('')
+      setVideoPriceRows(createVideoResolutionPriceRows())
       setAdvancedOpen(false)
       form.reset({
         model_name: currentRow?.model_name || '',
@@ -417,6 +449,19 @@ export function ModelMutateDrawer({
 
   const onSubmit = useCallback(
     async (values: ExtendedModelFormValues): Promise<void> => {
+      const hasVideoPrice = hasConfiguredVideoResolutionPrice(videoPriceRows)
+      if (pricingMode === 'per-video' && !hasVideoPrice) {
+        toast.error(t('Configure at least one video resolution price.'))
+        return
+      }
+      if (
+        pricingMode === 'per-video' &&
+        hasDuplicateVideoResolution(videoPriceRows)
+      ) {
+        toast.error(t('Resolution names must be unique.'))
+        return
+      }
+
       setIsSubmitting(true)
       try {
         const submitData = {
@@ -451,6 +496,7 @@ export function ModelMutateDrawer({
             (pricingMode === 'per-request' &&
               values.price &&
               values.price !== '') ||
+            (pricingMode === 'per-video' && hasVideoPrice) ||
             (pricingMode === 'per-token' &&
               (values.ratio ||
                 values.cacheRatio ||
@@ -491,6 +537,12 @@ export function ModelMutateDrawer({
               modelSettings.AudioCompletionRatio,
               { fallback: {}, silent: true }
             )
+            const videoPriceMap = safeJsonParse<
+              Record<string, Record<string, number>>
+            >(modelSettings.VideoGenerationPrice, {
+              fallback: {},
+              silent: true,
+            })
 
             // Remove old model name entries if model name changed (always, even if no new config)
             if (isEditing && oldModelName && oldModelName !== finalModelName) {
@@ -501,6 +553,7 @@ export function ModelMutateDrawer({
               delete imageMap[oldModelName]
               delete audioMap[oldModelName]
               delete audioCompletionMap[oldModelName]
+              delete videoPriceMap[oldModelName]
             }
 
             // Remove current model name from all maps first (always, to handle mode switches or clearing)
@@ -512,6 +565,7 @@ export function ModelMutateDrawer({
             delete imageMap[finalModelName]
             delete audioMap[finalModelName]
             delete audioCompletionMap[finalModelName]
+            delete videoPriceMap[finalModelName]
 
             // Only add new entries if user provided new configuration
             if (hasRatioConfig) {
@@ -521,6 +575,18 @@ export function ModelMutateDrawer({
                 values.price !== ''
               ) {
                 priceMap[finalModelName] = Number.parseFloat(values.price)
+              } else if (pricingMode === 'per-video') {
+                const resolutionPrices = Object.fromEntries(
+                  Object.entries(videoPrices)
+                    .filter(
+                      ([, value]) =>
+                        value !== '' && Number.isFinite(Number(value))
+                    )
+                    .map(([resolution, value]) => [resolution, Number(value)])
+                )
+                if (Object.keys(resolutionPrices).length > 0) {
+                  videoPriceMap[finalModelName] = resolutionPrices
+                }
               } else if (pricingMode === 'per-token') {
                 if (values.ratio && values.ratio !== '') {
                   ratioMap[finalModelName] = Number.parseFloat(values.ratio)
@@ -564,6 +630,19 @@ export function ModelMutateDrawer({
               newModelPrice !== normalizeJsonString(modelSettings.ModelPrice)
             ) {
               updates.push({ key: 'ModelPrice', value: newModelPrice })
+            }
+
+            const newVideoGenerationPrice = normalizeJsonString(
+              JSON.stringify(videoPriceMap)
+            )
+            if (
+              newVideoGenerationPrice !==
+              normalizeJsonString(modelSettings.VideoGenerationPrice)
+            ) {
+              updates.push({
+                key: 'VideoGenerationPrice',
+                value: newVideoGenerationPrice,
+              })
             }
 
             const newModelRatio = normalizeJsonString(JSON.stringify(ratioMap))
@@ -649,8 +728,11 @@ export function ModelMutateDrawer({
       queryClient,
       onOpenChange,
       pricingMode,
+      videoPrices,
+      videoPriceRows,
       oldModelName,
       modelSettings,
+      t,
       updateOption,
     ]
   )
@@ -943,10 +1025,16 @@ export function ModelMutateDrawer({
                       {t('Per-request (fixed price)')}
                     </Label>
                   </div>
+                  <div className='flex items-center space-x-2'>
+                    <RadioGroupItem value='per-video' id='per-video' />
+                    <Label htmlFor='per-video' className='font-normal'>
+                      {t('Per-second video')}
+                    </Label>
+                  </div>
                 </RadioGroup>
               </div>
 
-              {pricingMode === 'per-request' ? (
+              {pricingMode === 'per-request' && (
                 <FormField
                   control={form.control}
                   name='price'
@@ -975,7 +1063,14 @@ export function ModelMutateDrawer({
                     </FormItem>
                   )}
                 />
-              ) : (
+              )}
+              {pricingMode === 'per-video' && (
+                <VideoResolutionPriceEditor
+                  rows={videoPriceRows}
+                  onChange={setVideoPriceRows}
+                />
+              )}
+              {pricingMode === 'per-token' && (
                 <>
                   <div className='space-y-4'>
                     <Label>{t('Input mode')}</Label>

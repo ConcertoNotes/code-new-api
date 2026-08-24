@@ -39,6 +39,7 @@ interface ComboboxInputProps {
   id?: string
   allowCustomValue?: boolean
   openOnFocus?: boolean
+  onSearchValueChange?: (value: string) => void
 }
 
 export function ComboboxInput({
@@ -51,6 +52,7 @@ export function ComboboxInput({
   id,
   allowCustomValue = false,
   openOnFocus = true,
+  onSearchValueChange,
 }: ComboboxInputProps) {
   const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
@@ -168,12 +170,14 @@ export function ComboboxInput({
         aria-expanded={open}
         aria-haspopup='listbox'
         aria-autocomplete='list'
+        aria-label={placeholder}
         autoComplete='off'
         placeholder={placeholder}
         value={displayValue}
         onChange={(e) => {
           const nextValue = e.target.value
           setSearchValue(nextValue)
+          onSearchValueChange?.(nextValue)
           if (allowCustomValue) {
             onValueChange(nextValue)
           }

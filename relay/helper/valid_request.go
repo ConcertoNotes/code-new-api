@@ -1,9 +1,17 @@
 package helper
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
+	"io"
 	"math"
+	"mime/multipart"
 	"net/url"
 	"strconv"
 	"strings"
@@ -14,9 +22,12 @@ import (
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/samber/lo"
+	_ "golang.org/x/image/webp"
 
 	"github.com/gin-gonic/gin"
 )
+
+const maxGPTImage2UploadBytes = 50 << 20
 
 func GetAndValidateRequest(c *gin.Context, format types.RelayFormat) (request dto.Request, err error) {
 	relayMode := relayconstant.Path2RelayMode(c.Request.URL.Path)
@@ -203,6 +214,12 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			}
 			imageRequest.Quality = formData.Get("quality")
 			imageRequest.Size = formData.Get("size")
+			if resolution := strings.TrimSpace(formData.Get("resolution")); resolution != "" {
+				imageRequest.Resolution = common.GetPointer(resolution)
+			}
+			if aspectRatio := strings.TrimSpace(formData.Get("aspect_ratio")); aspectRatio != "" {
+				imageRequest.AspectRatio = common.GetPointer(aspectRatio)
+			}
 			imageRequest.ResponseFormat = formData.Get("response_format")
 			if streamValue := strings.TrimSpace(formData.Get("stream")); streamValue != "" {
 				stream, err := strconv.ParseBool(streamValue)
@@ -218,6 +235,11 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 			if imageRequest.Model == "gpt-image-1" {
 				if imageRequest.Quality == "" {
 					imageRequest.Quality = "standard"
+				}
+			}
+			if BaseImageModel(imageRequest.Model) == "gpt-image-2" {
+				if err := validateGPTImage2EditFiles(form); err != nil {
+					return nil, err
 				}
 			}
 			if imageRequest.N == nil || *imageRequest.N == 0 {
@@ -284,7 +306,129 @@ func GetAndValidOpenAIImageRequest(c *gin.Context, relayMode int) (*dto.ImageReq
 		}
 	}
 
+	NormalizeImageRequestResolution(imageRequest)
+	if BaseImageModel(imageRequest.Model) == "gpt-image-2" {
+		if err := ValidateGPTImage2Size(imageRequest.Size); err != nil {
+			return nil, err
+		}
+	}
 	return imageRequest, nil
+}
+
+type decodedImageUpload struct {
+	format string
+	width  int
+	height int
+	image  image.Image
+}
+
+func validateGPTImage2EditFiles(form *multipart.Form) error {
+	if form == nil {
+		return errors.New("image is required")
+	}
+	imageFiles := append([]*multipart.FileHeader(nil), form.File["image"]...)
+	imageFiles = append(imageFiles, form.File["image[]"]...)
+	if len(imageFiles) == 0 {
+		for field, files := range form.File {
+			if strings.HasPrefix(field, "image[") {
+				imageFiles = append(imageFiles, files...)
+			}
+		}
+	}
+	if len(imageFiles) == 0 {
+		return errors.New("image is required")
+	}
+	if len(imageFiles) > 16 {
+		return fmt.Errorf("too many input images: %d (max 16)", len(imageFiles))
+	}
+	for i, header := range imageFiles {
+		if header == nil || header.Size == 0 {
+			return fmt.Errorf("image[%d] file is empty", i)
+		}
+		if header.Size > maxGPTImage2UploadBytes {
+			return fmt.Errorf("image[%d] file exceeds 50MB", i)
+		}
+	}
+
+	masks := form.File["mask"]
+	if len(masks) == 0 {
+		return nil
+	}
+	if len(masks) != 1 || masks[0] == nil {
+		return errors.New("mask must contain exactly one image")
+	}
+	first, err := decodeImageUpload(imageFiles[0], "image")
+	if err != nil {
+		return err
+	}
+	mask, err := decodeImageUpload(masks[0], "mask")
+	if err != nil {
+		return err
+	}
+	if mask.format != first.format {
+		return fmt.Errorf("mask format %s must match image format %s", mask.format, first.format)
+	}
+	if mask.width != first.width || mask.height != first.height {
+		return fmt.Errorf("mask dimensions %dx%d must match image dimensions %dx%d", mask.width, mask.height, first.width, first.height)
+	}
+	if !imageHasAlphaChannel(mask.image) {
+		return errors.New("mask must have an alpha channel")
+	}
+	return nil
+}
+
+func decodeImageUpload(header *multipart.FileHeader, field string) (*decodedImageUpload, error) {
+	if header == nil || header.Size == 0 {
+		return nil, fmt.Errorf("%s file is empty", field)
+	}
+	if header.Size > maxGPTImage2UploadBytes {
+		return nil, fmt.Errorf("%s file exceeds 50MB", field)
+	}
+	file, err := header.Open()
+	if err != nil {
+		return nil, fmt.Errorf("open %s file: %w", field, err)
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, maxGPTImage2UploadBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read %s file: %w", field, err)
+	}
+	if len(data) > maxGPTImage2UploadBytes {
+		return nil, fmt.Errorf("%s file exceeds 50MB", field)
+	}
+	decoded, format, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("%s must be a valid PNG, JPEG, or WebP image: %w", field, err)
+	}
+	format = strings.ToLower(format)
+	if format != "png" && format != "jpeg" && format != "webp" {
+		return nil, fmt.Errorf("%s format %s is not supported", field, format)
+	}
+	bounds := decoded.Bounds()
+	return &decodedImageUpload{
+		format: format,
+		width:  bounds.Dx(),
+		height: bounds.Dy(),
+		image:  decoded,
+	}, nil
+}
+
+func imageHasAlphaChannel(img image.Image) bool {
+	if img == nil {
+		return false
+	}
+	switch img.(type) {
+	case *image.Alpha, *image.Alpha16, *image.NRGBA, *image.NRGBA64, *image.RGBA, *image.RGBA64:
+		return true
+	case *image.Paletted:
+		for _, entry := range img.ColorModel().(color.Palette) {
+			_, _, _, alpha := entry.RGBA()
+			if alpha < 0xffff {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func GetAndValidateClaudeRequest(c *gin.Context) (textRequest *dto.ClaudeRequest, err error) {

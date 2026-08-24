@@ -290,6 +290,11 @@ export const STATIC_I18N_KEYS = [
   'Opus Model',
   'Enter model name',
 
+  // VarSwitch dialog
+  'VarSwitch',
+  'Import to VarSwitch',
+  'Open VarSwitch',
+
   // User binding dialog
   'Account Binding Management',
   'Built-in',

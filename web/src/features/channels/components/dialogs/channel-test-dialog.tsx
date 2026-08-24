@@ -23,6 +23,7 @@ import type {
   Table as TanStackTable,
 } from '@tanstack/react-table'
 import {
+  AlertTriangle,
   Check,
   CheckCircle2,
   Copy,
@@ -58,6 +59,7 @@ import {
   sideDrawerHeaderClassName,
 } from '@/components/drawer-layout'
 import { StatusBadge } from '@/components/status-badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -88,6 +90,11 @@ import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 import { updateChannel } from '../../api'
+import {
+  CHANNEL_TEST_DISABLED_ENDPOINTS,
+  CHANNEL_TEST_ENDPOINT_OPTIONS,
+  CHANNEL_TEST_STREAM_INCOMPATIBLE_ENDPOINTS,
+} from '../../constants'
 import {
   channelsQueryKeys,
   formatResponseTime,
@@ -178,37 +185,9 @@ function getLatestChannelTestCachePatch(
   return latest?.patch
 }
 
-const endpointTypeOptions: Array<{ value: string; label: string }> = [
-  { value: 'auto', label: 'Auto detect (default)' },
-  { value: 'openai', label: 'OpenAI (/v1/chat/completions)' },
-  { value: 'openai-response', label: 'OpenAI Responses (/v1/responses)' },
-  {
-    value: 'openai-response-compact',
-    label: 'OpenAI Response Compaction (/v1/responses/compact)',
-  },
-  { value: 'anthropic', label: 'Anthropic (/v1/messages)' },
-  {
-    value: 'gemini',
-    label: 'Gemini (/v1beta/models/{model}:generateContent)',
-  },
-  { value: 'jina-rerank', label: 'Jina Rerank (/v1/rerank)' },
-  {
-    value: 'image-generation',
-    label: 'Image Generation (/v1/images/generations)',
-  },
-  { value: 'embeddings', label: 'Embeddings (/v1/embeddings)' },
-]
-
 const endpointSelectContentClass = 'w-[460px] max-w-[calc(100vw-2rem)]'
 const endpointSelectItemClass =
   'items-start py-2 [&_[data-slot=select-item-text]]:min-w-0 [&_[data-slot=select-item-text]]:shrink [&_[data-slot=select-item-text]]:whitespace-normal'
-
-const STREAM_INCOMPATIBLE_ENDPOINTS = new Set([
-  'embeddings',
-  'image-generation',
-  'jina-rerank',
-  'openai-response-compact',
-])
 
 const MODEL_PRICE_ERROR_CODE = 'model_price_error'
 const FAILURE_SUMMARY_MAX_LENGTH = 96
@@ -357,7 +336,7 @@ function ChannelTestDialogContent({
   })
   const endpointSelectItems = useMemo(
     () =>
-      endpointTypeOptions.map((option) => ({
+      CHANNEL_TEST_ENDPOINT_OPTIONS.map((option) => ({
         value: option.value,
         label: t(option.label),
       })),
@@ -415,14 +394,16 @@ function ChannelTestDialogContent({
     setPagination({ pageIndex: 0, pageSize: 30 })
   }, [])
 
-  const streamDisabled = STREAM_INCOMPATIBLE_ENDPOINTS.has(endpointType)
+  const streamDisabled =
+    CHANNEL_TEST_STREAM_INCOMPATIBLE_ENDPOINTS.has(endpointType)
+  const testDisabled = CHANNEL_TEST_DISABLED_ENDPOINTS.has(endpointType)
   const effectiveStreamTest = !streamDisabled && isStreamTest
 
   const handleEndpointTypeChange = useCallback((value: string | null) => {
     if (value === null) return
 
     setEndpointType(value)
-    if (STREAM_INCOMPATIBLE_ENDPOINTS.has(value)) {
+    if (CHANNEL_TEST_STREAM_INCOMPATIBLE_ENDPOINTS.has(value)) {
       setIsStreamTest(false)
     }
   }, [])
@@ -548,7 +529,7 @@ function ChannelTestDialogContent({
       silent = false,
       refreshList = true
     ): Promise<TestResult | undefined> => {
-      if (!currentRow) return
+      if (!currentRow || testDisabled) return
 
       markModelTesting(model, true)
       updateTestResult(model, { status: 'testing' })
@@ -603,6 +584,7 @@ function ChannelTestDialogContent({
       markModelTesting,
       refreshChannelLists,
       t,
+      testDisabled,
       updateTestResult,
     ]
   )
@@ -616,6 +598,8 @@ function ChannelTestDialogContent({
 
   const handleBatchTest = useCallback(
     async (modelsToTest: string[]) => {
+      if (testDisabled) return
+
       const uniqueModels = [
         ...new Set(modelsToTest.map((model) => model.trim()).filter(Boolean)),
       ]
@@ -749,6 +733,7 @@ function ChannelTestDialogContent({
       dismissBatchProgressToast,
       refreshChannelLists,
       t,
+      testDisabled,
       testSingleModel,
       updateTestResult,
     ]
@@ -930,7 +915,7 @@ function ChannelTestDialogContent({
                     variant='ghost'
                     size='icon-sm'
                     onClick={() => testSingleModel(model)}
-                    disabled={isTestingModel || isBatchTesting}
+                    disabled={testDisabled || isTestingModel || isBatchTesting}
                     aria-label={t('Test Connection')}
                   />
                 }
@@ -953,6 +938,7 @@ function ChannelTestDialogContent({
       isBatchTesting,
       t,
       testResults,
+      testDisabled,
       testingModels,
       testSingleModel,
     ]
@@ -1051,6 +1037,17 @@ function ChannelTestDialogContent({
             </div>
           </div>
 
+          {testDisabled && (
+            <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
+              <AlertTriangle aria-hidden='true' />
+              <AlertDescription className='text-current'>
+                {t(
+                  'Automatic video endpoint testing is disabled because it submits a billable generation job. Send a manual request to verify this endpoint.'
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className='space-y-3 max-sm:has-[div[role="toolbar"]]:pb-16'>
             <div className='flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
               <div className='min-w-0 space-y-2'>
@@ -1075,7 +1072,11 @@ function ChannelTestDialogContent({
                       <Button
                         size='sm'
                         onClick={() => handleBatchTest(filteredModels)}
-                        disabled={isAnyTesting || filteredModels.length === 0}
+                        disabled={
+                          testDisabled ||
+                          isAnyTesting ||
+                          filteredModels.length === 0
+                        }
                       >
                         {testAllButtonLabel}
                       </Button>

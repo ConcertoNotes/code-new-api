@@ -23,6 +23,7 @@ import { formatPricingNumber } from './pricing-format'
 
 export type ModelPricingSnapshotInput = {
   modelPrice: string
+  videoGenerationPrice: string
   modelRatio: string
   cacheRatio: string
   createCacheRatio: string
@@ -47,6 +48,7 @@ export type ModelPricingSnapshot = {
   billingMode?: string
   billingExpr?: string
   requestRuleExpr?: string
+  videoPrices?: Record<string, string>
   hasConflict: boolean
 }
 
@@ -64,6 +66,7 @@ export const hasPricingValue = (value?: string) =>
 export const isBasePricingUnset = (snapshot?: ModelPricingSnapshot) =>
   !snapshot ||
   (snapshot.billingMode !== 'tiered_expr' &&
+    snapshot.billingMode !== 'per-video' &&
     !hasPricingValue(snapshot.price) &&
     !hasPricingValue(snapshot.ratio))
 
@@ -82,6 +85,7 @@ const ratioToPrice = (ratio?: string, denominator?: string) => {
 
 export const getModeLabel = (mode?: string) => {
   if (mode === 'per-request') return 'Per-request'
+  if (mode === 'per-video') return 'Per-second video'
   if (mode === 'tiered_expr') return 'Expression'
   return 'Per-token'
 }
@@ -90,6 +94,7 @@ export const getModeVariant = (
   mode?: string
 ): 'warning' | 'info' | 'success' => {
   if (mode === 'per-request') return 'warning'
+  if (mode === 'per-video') return 'info'
   if (mode === 'tiered_expr') return 'info'
   return 'success'
 }
@@ -114,6 +119,13 @@ export const getPriceSummary = (
   }
   if (row.billingMode === 'per-request') {
     return row.price ? `$${row.price} / ${t('request')}` : t('Unset price')
+  }
+  if (row.billingMode === 'per-video') {
+    const configured = Object.entries(row.videoPrices || {})
+    if (configured.length === 0) return t('Unset price')
+    return configured
+      .map(([resolution, price]) => `${resolution.toUpperCase()} $${price}`)
+      .join(' · ')
   }
 
   const inputPrice = ratioToPrice(row.ratio)
@@ -145,6 +157,9 @@ export const getPriceDetail = (
   if (row.billingMode === 'per-request') {
     return t('Fixed request price')
   }
+  if (row.billingMode === 'per-video') {
+    return t('USD per generated video second')
+  }
 
   const inputPrice = ratioToPrice(row.ratio)
   if (!inputPrice) return t('No base input price')
@@ -165,6 +180,7 @@ export const getPriceDetail = (
 
 export const buildModelSnapshots = ({
   modelPrice,
+  videoGenerationPrice,
   modelRatio,
   cacheRatio,
   createCacheRatio,
@@ -183,6 +199,13 @@ export const buildModelSnapshots = ({
     fallback: {},
     context: 'model ratios',
   })
+  const videoPriceMap = safeJsonParse<Record<string, Record<string, number>>>(
+    videoGenerationPrice,
+    {
+      fallback: {},
+      context: 'video generation prices',
+    }
+  )
   const cacheMap = safeJsonParse<Record<string, number>>(cacheRatio, {
     fallback: {},
     context: 'cache ratios',
@@ -218,6 +241,7 @@ export const buildModelSnapshots = ({
 
   const modelNames = new Set([
     ...Object.keys(priceMap),
+    ...Object.keys(videoPriceMap),
     ...Object.keys(ratioMap),
     ...Object.keys(cacheMap),
     ...Object.keys(createCacheMap),
@@ -229,8 +253,14 @@ export const buildModelSnapshots = ({
     ...Object.keys(billingExprMap),
   ])
 
-  return Array.from(modelNames).map((name) => {
+  return [...modelNames].map((name) => {
     const price = priceMap[name]?.toString() || ''
+    const videoPrices = Object.fromEntries(
+      Object.entries(videoPriceMap[name] || {}).map(([resolution, value]) => [
+        resolution,
+        value.toString(),
+      ])
+    )
     const ratio = ratioMap[name]?.toString() || ''
     const cache = cacheMap[name]?.toString() || ''
     const createCache = createCacheMap[name]?.toString() || ''
@@ -258,6 +288,23 @@ export const buildModelSnapshots = ({
         audioRatio: audio,
         audioCompletionRatio: audioCompletion,
         hasConflict: false,
+      }
+    }
+
+    if (Object.keys(videoPrices).length > 0) {
+      return {
+        name,
+        videoPrices,
+        billingMode: 'per-video',
+        hasConflict:
+          price !== '' ||
+          ratio !== '' ||
+          completion !== '' ||
+          cache !== '' ||
+          createCache !== '' ||
+          image !== '' ||
+          audio !== '' ||
+          audioCompletion !== '',
       }
     }
 
@@ -299,5 +346,6 @@ export const getSnapshotSignature = (snapshot?: ModelPricingSnapshot) => {
     billingMode: snapshot.billingMode || 'per-token',
     billingExpr: snapshot.billingExpr || '',
     requestRuleExpr: snapshot.requestRuleExpr || '',
+    videoPrices: snapshot.videoPrices || {},
   })
 }

@@ -23,6 +23,8 @@ type ImageRequest struct {
 	Prompt            string          `json:"prompt" binding:"required"`
 	N                 *uint           `json:"n,omitempty"`
 	Size              string          `json:"size,omitempty"`
+	Resolution        *string         `json:"resolution,omitempty"`
+	AspectRatio       *string         `json:"aspect_ratio,omitempty"`
 	Quality           string          `json:"quality,omitempty"`
 	ResponseFormat    string          `json:"response_format,omitempty"`
 	Style             json.RawMessage `json:"style,omitempty"`
@@ -166,11 +168,15 @@ func (i *ImageRequest) GetTokenCountMeta() *types.TokenCountMeta {
 	// Keep n separate from ImagePriceRatio so size/quality and count remain
 	// independent billing dimensions. Fixed-price pre-consume stores this on
 	// PriceData, and image settlement reuses or replaces the same "n" ratio.
+	resolution := ""
+	if i.Resolution != nil {
+		resolution = *i.Resolution
+	}
 	return &types.TokenCountMeta{
 		CombineText:      i.Prompt,
 		MaxTokens:        1584,
 		ImagePriceRatio:  sizeRatio * qualityRatio,
-		ImageBillingTier: ResolveImageBillingTier(i.Size, i.Prompt),
+		ImageBillingTier: ResolveImageBillingTierWithResolution(i.Size, resolution, i.Prompt),
 		BillingRatios:    map[string]float64{"n": float64(imageN)},
 	}
 }
@@ -180,7 +186,17 @@ func (i *ImageRequest) GetTokenCountMeta() *types.TokenCountMeta {
 // client only mentions the resolution in the prompt, exactly one distinct tier
 // is accepted; ambiguous prompts safely fall back to the 2K tier.
 func ResolveImageBillingTier(size, prompt string) string {
+	return ResolveImageBillingTierWithResolution(size, "", prompt)
+}
+
+// ResolveImageBillingTierWithResolution applies the gateway-wide image tier
+// precedence: a valid size wins, resolution is used only when size does not
+// identify a tier, and prompt inference is the final compatibility fallback.
+func ResolveImageBillingTierWithResolution(size, resolution, prompt string) string {
 	if tier, ok := ClassifyImageBillingTier(size); ok {
+		return tier
+	}
+	if tier, ok := ClassifyImageBillingTier(resolution); ok {
 		return tier
 	}
 

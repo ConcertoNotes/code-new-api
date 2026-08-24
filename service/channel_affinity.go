@@ -25,6 +25,7 @@ const (
 	ginKeyChannelAffinityMeta       = "channel_affinity_meta"
 	ginKeyChannelAffinityLogInfo    = "channel_affinity_log_info"
 	ginKeyChannelAffinitySkipRetry  = "channel_affinity_skip_retry_on_failure"
+	ginKeyChannelAffinityFailed     = "channel_affinity_failed"
 
 	channelAffinityCacheNamespace           = "new-api:channel_affinity:v1"
 	channelAffinityUsageCacheStatsNamespace = "new-api:channel_affinity_usage_cache_stats:v1"
@@ -641,6 +642,16 @@ func ShouldSkipRetryAfterChannelAffinityFailure(c *gin.Context) bool {
 	return meta.SkipRetry
 }
 
+// HandleChannelAffinityFailure preserves the no-cross-channel guarantee for
+// the current request and keeps the session binding for subsequent requests.
+func HandleChannelAffinityFailure(c *gin.Context) bool {
+	if !ShouldSkipRetryAfterChannelAffinityFailure(c) {
+		return false
+	}
+	c.Set(ginKeyChannelAffinityFailed, true)
+	return true
+}
+
 func ClearCurrentChannelAffinityCache(c *gin.Context) bool {
 	if c == nil {
 		return false
@@ -712,6 +723,9 @@ func AppendChannelAffinityAdminInfo(c *gin.Context, adminInfo map[string]interfa
 
 func RecordChannelAffinity(c *gin.Context, channelID int) {
 	if channelID <= 0 {
+		return
+	}
+	if c != nil && c.GetBool(ginKeyChannelAffinityFailed) {
 		return
 	}
 	setting := operation_setting.GetChannelAffinitySetting()

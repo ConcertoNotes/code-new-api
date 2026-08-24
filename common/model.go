@@ -48,6 +48,53 @@ func IsImageGenerationModel(modelName string) bool {
 	return false
 }
 
+// PublicImageModelName collapses the internal resolution/aspect aliases used
+// for image channel selection back to the model name clients should see.
+// Routing still uses the aliases; this only controls model-list responses and
+// other user-facing model collections.
+func PublicImageModelName(modelName string) string {
+	normalized := strings.ToLower(strings.TrimSpace(modelName))
+	base := normalized
+	for _, aspect := range []string{"1x1", "3x4", "4x3", "9x16", "16x9", "9x21", "21x9"} {
+		for _, tier := range []string{"1k", "2k", "4k"} {
+			suffix := "-" + tier + "-" + aspect
+			if strings.HasSuffix(base, suffix) {
+				base = strings.TrimSuffix(base, suffix)
+				break
+			}
+		}
+	}
+	for _, tier := range []string{"1k", "2k", "4k"} {
+		if strings.HasSuffix(base, "-"+tier) {
+			base = strings.TrimSuffix(base, "-"+tier)
+			break
+		}
+	}
+	if base != normalized && IsImageGenerationModel(base) {
+		return base
+	}
+	return strings.TrimSpace(modelName)
+}
+
+// CollapseImageModelVariants removes internal image aliases while preserving
+// the first-seen order of the public model list.
+func CollapseImageModelVariants(models []string) []string {
+	result := make([]string, 0, len(models))
+	seen := make(map[string]struct{}, len(models))
+	for _, modelName := range models {
+		publicName := PublicImageModelName(modelName)
+		if publicName == "" {
+			continue
+		}
+		if _, exists := seen[publicName]; exists {
+			continue
+		}
+		seen[publicName] = struct{}{}
+		result = append(result, publicName)
+	}
+	return result
+}
+
 func IsOpenAITextModel(modelName string) bool {
 	modelName = strings.ToLower(modelName)
 	for _, m := range OpenAITextModels {

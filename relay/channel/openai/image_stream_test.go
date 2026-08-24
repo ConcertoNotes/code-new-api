@@ -2,6 +2,7 @@ package openai
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -45,6 +46,22 @@ func TestAddOpenAIImageBase64(t *testing.T) {
 	require.JSONEq(t, `{"created":1710000000,"data":[{"url":"https://images.example/generated.png","b64_json":"encoded-image","revised_prompt":"draw a cat"}],"usage":{"input_tokens":3}}`, string(converted))
 }
 
+func TestDownloadOpenAIImageWithRetryRetriesTransientGatewayErrors(t *testing.T) {
+	attempts := 0
+	mimeType, data, err := downloadOpenAIImageWithRetry(func(string) (string, string, error) {
+		attempts++
+		if attempts < 3 {
+			return "", "", fmt.Errorf("failed to download image: HTTP 502")
+		}
+		return "image/png", "encoded-image", nil
+	}, "https://images.example/generated.png")
+
+	require.NoError(t, err)
+	require.Equal(t, 3, attempts)
+	require.Equal(t, "image/png", mimeType)
+	require.Equal(t, "encoded-image", data)
+}
+
 func TestAddOpenAIImageBase64PreservesExistingBase64(t *testing.T) {
 	body := []byte(`{"data":[{"b64_json":"already-encoded"}]}`)
 	converted, err := addOpenAIImageBase64(body, func(string) (string, string, error) {
@@ -53,6 +70,41 @@ func TestAddOpenAIImageBase64PreservesExistingBase64(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.JSONEq(t, string(body), string(converted))
+}
+
+func TestAddOpenAIImageBase64ConvertsDataURLWithoutDownload(t *testing.T) {
+	body := []byte(`{"data":[{"url":"data:image/png;base64,aW1hZ2U=","revised_prompt":"draw a cat"}]}`)
+	converted, err := addOpenAIImageBase64(body, func(string) (string, string, error) {
+		t.Fatal("data URL must not be downloaded")
+		return "", "", nil
+	})
+
+	require.NoError(t, err)
+	require.JSONEq(t, `{"data":[{"b64_json":"aW1hZ2U=","revised_prompt":"draw a cat"}]}`, string(converted))
+}
+
+func TestAddOpenAIImageBase64RejectsMalformedDataURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		url     string
+		message string
+	}{
+		{name: "missing separator", url: "data:image/png;base64", message: "malformed data URL"},
+		{name: "not base64", url: "data:image/png,raw-image", message: "data URL is not base64 encoded"},
+		{name: "empty payload", url: "data:image/png;base64,", message: "empty b64_json"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := []byte(`{"data":[{"url":"` + tt.url + `"}]}`)
+			_, err := addOpenAIImageBase64(body, func(string) (string, string, error) {
+				t.Fatal("invalid data URL must not be downloaded")
+				return "", "", nil
+			})
+
+			require.ErrorContains(t, err, tt.message)
+		})
+	}
 }
 
 func TestOpenaiImageDoResponseUsesInfoIsStream(t *testing.T) {

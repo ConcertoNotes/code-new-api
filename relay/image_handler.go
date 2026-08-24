@@ -11,6 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
@@ -33,11 +34,20 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 	if err != nil {
 		return types.NewError(fmt.Errorf("failed to copy request to ImageRequest: %w", err), types.ErrorCodeInvalidRequest, types.ErrOptionWithSkipRetry())
 	}
-	applyImageModelResolutionTier(request)
-
 	err = helper.ModelMappedHelper(c, info, request)
 	if err != nil {
 		return types.NewError(err, types.ErrorCodeChannelModelMappedError, types.ErrOptionWithSkipRetry())
+	}
+	resolutionModel := common.GetContextKeyString(c, constant.ContextKeyImageModelVariant)
+	if resolutionModel == "" {
+		resolutionModel = info.OriginModelName
+	}
+	originalSize := request.Size
+	helper.ApplyImageModelResolutionTier(request, resolutionModel)
+	if info.RelayMode == relayconstant.RelayModeImagesEdits {
+		// A mask is defined on the caller's image canvas. Preserve the exact edit
+		// size while still forwarding the selected resolution tier.
+		request.Size = originalSize
 	}
 
 	adaptor := GetAdaptor(info.ApiType)
@@ -48,7 +58,14 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 
 	var requestBody io.Reader
 
-	if model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled {
+	passThrough := model_setting.GetGlobalSettings().PassThroughRequestEnabled || info.ChannelSetting.PassThroughBodyEnabled
+	// Resolution routing rewrites size before forwarding. A raw pass-through
+	// body would bypass that rewrite and silently send the client's original
+	// dimensions to the provider.
+	if passThrough && (request.Size != originalSize || common.GetContextKeyString(c, constant.ContextKeyImageModelVariant) != "") {
+		passThrough = false
+	}
+	if passThrough {
 		storage, err := common.GetBodyStorage(c)
 		if err != nil {
 			return types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
@@ -141,7 +158,11 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 	if len(request.Size) > 0 {
 		logContent = append(logContent, fmt.Sprintf("大小 %s", request.Size))
 	}
-	billingTier := dto.ResolveImageBillingTier(request.Size, request.Prompt)
+	resolution := ""
+	if request.Resolution != nil {
+		resolution = *request.Resolution
+	}
+	billingTier := dto.ResolveImageBillingTierWithResolution(request.Size, resolution, request.Prompt)
 	if _, ok := ratio_setting.GetImageGenerationPrice(info.OriginModelName, billingTier); ok {
 		logContent = append(logContent, fmt.Sprintf("计费档位 %s", billingTier))
 	}
@@ -154,17 +175,4 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 
 	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), logContent)
 	return nil
-}
-
-func applyImageModelResolutionTier(request *dto.ImageRequest) {
-	if request == nil {
-		return
-	}
-	model := strings.ToLower(strings.TrimSpace(request.Model))
-	for _, tier := range []string{"1k", "2k", "4k"} {
-		if strings.HasSuffix(model, "-"+tier) {
-			request.Size = tier
-			return
-		}
-	}
 }

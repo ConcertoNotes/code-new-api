@@ -16,6 +16,49 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestModelPriceHelperPerCallUsesResolutionVideoPrice(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	savedVideoPrices := ratio_setting.VideoGenerationPrice2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(savedVideoPrices))
+	})
+	require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(
+		`{"video-resolution-price-test":{"480p":0.2,"720p":0.4,"768p":0.5,"1080p":0.7}}`,
+	))
+
+	tests := []struct {
+		name       string
+		resolution string
+		wantPrice  float64
+		wantQuota  int
+	}{
+		{name: "480p", resolution: "854x480", wantPrice: 0.2, wantQuota: 100000},
+		{name: "720p", resolution: "1280x720", wantPrice: 0.4, wantQuota: 200000},
+		{name: "custom 768p", resolution: "768P", wantPrice: 0.5, wantQuota: 250000},
+		{name: "1080p", resolution: "1080p", wantPrice: 0.7, wantQuota: 350000},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+			ctx.Set("task_request", relaycommon.TaskSubmitReq{Resolution: test.resolution})
+			info := &relaycommon.RelayInfo{
+				OriginModelName: "video-resolution-price-test",
+				RequestURLPath:  "/v1/video/generations",
+				UserGroup:       "default",
+				UsingGroup:      "default",
+			}
+
+			priceData, err := ModelPriceHelperPerCall(ctx, info)
+			require.NoError(t, err)
+			require.True(t, priceData.UsePrice)
+			require.Equal(t, test.wantPrice, priceData.ModelPrice)
+			require.Equal(t, test.wantQuota, priceData.Quota)
+		})
+	}
+}
+
 func TestModelPriceHelperTieredUsesPreloadedRequestInput(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -363,5 +406,15 @@ func TestModelPriceHelperUsesConfiguredImageGenerationTierPrice(t *testing.T) {
 	// Tier price replaces the legacy size/quality multiplier; image count still applies.
 	expectedQuota, err := common.QuotaFromFloatStrict(0.08 * common.QuotaPerUnit * 2 * ratio_setting.GetGroupRatio("default"))
 	require.NoError(t, err)
+	require.Equal(t, expectedQuota, priceData.QuotaToPreConsume)
+
+	info = &relaycommon.RelayInfo{
+		OriginModelName: "tiered-image-model-4k-16x9",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+	}
+	priceData, err = ModelPriceHelper(ctx, info, 0, meta)
+	require.NoError(t, err)
+	require.Equal(t, 0.08, priceData.ModelPrice)
 	require.Equal(t, expectedQuota, priceData.QuotaToPreConsume)
 }

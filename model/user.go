@@ -466,6 +466,27 @@ func SearchUsers(keyword string, group string, role *int, status *int, startIdx 
 	return users, total, nil
 }
 
+type UserGroupAccessOption struct {
+	Id          int    `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	Group       string `json:"group"`
+	Status      int    `json:"status"`
+}
+
+func GetUserGroupAccessOptions(keyword string, userIDs []int) ([]UserGroupAccessOption, error) {
+	options := make([]UserGroupAccessOption, 0)
+	query := DB.Model(&User{}).Select("id", "username", "display_name", commonGroupCol, "status")
+	if len(userIDs) > 0 {
+		query = query.Where("id IN ?", userIDs)
+	} else if keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where("username LIKE ? OR display_name LIKE ?", like, like)
+	}
+	err := query.Order("id ASC").Limit(50).Scan(&options).Error
+	return options, err
+}
+
 func GetUserById(id int, selectAll bool) (*User, error) {
 	if id == 0 {
 		return nil, errors.New("id 为空！")

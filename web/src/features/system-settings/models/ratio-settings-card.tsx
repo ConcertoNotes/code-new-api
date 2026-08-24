@@ -108,6 +108,7 @@ const createModelSchema = (t: Translate) =>
   z.object({
     ModelPrice: createJsonStringField(t),
     ImageGenerationPrice: createJsonStringField(t),
+    VideoGenerationPrice: createJsonStringField(t),
     ModelRatio: createJsonStringField(t),
     CacheRatio: createJsonStringField(t),
     CreateCacheRatio: createJsonStringField(t),
@@ -136,6 +137,22 @@ const createGroupSchema = (t: Translate) =>
     MaxTokenAutoGroups: positiveIntegerSchema(t('Enter a positive integer')),
     DefaultUseAutoGroup: z.boolean(),
     GroupSpecialUsableGroup: createJsonStringField(t),
+    GroupUserAllowlist: createJsonStringField(t, {
+      predicate: (parsed) =>
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed) &&
+        Object.entries(parsed).every(
+          ([group, userIds]) =>
+            group.length > 0 &&
+            Array.isArray(userIds) &&
+            userIds.every(
+              (userId) => Number.isInteger(userId) && Number(userId) > 0
+            ) &&
+            new Set(userIds).size === userIds.length
+        ),
+      predicateMessage: 'Expected a JSON map of groups to user ID arrays',
+    }),
   })
 
 type ModelFormValues = z.infer<ReturnType<typeof createModelSchema>>
@@ -188,6 +205,9 @@ export function RatioSettingsCard({
     ImageGenerationPrice: normalizeJsonString(
       modelDefaults.ImageGenerationPrice
     ),
+    VideoGenerationPrice: normalizeJsonString(
+      modelDefaults.VideoGenerationPrice
+    ),
     ModelRatio: normalizeJsonString(modelDefaults.ModelRatio),
     CacheRatio: normalizeJsonString(modelDefaults.CacheRatio),
     CreateCacheRatio: normalizeJsonString(modelDefaults.CreateCacheRatio),
@@ -217,6 +237,7 @@ export function RatioSettingsCard({
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup
     ),
+    GroupUserAllowlist: normalizeJsonString(groupDefaults.GroupUserAllowlist),
   })
   const modelSchema = useMemo(() => createModelSchema(t), [t])
   const groupSchema = useMemo(() => createGroupSchema(t), [t])
@@ -229,6 +250,9 @@ export function RatioSettingsCard({
       ModelPrice: formatJsonForTextarea(modelDefaults.ModelPrice),
       ImageGenerationPrice: formatJsonForTextarea(
         modelDefaults.ImageGenerationPrice
+      ),
+      VideoGenerationPrice: formatJsonForTextarea(
+        modelDefaults.VideoGenerationPrice
       ),
       ModelRatio: formatJsonForTextarea(modelDefaults.ModelRatio),
       CacheRatio: formatJsonForTextarea(modelDefaults.CacheRatio),
@@ -258,6 +282,9 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
       ),
+      GroupUserAllowlist: formatJsonForTextarea(
+        groupDefaults.GroupUserAllowlist
+      ),
     },
   })
 
@@ -266,6 +293,9 @@ export function RatioSettingsCard({
       ModelPrice: normalizeJsonString(modelDefaults.ModelPrice),
       ImageGenerationPrice: normalizeJsonString(
         modelDefaults.ImageGenerationPrice
+      ),
+      VideoGenerationPrice: normalizeJsonString(
+        modelDefaults.VideoGenerationPrice
       ),
       ModelRatio: normalizeJsonString(modelDefaults.ModelRatio),
       CacheRatio: normalizeJsonString(modelDefaults.CacheRatio),
@@ -288,6 +318,9 @@ export function RatioSettingsCard({
       ModelPrice: formatJsonForTextarea(modelDefaults.ModelPrice),
       ImageGenerationPrice: formatJsonForTextarea(
         modelDefaults.ImageGenerationPrice
+      ),
+      VideoGenerationPrice: formatJsonForTextarea(
+        modelDefaults.VideoGenerationPrice
       ),
       ModelRatio: formatJsonForTextarea(modelDefaults.ModelRatio),
       CacheRatio: formatJsonForTextarea(modelDefaults.CacheRatio),
@@ -316,6 +349,7 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup
       ),
+      GroupUserAllowlist: normalizeJsonString(groupDefaults.GroupUserAllowlist),
     }
 
     groupForm.reset({
@@ -328,6 +362,9 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
       ),
+      GroupUserAllowlist: formatJsonForTextarea(
+        groupDefaults.GroupUserAllowlist
+      ),
     })
   }, [groupDefaults, groupForm])
 
@@ -336,6 +373,7 @@ export function RatioSettingsCard({
       const normalized = {
         ModelPrice: normalizeJsonString(values.ModelPrice),
         ImageGenerationPrice: normalizeJsonString(values.ImageGenerationPrice),
+        VideoGenerationPrice: normalizeJsonString(values.VideoGenerationPrice),
         ModelRatio: normalizeJsonString(values.ModelRatio),
         CacheRatio: normalizeJsonString(values.CacheRatio),
         CreateCacheRatio: normalizeJsonString(values.CreateCacheRatio),
@@ -363,16 +401,25 @@ export function RatioSettingsCard({
 
       if (updates.length === 0) {
         toast.info(t('No model price changes to save'))
-        return
+        return true
       }
 
       for (const key of updates) {
         const apiKey = apiKeyMap[key as string] || (key as string)
-        await updateOption.mutateAsync({ key: apiKey, value: normalized[key] })
+        try {
+          const result = await updateOption.mutateAsync({
+            key: apiKey,
+            value: normalized[key],
+          })
+          if (!result.success) return false
+        } catch {
+          return false
+        }
       }
 
       modelNormalizedDefaults.current = normalized
       setSavedModelValues(normalized)
+      return true
     },
     [t, updateOption]
   )
@@ -390,12 +437,14 @@ export function RatioSettingsCard({
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup
         ),
+        GroupUserAllowlist: normalizeJsonString(values.GroupUserAllowlist),
       }
 
-      // Map form field names to API keys (most are 1:1, except GroupSpecialUsableGroup)
+      // Map form field names to their hierarchical API keys.
       const apiKeyMap: Record<string, string> = {
         GroupSpecialUsableGroup:
           'group_ratio_setting.group_special_usable_group',
+        GroupUserAllowlist: 'group_ratio_setting.group_user_allowlist',
       }
 
       const updates = (

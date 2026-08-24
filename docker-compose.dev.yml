@@ -29,6 +29,8 @@ services:
     environment:
       - SQL_DSN=postgresql://root:123456@postgres:5432/new-api
       - REDIS_CONN_STRING=redis://redis
+      # Keep this value in the ignored .env file so rebuilding the dev container preserves login sessions.
+      - SESSION_SECRET=${SESSION_SECRET:?SESSION_SECRET must be set in .env}
       - TZ=Asia/Shanghai
       - BATCH_UPDATE_ENABLED=true
       # Local HTTP dev mode: keep Secure=false and leave TRUSTED_URL unset. This disables the refresh/logout OriginGuard so the :5173 -> :3000 dev proxy works.

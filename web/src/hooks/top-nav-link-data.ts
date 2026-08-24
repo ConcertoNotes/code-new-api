@@ -24,7 +24,7 @@ export type TopNavLink = {
   external?: boolean
 }
 
-export const DEFAULT_DOCUMENTATION_URL = 'https://docs.newapi.pro'
+export const DEFAULT_DOCUMENTATION_URL = '/docs'
 export const VARIABLE_SWITCH_URL = 'https://download.varswitch.strova.top/'
 
 export function getDocumentationLink(

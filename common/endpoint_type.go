@@ -29,7 +29,10 @@ func GetEndpointTypesByChannelType(channelType int, modelName string) []constant
 	case constant.ChannelTypeXai:
 		endpointTypes = []constant.EndpointType{constant.EndpointTypeOpenAI, constant.EndpointTypeOpenAIResponse}
 	case constant.ChannelTypeSora:
-		endpointTypes = []constant.EndpointType{constant.EndpointTypeOpenAIVideo}
+		endpointTypes = []constant.EndpointType{
+			constant.EndpointTypeOpenAIVideo,
+			constant.EndpointTypeVideoGeneration,
+		}
 	case constant.ChannelTypeSub2API, constant.ChannelTypeNewAPI:
 		endpointTypes = []constant.EndpointType{
 			constant.EndpointTypeOpenAI,

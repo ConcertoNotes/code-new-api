@@ -52,6 +52,9 @@ func ShouldDisableChannel(err *types.NewAPIError) bool {
 	if types.IsChannelError(err) {
 		return true
 	}
+	if err.GetErrorCode() == types.ErrorCodeDoRequestFailed {
+		return true
+	}
 	if types.IsSkipRetryError(err) {
 		return false
 	}

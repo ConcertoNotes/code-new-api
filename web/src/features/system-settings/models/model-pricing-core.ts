@@ -39,7 +39,11 @@ export type ModelPricingFormValues = z.infer<
   ReturnType<typeof createModelPricingSchema>
 >
 
-export type PricingMode = 'per-token' | 'per-request' | 'tiered_expr'
+export type PricingMode =
+  | 'per-token'
+  | 'per-request'
+  | 'per-video'
+  | 'tiered_expr'
 
 export type LaneKey =
   | 'completion'
@@ -62,6 +66,7 @@ export type ModelRatioData = {
   billingMode?: PricingMode
   billingExpr?: string
   requestRuleExpr?: string
+  videoPrices?: Record<string, string>
 }
 
 export type PreviewRow = {
@@ -215,6 +220,7 @@ export function buildPreviewRows(
   promptPrice: string,
   lanePrices: Record<LaneKey, string>,
   laneEnabled: Record<LaneKey, boolean>,
+  videoPrices: Record<string, string>,
   t: (key: string) => string
 ): PreviewRow[] {
   if (mode === 'tiered_expr') {
@@ -238,6 +244,14 @@ export function buildPreviewRows(
         value: values.price || t('Empty'),
       },
     ]
+  }
+
+  if (mode === 'per-video') {
+    return Object.entries(videoPrices).map(([resolution, price]) => ({
+      key: resolution,
+      label: resolution.toUpperCase(),
+      value: price ? `$${price} / ${t('second')}` : t('Empty'),
+    }))
   }
 
   return [

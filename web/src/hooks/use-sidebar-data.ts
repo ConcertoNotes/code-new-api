@@ -26,6 +26,7 @@ import {
   LayoutDashboard,
   ListTodo,
   MessageSquare,
+  Paintbrush,
   Radio,
   ServerCog,
   Settings,
@@ -36,7 +37,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { type SidebarData } from '@/components/layout/types'
+import type { SidebarData } from '@/components/layout/types'
 import { ROLE } from '@/lib/roles'
 
 /**
@@ -58,6 +59,13 @@ export function useSidebarData(): SidebarData {
             title: t('Playground'),
             url: '/playground',
             icon: FlaskConical,
+          },
+          {
+            title: t('Drawing Workbench'),
+            url: 'https://draw.strova.top/',
+            external: true,
+            configUrls: ['/playground'],
+            icon: Paintbrush,
           },
           {
             title: t('Chat'),

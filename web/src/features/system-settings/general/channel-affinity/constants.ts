@@ -90,13 +90,16 @@ export const RULE_TEMPLATES: Record<string, RuleTemplate> = {
     name: 'codex cli trace',
     model_regex: ['^gpt-.*$'],
     path_regex: ['/v1/responses'],
-    key_sources: [{ type: 'gjson', path: 'prompt_cache_key' }],
+    key_sources: [
+      { type: 'context_int', key: 'id' },
+      { type: 'gjson', path: 'prompt_cache_key' },
+    ],
     param_override_template: buildCodexPassHeadersTemplate(),
     value_regex: '',
     ttl_seconds: 0,
     skip_retry_on_failure: true,
     include_using_group: true,
-    include_model_name: false,
+    include_model_name: true,
     include_rule_name: true,
   },
   claudeCli: {

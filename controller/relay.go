@@ -115,9 +115,21 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		if common.IsRequestBodyTooLargeError(err) || errors.Is(err, common.ErrRequestBodyTooLarge) {
 			newAPIError = types.NewErrorWithStatusCode(err, types.ErrorCodeReadRequestBodyFailed, http.StatusRequestEntityTooLarge, types.ErrOptionWithSkipRetry())
 		} else {
-			newAPIError = types.NewError(err, types.ErrorCodeInvalidRequest)
+			newAPIError = types.NewErrorWithStatusCode(err, types.ErrorCodeInvalidRequest, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 		}
 		return
+	}
+	// Image edits must preserve the caller's exact output dimensions. The mask
+	// is aligned to that requested canvas, so tier/aspect canonicalization would
+	// change the edit geometry and can also exceed the provider pixel limit.
+	if imageRequest, ok := request.(*dto.ImageRequest); ok {
+		resolutionModel := common.GetContextKeyString(c, constant.ContextKeyImageModelVariant)
+		if !strings.HasPrefix(c.Request.URL.Path, "/v1/images/edits") {
+			if resolutionModel == "" {
+				resolutionModel = imageRequest.Model
+			}
+			helper.ApplyImageModelResolutionTier(imageRequest, resolutionModel)
+		}
 	}
 
 	relayInfo, err := relaycommon.GenRelayInfo(c, relayFormat, request, ws)
@@ -181,11 +193,15 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 	}()
 
+	requestPath := c.Request.URL.Path
+	if common.GetContextKeyBool(c, constant.ContextKeyImageMaskRequired) && strings.HasPrefix(requestPath, "/v1/images/edits") {
+		requestPath += "#mask"
+	}
 	retryParam := &service.RetryParam{
 		Ctx:         c,
 		TokenGroup:  relayInfo.TokenGroup,
 		ModelName:   relayInfo.OriginModelName,
-		RequestPath: c.Request.URL.Path,
+		RequestPath: requestPath,
 		Retry:       common.GetPointer(0),
 	}
 	relayInfo.RetryIndex = 0
@@ -332,7 +348,7 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	if openaiErr == nil {
 		return false
 	}
-	if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
+	if service.HandleChannelAffinityFailure(c) {
 		return false
 	}
 	if types.IsChannelError(openaiErr) {
@@ -586,6 +602,7 @@ func RelayTask(c *gin.Context) {
 
 		task := model.InitTask(result.Platform, relayInfo)
 		task.PrivateData.UpstreamTaskID = result.UpstreamTaskID
+		task.PrivateData.RequestPath = relayInfo.RequestURLPath
 		task.PrivateData.BillingSource = relayInfo.BillingSource
 		task.PrivateData.SubscriptionId = relayInfo.SubscriptionId
 		task.PrivateData.TokenId = relayInfo.TokenId
@@ -623,7 +640,7 @@ func shouldRetryTaskRelay(c *gin.Context, channelId int, taskErr *taskdto.TaskEr
 	if taskErr == nil {
 		return false
 	}
-	if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
+	if service.HandleChannelAffinityFailure(c) {
 		return false
 	}
 	if retryTimes <= 0 {

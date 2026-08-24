@@ -208,6 +208,7 @@ export type ModelSettings = {
   'grok.violation_deduction_amount': number
   ModelPrice: string
   ImageGenerationPrice: string
+  VideoGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -228,6 +229,7 @@ export type ModelSettings = {
   MaxTokenAutoGroups: number
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
+  'group_ratio_setting.group_user_allowlist': string
   RetryTimes: number
   ChannelDisableThreshold: string
   AutomaticDisableChannelEnabled: boolean
@@ -268,6 +270,7 @@ export type BillingSettings = {
   DisplayTokenStatEnabled: boolean
   ModelPrice: string
   ImageGenerationPrice: string
+  VideoGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -288,6 +291,7 @@ export type BillingSettings = {
   MaxTokenAutoGroups: number
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
+  'group_ratio_setting.group_user_allowlist': string
   PayAddress: string
   EpayId: string
   EpayKey: string

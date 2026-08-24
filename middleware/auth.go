@@ -460,7 +460,7 @@ func TokenAuth() func(c *gin.Context) {
 		fallbackGroups := token.FallbackGroups.Values()
 		if tokenGroup != "" {
 			// check common.UserUsableGroups[userGroup]
-			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
+			if _, ok := service.GetUserUsableGroups(token.UserId, userGroup)[tokenGroup]; !ok {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
 				return
 			}
@@ -472,9 +472,12 @@ func TokenAuth() func(c *gin.Context) {
 				}
 			}
 			userGroup = tokenGroup
+		} else if !service.GroupInUserUsableGroups(token.UserId, userCache.Group, userGroup) {
+			abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", userGroup))
+			return
 		}
 		if len(fallbackGroups) > 0 {
-			if err := service.ValidateTokenFallbackGroups(common.GetContextKeyString(c, constant.ContextKeyUserGroup), tokenGroup, fallbackGroups); err != nil {
+			if err := service.ValidateTokenFallbackGroups(token.UserId, common.GetContextKeyString(c, constant.ContextKeyUserGroup), tokenGroup, fallbackGroups); err != nil {
 				abortWithOpenAiMessage(c, http.StatusForbidden, err.Error())
 				return
 			}

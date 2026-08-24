@@ -49,6 +49,14 @@ func normalizeChannelTestEndpoint(channel *model.Channel, modelName, endpointTyp
 	if common.IsImageGenerationModel(modelName) {
 		return string(constant.EndpointTypeImageGeneration)
 	}
+	lowerModelName := strings.ToLower(modelName)
+	if ratio_setting.HasVideoGenerationPrice(modelName) ||
+		strings.Contains(lowerModelName, "seedance") ||
+		strings.HasPrefix(lowerModelName, "sora-") ||
+		strings.HasPrefix(lowerModelName, "veo-") ||
+		(channel != nil && channel.Type == constant.ChannelTypeSora) {
+		return string(constant.EndpointTypeOpenAIVideo)
+	}
 	if strings.HasSuffix(modelName, ratio_setting.CompactModelSuffix) {
 		return string(constant.EndpointTypeOpenAIResponseCompact)
 	}
@@ -56,6 +64,15 @@ func normalizeChannelTestEndpoint(channel *model.Channel, modelName, endpointTyp
 		return string(constant.EndpointTypeOpenAIResponse)
 	}
 	return normalized
+}
+
+func isVideoChannelTestEndpoint(endpointType string) bool {
+	switch constant.EndpointType(endpointType) {
+	case constant.EndpointTypeOpenAIVideo, constant.EndpointTypeVideoGeneration:
+		return true
+	default:
+		return false
+	}
 }
 
 func resolveChannelTestUserID(c *gin.Context) (int, error) {
@@ -114,6 +131,11 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 	}
 
 	endpointType = normalizeChannelTestEndpoint(channel, testModel, endpointType)
+	if isVideoChannelTestEndpoint(endpointType) {
+		return testResult{
+			localErr: errors.New("automatic video endpoint testing is disabled because it may incur generation charges; send a manual request instead"),
+		}
+	}
 
 	requestPath := "/v1/chat/completions"
 
@@ -189,7 +211,6 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 			newAPIError: newAPIError,
 		}
 	}
-
 	// Determine relay format based on endpoint type or request path
 	var relayFormat types.RelayFormat
 	if endpointType != "" {
@@ -271,6 +292,9 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 			localErr:    err,
 			newAPIError: types.NewError(err, types.ErrorCodeChannelModelMappedError),
 		}
+	}
+	if imageRequest, ok := request.(*dto.ImageRequest); ok && info.RelayMode != relayconstant.RelayModeImagesEdits {
+		helper.ApplyImageModelResolutionTier(imageRequest, info.OriginModelName)
 	}
 
 	testModel = info.UpstreamModelName

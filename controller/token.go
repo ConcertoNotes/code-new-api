@@ -103,7 +103,7 @@ func setTokenAutoGroups(c *gin.Context, token *model.Token, groups []string) boo
 			return false
 		}
 		seen[group] = struct{}{}
-		if !service.IsUserSelectableGroup(userGroup, group) {
+		if !service.IsUserSelectableGroup(c.GetInt("id"), userGroup, group) {
 			common.ApiErrorI18n(c, i18n.MsgTokenAutoGroupsInvalid, map[string]any{"Group": group})
 			return false
 		}
@@ -169,7 +169,7 @@ func GetTokenAutoGroups(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, gin.H{
-		"groups":    service.GetUserAutoGroup(userGroup),
+		"groups":    service.GetUserAutoGroup(c.GetInt("id"), userGroup),
 		"max_count": setting.GetMaxTokenAutoGroups(),
 	})
 }
@@ -273,7 +273,7 @@ func AddToken(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
 		return
 	}
-	if err := service.ValidateTokenFallbackGroups(c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
+	if err := service.ValidateTokenFallbackGroups(c.GetInt("id"), c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
 		common.ApiError(c, err)
 		return
 	}
@@ -374,7 +374,7 @@ func UpdateToken(c *gin.Context) {
 		return
 	}
 	if statusOnly == "" {
-		if err := service.ValidateTokenFallbackGroups(c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
+		if err := service.ValidateTokenFallbackGroups(c.GetInt("id"), c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
 			common.ApiError(c, err)
 			return
 		}

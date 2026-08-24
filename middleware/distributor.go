@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
+	relayhelper "github.com/QuantumNous/new-api/relay/helper"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
@@ -26,8 +27,15 @@ import (
 )
 
 type ModelRequest struct {
-	Model string `json:"model"`
-	Group string `json:"group,omitempty"`
+	Model        string `json:"model"`
+	Group        string `json:"group,omitempty"`
+	Size         string `json:"size,omitempty"`
+	Resolution   string `json:"resolution,omitempty"`
+	AspectRatio  string `json:"aspect_ratio,omitempty"`
+	AspectRatio2 string `json:"aspectRatio,omitempty"`
+	Ratio        string `json:"ratio,omitempty"`
+	Prompt       string `json:"prompt,omitempty"`
+	HasMask      bool   `json:"-"`
 }
 
 func Distribute() func(c *gin.Context) {
@@ -38,6 +46,31 @@ func Distribute() func(c *gin.Context) {
 		if err != nil {
 			abortWithOpenAiMessage(c, http.StatusBadRequest, i18n.T(c, i18n.MsgDistributorInvalidRequest, map[string]any{"Error": err.Error()}))
 			return
+		}
+		selectionCandidates := []string{modelRequest.Model}
+		selectionRequestPath := c.Request.URL.Path
+		if modelRequest.HasMask && strings.HasPrefix(selectionRequestPath, "/v1/images/edits") {
+			selectionRequestPath += "#mask"
+			common.SetContextKey(c, constant.ContextKeyImageMaskRequired, true)
+		}
+		if strings.HasPrefix(c.Request.URL.Path, "/v1/images/") {
+			modelRequest.Size = relayhelper.ResolveImageRequestSize(modelRequest.Size, modelRequest.Prompt)
+			aspectRatio := modelRequest.AspectRatio
+			if strings.TrimSpace(aspectRatio) == "" {
+				aspectRatio = modelRequest.AspectRatio2
+			}
+			if strings.TrimSpace(aspectRatio) == "" {
+				aspectRatio = modelRequest.Ratio
+			}
+			selectionCandidates = relayhelper.ImageModelSelectionCandidatesWithOptions(
+				modelRequest.Model,
+				modelRequest.Size,
+				modelRequest.Resolution,
+				aspectRatio,
+			)
+			if len(selectionCandidates) > 1 {
+				common.SetContextKey(c, constant.ContextKeyImageModelVariant, selectionCandidates[0])
+			}
 		}
 		if ok {
 			id, err := strconv.Atoi(channelId.(string))
@@ -52,6 +85,10 @@ func Distribute() func(c *gin.Context) {
 			}
 			if channel.Status != common.ChannelStatusEnabled {
 				abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorChannelDisabled))
+				return
+			}
+			if !channelSupportsRequestPath(channel, selectionRequestPath, modelRequest.Model) {
+				abortWithOpenAiMessage(c, http.StatusServiceUnavailable, "The selected channel does not support image mask editing", types.ErrorCodeModelNotFound)
 				return
 			}
 		} else {
@@ -70,7 +107,11 @@ func Distribute() func(c *gin.Context) {
 				if !ok {
 					tokenModelLimit = map[string]bool{}
 				}
-				matchName := ratio_setting.FormatMatchingModelName(modelRequest.Model) // match gpts & thinking-*
+				modelForLimit := modelRequest.Model
+				if strings.HasPrefix(c.Request.URL.Path, "/v1/images/") {
+					modelForLimit = relayhelper.BaseImageModel(modelForLimit)
+				}
+				matchName := ratio_setting.FormatMatchingModelName(modelForLimit) // match gpts & thinking-*
 				if _, ok := tokenModelLimit[matchName]; !ok {
 					abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorTokenModelForbidden, map[string]any{"Model": modelRequest.Model}))
 					return
@@ -84,6 +125,7 @@ func Distribute() func(c *gin.Context) {
 				}
 				var selectGroup string
 				usingGroup := common.GetContextKeyString(c, constant.ContextKeyUsingGroup)
+				selectionModel := selectionCandidates[0]
 				// check path is /pg/chat/completions
 				if strings.HasPrefix(c.Request.URL.Path, "/pg/chat/completions") {
 					playgroundRequest := &dto.PlayGroundRequest{}
@@ -93,7 +135,8 @@ func Distribute() func(c *gin.Context) {
 						return
 					}
 					if playgroundRequest.Group != "" {
-						if !service.GroupInUserUsableGroups(usingGroup, playgroundRequest.Group) && playgroundRequest.Group != usingGroup {
+						userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
+						if !service.GroupInUserUsableGroups(c.GetInt("id"), userGroup, playgroundRequest.Group) && playgroundRequest.Group != usingGroup {
 							abortWithOpenAiMessage(c, http.StatusForbidden, i18n.T(c, i18n.MsgDistributorGroupAccessDenied))
 							return
 						}
@@ -102,16 +145,16 @@ func Distribute() func(c *gin.Context) {
 					}
 				}
 
-				if preferredChannelID, found := service.GetPreferredChannelByAffinity(c, modelRequest.Model, usingGroup); found {
+				if preferredChannelID, found := service.GetPreferredChannelByAffinity(c, selectionModel, usingGroup); found {
 					affinityUsable := false
 					preferred, err := model.CacheGetChannel(preferredChannelID)
 					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled &&
-						channelSupportsRequestPath(preferred, c.Request.URL.Path, modelRequest.Model) {
+						channelSupportsRequestPath(preferred, selectionRequestPath, selectionModel) {
 						if usingGroup == "auto" {
 							userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
 							autoGroups := service.GetRequestAutoGroups(c, userGroup)
 							for _, g := range autoGroups {
-								if model.IsChannelHighestPriorityForGroupModel(g, modelRequest.Model, preferred.Id, c.Request.URL.Path) {
+								if model.IsChannelHighestPriorityForGroupModel(g, selectionModel, preferred.Id, selectionRequestPath) {
 									selectGroup = g
 									common.SetContextKey(c, constant.ContextKeyAutoGroup, g)
 									channel = preferred
@@ -120,12 +163,16 @@ func Distribute() func(c *gin.Context) {
 									break
 								}
 							}
-						} else if model.IsChannelHighestPriorityForGroupModel(usingGroup, modelRequest.Model, preferred.Id, c.Request.URL.Path) {
+						} else if model.IsChannelHighestPriorityForGroupModel(usingGroup, selectionModel, preferred.Id, selectionRequestPath) {
 							channel = preferred
 							selectGroup = usingGroup
 							affinityUsable = true
 							service.MarkChannelAffinityUsed(c, usingGroup, preferred.Id)
 						}
+					}
+					if !affinityUsable && service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
+						abortWithOpenAiMessage(c, http.StatusServiceUnavailable, i18n.T(c, i18n.MsgDistributorAffinityChannelDisabled))
+						return
 					}
 					if !affinityUsable && !service.ShouldKeepChannelAffinityOnChannelDisabled() {
 						service.ClearCurrentChannelAffinityCache(c)
@@ -133,32 +180,44 @@ func Distribute() func(c *gin.Context) {
 				}
 
 				if channel == nil {
-					channel, selectGroup, err = service.CacheGetRandomSatisfiedChannel(&service.RetryParam{
-						Ctx:         c,
-						ModelName:   modelRequest.Model,
-						TokenGroup:  usingGroup,
-						RequestPath: c.Request.URL.Path,
-						Retry:       common.GetPointer(0),
-					})
-					if err != nil {
+					var selectionErr error
+					for candidateIndex, candidateModel := range selectionCandidates {
+						if candidateIndex > 0 {
+							common.SetContextKey(c, constant.ContextKeyAutoGroupIndex, 0)
+							common.SetContextKey(c, constant.ContextKeyAutoGroupRetryIndex, 0)
+						}
+						selectionModel = candidateModel
+						channel, selectGroup, err = service.CacheGetRandomSatisfiedChannel(&service.RetryParam{
+							Ctx:         c,
+							ModelName:   selectionModel,
+							TokenGroup:  usingGroup,
+							RequestPath: selectionRequestPath,
+							Retry:       common.GetPointer(0),
+						})
+						if err == nil && channel != nil {
+							break
+						}
+						if err != nil {
+							selectionErr = err
+						}
+					}
+					if channel == nil {
 						showGroup := usingGroup
 						if usingGroup == "auto" {
 							showGroup = fmt.Sprintf("auto(%s)", selectGroup)
 						}
-						message := i18n.T(c, i18n.MsgDistributorGetChannelFailed, map[string]any{"Group": showGroup, "Model": modelRequest.Model, "Error": err.Error()})
-						// 如果错误，但是渠道不为空，说明是数据库一致性问题
-						//if channel != nil {
-						//	common.SysError(fmt.Sprintf("渠道不存在：%d", channel.Id))
-						//	message = "数据库一致性已被破坏，请联系管理员"
-						//}
+						message := i18n.T(c, i18n.MsgDistributorNoAvailableChannel, map[string]any{"Group": showGroup, "Model": modelRequest.Model})
+						if selectionErr != nil {
+							message = i18n.T(c, i18n.MsgDistributorGetChannelFailed, map[string]any{"Group": showGroup, "Model": modelRequest.Model, "Error": selectionErr.Error()})
+						}
 						abortWithOpenAiMessage(c, http.StatusServiceUnavailable, message, types.ErrorCodeModelNotFound)
 						return
 					}
-					if channel == nil {
-						abortWithOpenAiMessage(c, http.StatusServiceUnavailable, i18n.T(c, i18n.MsgDistributorNoAvailableChannel, map[string]any{"Group": usingGroup, "Model": modelRequest.Model}), types.ErrorCodeModelNotFound)
-						return
-					}
 				}
+				// Keep the requested image variant even when channel selection falls
+				// back to the public base model. The relay uses it internally to select
+				// the upstream resolution tier; only the base model remains public.
+				modelRequest.Model = selectionModel
 			}
 		}
 		common.SetContextKey(c, constant.ContextKeyRequestStartTime, time.Now())
@@ -177,11 +236,14 @@ func channelSupportsRequestPath(channel *model.Channel, requestPath string, requ
 	if channel == nil {
 		return false
 	}
+	if strings.HasPrefix(requestPath, "/v1/images/edits") && strings.Contains(requestPath, "#mask") && !channel.GetOtherSettings().SupportsImageMask {
+		return false
+	}
 	if channel.Type != constant.ChannelTypeAdvancedCustom {
 		return true
 	}
 	config := channel.GetOtherSettings().AdvancedCustom
-	return config != nil && config.SupportsPathForModel(requestPath, requestModel)
+	return config != nil && config.SupportsPathForModel(strings.TrimSuffix(requestPath, "#mask"), requestModel)
 }
 
 // getModelFromRequest 从请求中读取模型信息
@@ -219,12 +281,36 @@ func getModelFromJSONBody(c *gin.Context) (*ModelRequest, error) {
 		return nil, errors.New("invalid JSON request body")
 	}
 
-	values := gjson.GetManyBytes(requestBody, "model", "group")
+	values := gjson.GetManyBytes(requestBody, "model", "group", "size", "resolution", "aspect_ratio", "aspectRatio", "ratio", "prompt", "mask")
 	model, err := getJSONStringValue(values[0], "model")
 	if err != nil {
 		return nil, err
 	}
 	group, err := getJSONStringValue(values[1], "group")
+	if err != nil {
+		return nil, err
+	}
+	size, err := getJSONStringValue(values[2], "size")
+	if err != nil {
+		return nil, err
+	}
+	resolution, err := getJSONStringValue(values[3], "resolution")
+	if err != nil {
+		return nil, err
+	}
+	aspectRatio, err := getJSONStringValue(values[4], "aspect_ratio")
+	if err != nil {
+		return nil, err
+	}
+	aspectRatio2, err := getJSONStringValue(values[5], "aspectRatio")
+	if err != nil {
+		return nil, err
+	}
+	ratio, err := getJSONStringValue(values[6], "ratio")
+	if err != nil {
+		return nil, err
+	}
+	prompt, err := getJSONStringValue(values[7], "prompt")
 	if err != nil {
 		return nil, err
 	}
@@ -235,8 +321,15 @@ func getModelFromJSONBody(c *gin.Context) (*ModelRequest, error) {
 	c.Request.Body = io.NopCloser(storage)
 
 	return &ModelRequest{
-		Model: model,
-		Group: group,
+		Model:        model,
+		Group:        group,
+		Size:         size,
+		Resolution:   resolution,
+		AspectRatio:  aspectRatio,
+		AspectRatio2: aspectRatio2,
+		Ratio:        ratio,
+		Prompt:       prompt,
+		HasMask:      values[8].Exists() && values[8].Type != gjson.Null,
 	}, nil
 }
 
@@ -350,6 +443,13 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 			return nil, false, err
 		}
 		modelRequest.Model = req.Model
+		modelRequest.Group = req.Group
+		modelRequest.Size = req.Size
+		modelRequest.Resolution = req.Resolution
+		modelRequest.AspectRatio = req.AspectRatio
+		modelRequest.AspectRatio2 = req.AspectRatio2
+		modelRequest.Ratio = req.Ratio
+		modelRequest.Prompt = req.Prompt
 	}
 	if strings.HasPrefix(c.Request.URL.Path, "/v1/realtime") {
 		//wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01
@@ -372,8 +472,22 @@ func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {
 		contentType := c.ContentType()
 		if slices.Contains([]string{gin.MIMEPOSTForm, gin.MIMEMultipartPOSTForm}, contentType) {
 			req, err := getModelFromRequest(c)
-			if err == nil && req.Model != "" {
+			if err == nil && req != nil {
 				modelRequest.Model = req.Model
+				modelRequest.Size = req.Size
+				modelRequest.Resolution = req.Resolution
+				modelRequest.AspectRatio = req.AspectRatio
+				modelRequest.AspectRatio2 = req.AspectRatio2
+				modelRequest.Ratio = req.Ratio
+				modelRequest.Prompt = req.Prompt
+			}
+			if contentType == gin.MIMEMultipartPOSTForm {
+				form, formErr := common.ParseMultipartFormReusable(c)
+				if formErr != nil {
+					return nil, false, formErr
+				}
+				modelRequest.HasMask = len(form.File["mask"]) > 0
+				_ = form.RemoveAll()
 			}
 		}
 	}

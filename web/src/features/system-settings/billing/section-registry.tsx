@@ -29,6 +29,7 @@ import { createSectionRegistry } from '../utils/section-registry'
 const getModelDefaults = (settings: BillingSettings) => ({
   ModelPrice: settings.ModelPrice,
   ImageGenerationPrice: settings.ImageGenerationPrice,
+  VideoGenerationPrice: settings.VideoGenerationPrice,
   ModelRatio: settings.ModelRatio,
   CacheRatio: settings.CacheRatio,
   CreateCacheRatio: settings.CreateCacheRatio,
@@ -52,6 +53,7 @@ const getGroupDefaults = (settings: BillingSettings) => ({
   DefaultUseAutoGroup: settings.DefaultUseAutoGroup,
   GroupSpecialUsableGroup:
     settings['group_ratio_setting.group_special_usable_group'],
+  GroupUserAllowlist: settings['group_ratio_setting.group_user_allowlist'],
 })
 
 const BILLING_SECTIONS = [

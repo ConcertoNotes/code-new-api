@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as authRouteRouteImport } from './routes/(auth)/route'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as DocsRouteRouteImport } from './routes/docs/route'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as UserAgreementRouteImport } from './routes/user-agreement'
 import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
@@ -29,6 +30,9 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authenticated/chat2link'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DocsGptImageRouteImport } from './routes/docs/gpt-image'
+import { Route as DocsGptImage2RouteImport } from './routes/docs/gpt-image-2'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
@@ -79,6 +83,11 @@ const authRouteRoute = authRouteRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRouteRoute = DocsRouteRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -166,6 +175,21 @@ const AboutIndexRoute = AboutIndexRouteImport.update({
   id: '/about/',
   path: '/about/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsGptImageRoute = DocsGptImageRouteImport.update({
+  id: '/gpt-image',
+  path: '/gpt-image',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsGptImage2Route = DocsGptImage2RouteImport.update({
+  id: '/gpt-image-2',
+  path: '/gpt-image-2',
+  getParentRoute: () => DocsRouteRoute,
 } as any)
 const OauthProviderRoute = OauthProviderRouteImport.update({
   id: '/oauth/$provider',
@@ -389,6 +413,7 @@ const AuthenticatedSystemSettingsSiteSectionRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/docs': typeof DocsRouteRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
   '/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
@@ -405,8 +430,11 @@ export interface FileRoutesByFullPath {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
+  '/docs/gpt-image': typeof DocsGptImageRoute
+  '/docs/gpt-image-2': typeof DocsGptImage2Route
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -462,8 +490,11 @@ export interface FileRoutesByTo {
   '/500': typeof errors500Route
   '/503': typeof errors503Route
   '/chat2link': typeof AuthenticatedChat2linkRoute
+  '/docs/gpt-image': typeof DocsGptImageRoute
+  '/docs/gpt-image-2': typeof DocsGptImage2Route
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
@@ -507,6 +538,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/(auth)': typeof authRouteRouteWithChildren
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/docs': typeof DocsRouteRouteWithChildren
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/user-agreement': typeof UserAgreementRoute
   '/_authenticated/system-settings': typeof AuthenticatedSystemSettingsRouteRouteWithChildren
@@ -523,8 +555,11 @@ export interface FileRoutesById {
   '/(errors)/500': typeof errors500Route
   '/(errors)/503': typeof errors503Route
   '/_authenticated/chat2link': typeof AuthenticatedChat2linkRoute
+  '/docs/gpt-image': typeof DocsGptImageRoute
+  '/docs/gpt-image-2': typeof DocsGptImage2Route
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -567,6 +602,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/docs'
     | '/privacy-policy'
     | '/user-agreement'
     | '/system-settings'
@@ -583,8 +619,11 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/chat2link'
+    | '/docs/gpt-image'
+    | '/docs/gpt-image-2'
     | '/oauth/$provider'
     | '/about/'
+    | '/docs/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -640,8 +679,11 @@ export interface FileRouteTypes {
     | '/500'
     | '/503'
     | '/chat2link'
+    | '/docs/gpt-image'
+    | '/docs/gpt-image-2'
     | '/oauth/$provider'
     | '/about'
+    | '/docs'
     | '/pricing'
     | '/rankings'
     | '/setup'
@@ -684,6 +726,7 @@ export interface FileRouteTypes {
     | '/'
     | '/(auth)'
     | '/_authenticated'
+    | '/docs'
     | '/privacy-policy'
     | '/user-agreement'
     | '/_authenticated/system-settings'
@@ -700,8 +743,11 @@ export interface FileRouteTypes {
     | '/(errors)/500'
     | '/(errors)/503'
     | '/_authenticated/chat2link'
+    | '/docs/gpt-image'
+    | '/docs/gpt-image-2'
     | '/oauth/$provider'
     | '/about/'
+    | '/docs/'
     | '/pricing/'
     | '/rankings/'
     | '/setup/'
@@ -745,6 +791,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   authRouteRoute: typeof authRouteRouteWithChildren
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  DocsRouteRoute: typeof DocsRouteRouteWithChildren
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   UserAgreementRoute: typeof UserAgreementRoute
   errors401Route: typeof errors401Route
@@ -781,6 +828,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -901,6 +955,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/about/'
       preLoaderRoute: typeof AboutIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/gpt-image': {
+      id: '/docs/gpt-image'
+      path: '/gpt-image'
+      fullPath: '/docs/gpt-image'
+      preLoaderRoute: typeof DocsGptImageRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/gpt-image-2': {
+      id: '/docs/gpt-image-2'
+      path: '/gpt-image-2'
+      fullPath: '/docs/gpt-image-2'
+      preLoaderRoute: typeof DocsGptImage2RouteImport
+      parentRoute: typeof DocsRouteRoute
     }
     '/oauth/$provider': {
       id: '/oauth/$provider'
@@ -1303,10 +1378,27 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface DocsRouteRouteChildren {
+  DocsGptImageRoute: typeof DocsGptImageRoute
+  DocsGptImage2Route: typeof DocsGptImage2Route
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteRouteChildren: DocsRouteRouteChildren = {
+  DocsGptImageRoute: DocsGptImageRoute,
+  DocsGptImage2Route: DocsGptImage2Route,
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteRouteWithChildren = DocsRouteRoute._addFileChildren(
+  DocsRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   authRouteRoute: authRouteRouteWithChildren,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  DocsRouteRoute: DocsRouteRouteWithChildren,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   UserAgreementRoute: UserAgreementRoute,
   errors401Route: errors401Route,

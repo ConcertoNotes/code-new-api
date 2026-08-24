@@ -176,6 +176,38 @@ func TestShouldSkipRetryAfterChannelAffinityFailure(t *testing.T) {
 	}
 }
 
+func TestDefaultCodexAffinityRulePreventsFailureRetry(t *testing.T) {
+	setting := operation_setting.GetChannelAffinitySetting()
+	require.NotNil(t, setting)
+
+	for _, rule := range setting.Rules {
+		if rule.Name == "codex cli trace" {
+			require.True(t, rule.SkipRetryOnFailure)
+			return
+		}
+	}
+	t.Fatal("default Codex affinity rule not found")
+}
+
+func TestDefaultCodexAffinityRuleUsesUserBeforePromptCacheKey(t *testing.T) {
+	setting := operation_setting.GetChannelAffinitySetting()
+	require.NotNil(t, setting)
+
+	var codexRule *operation_setting.ChannelAffinityRule
+	for i := range setting.Rules {
+		if setting.Rules[i].Name == "codex cli trace" {
+			codexRule = &setting.Rules[i]
+			break
+		}
+	}
+	require.NotNil(t, codexRule)
+	require.Equal(t, []operation_setting.ChannelAffinityKeySource{
+		{Type: "context_int", Key: "id"},
+		{Type: "gjson", Path: "prompt_cache_key"},
+	}, codexRule.KeySources)
+	require.True(t, codexRule.IncludeModelName)
+}
+
 func TestExtractChannelAffinityValue_RequestHeader(t *testing.T) {
 	rec := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(rec)
@@ -261,6 +293,76 @@ func TestClearCurrentChannelAffinityCache(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, found)
 	require.False(t, ShouldSkipRetryAfterChannelAffinityFailure(ctx))
+}
+
+func TestHandleChannelAffinityFailureKeepsSessionBinding(t *testing.T) {
+	cacheKeySuffix := fmt.Sprintf("codex cli trace:default:failed-current-%d", time.Now().UnixNano())
+	cacheKeyFull := channelAffinityCacheNamespace + ":" + cacheKeySuffix
+	cache := getChannelAffinityCache()
+	require.NoError(t, cache.SetWithTTL(cacheKeySuffix, 9527, time.Minute))
+	t.Cleanup(func() {
+		_, _ = cache.DeleteMany([]string{cacheKeySuffix})
+	})
+
+	ctx := buildChannelAffinityTemplateContextForTest(channelAffinityMeta{
+		CacheKey:   cacheKeyFull,
+		TTLSeconds: 60,
+		RuleName:   "codex cli trace",
+		SkipRetry:  true,
+	})
+	MarkChannelAffinityUsed(ctx, "default", 9527)
+
+	require.True(t, HandleChannelAffinityFailure(ctx))
+	_, found, err := cache.Get(cacheKeySuffix)
+	require.NoError(t, err)
+	require.True(t, found)
+
+	RecordChannelAffinity(ctx, 9527)
+	_, found, err = cache.Get(cacheKeySuffix)
+	require.NoError(t, err)
+	require.True(t, found)
+}
+
+func TestCodexAffinityKeepsChannelWhenPromptCacheKeyChangesForUser(t *testing.T) {
+	setting := operation_setting.GetChannelAffinitySetting()
+	require.NotNil(t, setting)
+
+	var codexRule *operation_setting.ChannelAffinityRule
+	for i := range setting.Rules {
+		if setting.Rules[i].Name == "codex cli trace" {
+			codexRule = &setting.Rules[i]
+			break
+		}
+	}
+	require.NotNil(t, codexRule)
+
+	userID := int(time.Now().UnixNano() & 0x3fffffff)
+	modelName := "gpt-5"
+	usingGroup := "default"
+	affinityValue := fmt.Sprintf("%d", userID)
+	cacheKeySuffix := buildChannelAffinityCacheKeySuffix(*codexRule, modelName, usingGroup, affinityValue)
+	cache := getChannelAffinityCache()
+	require.NoError(t, cache.SetWithTTL(cacheKeySuffix, 9527, time.Minute))
+	t.Cleanup(func() {
+		_, _ = cache.DeleteMany([]string{cacheKeySuffix})
+	})
+
+	for _, promptCacheKey := range []string{"cache-first", "cache-drifted"} {
+		rec := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(rec)
+		ctx.Set("id", userID)
+		ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", strings.NewReader(fmt.Sprintf(`{"prompt_cache_key":%q}`, promptCacheKey)))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+
+		channelID, found := GetPreferredChannelByAffinity(ctx, modelName, usingGroup)
+		require.True(t, found)
+		require.Equal(t, 9527, channelID)
+
+		meta, ok := getChannelAffinityMeta(ctx)
+		require.True(t, ok)
+		require.Equal(t, "context_int", meta.KeySourceType)
+		require.Equal(t, "id", meta.KeySourceKey)
+	}
 }
 
 func TestChannelAffinityHitCodexTemplatePassHeadersEffective(t *testing.T) {

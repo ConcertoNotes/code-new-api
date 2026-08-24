@@ -55,7 +55,7 @@ import { copyToClipboard } from '@/lib/copy-to-clipboard'
 
 import { updateApiKeyStatus } from '../api'
 import { API_KEY_STATUS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
-import { apiKeySchema } from '../types'
+import { apiKeySchema, type ApiKeysDialogType } from '../types'
 import { useApiKeys } from './api-keys-provider'
 
 function getServerAddress(): string {
@@ -182,6 +182,16 @@ export function DataTableRowActions<TData>({
     }
   }
 
+  const handleOpenSwitchImport = async (
+    dialogType: Extract<ApiKeysDialogType, 'cc-switch' | 'var-switch'>
+  ) => {
+    const realKey = await resolveRealKey(apiKey.id)
+    if (!realKey) return
+    setResolvedKey(realKey)
+    setCurrentRow(apiKey)
+    setOpen(dialogType)
+  }
+
   let statusIcon = <Power className='size-4' />
   if (isTogglingStatus) {
     statusIcon = <Loader2 className='size-4 animate-spin' />
@@ -269,16 +279,14 @@ export function DataTableRowActions<TData>({
           </DropdownMenuShortcut>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={async () => {
-            const realKey = await resolveRealKey(apiKey.id)
-            if (!realKey) return
-            setResolvedKey(realKey)
-            setCurrentRow(apiKey)
-            setOpen('cc-switch')
-          }}
-        >
+        <DropdownMenuItem onClick={() => handleOpenSwitchImport('cc-switch')}>
           {t('CC Switch')}
+          <DropdownMenuShortcut>
+            <ArrowRightLeft size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleOpenSwitchImport('var-switch')}>
+          {t('VarSwitch')}
           <DropdownMenuShortcut>
             <ArrowRightLeft size={16} />
           </DropdownMenuShortcut>

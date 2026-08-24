@@ -49,6 +49,7 @@ type LegacyComboboxProps = {
   className?: string
   id?: string
   openOnFocus?: boolean
+  onSearchValueChange?: (value: string) => void
 }
 
 function Combobox(props: LegacyComboboxProps): React.ReactElement
@@ -72,6 +73,7 @@ function Combobox(
         className={props.className}
         allowCustomValue={props.allowCustomValue}
         openOnFocus={props.openOnFocus}
+        onSearchValueChange={props.onSearchValueChange}
       />
     )
   }

@@ -244,6 +244,7 @@ func ListModels(c *gin.Context, modelType int) {
 		}
 	}
 	models := service.GetGroupsEnabledModels(ownerGroups)
+	models = common.CollapseImageModelVariants(models)
 	for _, modelName := range models {
 		if modelLimitEnable {
 			matchingName := ratio_setting.FormatMatchingModelName(modelName)

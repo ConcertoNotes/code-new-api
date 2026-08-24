@@ -36,6 +36,10 @@ func TestConvertImageEditRequestMultipart(t *testing.T) {
 		require.NoError(t, err)
 		_, err = part.Write([]byte("fake image"))
 		require.NoError(t, err)
+		maskPart, err := writer.CreateFormFile("mask", "mask.png")
+		require.NoError(t, err)
+		_, err = maskPart.Write([]byte("fake mask"))
+		require.NoError(t, err)
 		require.NoError(t, writer.Close())
 
 		c, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -72,6 +76,7 @@ func TestConvertImageEditRequestMultipart(t *testing.T) {
 		require.Equal(t, "b64_json", replayedRequest.PostForm.Get("response_format"))
 		require.Equal(t, "4k", replayedRequest.PostForm.Get("size"))
 		require.Len(t, replayedRequest.MultipartForm.File["image"], 1)
+		require.Len(t, replayedRequest.MultipartForm.File["mask"], 1)
 
 		file, err := replayedRequest.MultipartForm.File["image"][0].Open()
 		require.NoError(t, err)
@@ -79,6 +84,13 @@ func TestConvertImageEditRequestMultipart(t *testing.T) {
 		fileBytes, err := io.ReadAll(file)
 		require.NoError(t, err)
 		require.Equal(t, []byte("fake image"), fileBytes)
+
+		maskFile, err := replayedRequest.MultipartForm.File["mask"][0].Open()
+		require.NoError(t, err)
+		defer maskFile.Close()
+		maskBytes, err := io.ReadAll(maskFile)
+		require.NoError(t, err)
+		require.Equal(t, []byte("fake mask"), maskBytes)
 	}
 
 	t.Run("with pre-parsed form", func(t *testing.T) {

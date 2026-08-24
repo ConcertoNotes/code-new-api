@@ -86,7 +86,14 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 
 	usesImageGenerationPrice := false
 	if meta != nil && meta.ImageBillingTier != "" {
-		if imagePrice, ok := ratio_setting.GetImageGenerationPrice(info.OriginModelName, meta.ImageBillingTier); ok {
+		imagePrice, ok := ratio_setting.GetImageGenerationPrice(info.OriginModelName, meta.ImageBillingTier)
+		if !ok {
+			baseModel := BaseImageModel(info.OriginModelName)
+			if baseModel != info.OriginModelName {
+				imagePrice, ok = ratio_setting.GetImageGenerationPrice(baseModel, meta.ImageBillingTier)
+			}
+		}
+		if ok {
 			modelPrice = imagePrice
 			usePrice = true
 			usesImageGenerationPrice = true
@@ -200,11 +207,13 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hosttypes.PriceData, error) {
 	groupRatioInfo := HandleGroupRatio(c, info)
 
-	modelPrice, success := ratio_setting.GetModelPrice(info.OriginModelName, true)
-	usePrice := success
+	modelPrice, usePrice := configuredVideoPrice(c, info)
 	var modelRatio float64
+	if !usePrice {
+		modelPrice, usePrice = ratio_setting.GetModelPrice(info.OriginModelName, true)
+	}
 
-	if !success {
+	if !usePrice {
 		defaultPrice, ok := ratio_setting.GetDefaultModelPriceMap()[info.OriginModelName]
 		if ok {
 			modelPrice = defaultPrice
@@ -266,6 +275,9 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 }
 
 func HasModelBillingConfig(modelName string) bool {
+	if ratio_setting.HasVideoGenerationPrice(modelName) {
+		return true
+	}
 	if _, ok := ratio_setting.GetModelPrice(modelName, false); ok {
 		return true
 	}
@@ -277,6 +289,24 @@ func HasModelBillingConfig(modelName string) bool {
 	}
 	expr, _, ok := billing_setting.ResolveBillingExpr(modelName, "")
 	return ok && strings.TrimSpace(expr) != ""
+}
+
+func configuredVideoPrice(c *gin.Context, info *relaycommon.RelayInfo) (float64, bool) {
+	if info == nil || !strings.Contains(info.RequestURLPath, "/v1/video") {
+		return 0, false
+	}
+	req, err := relaycommon.GetTaskRequest(c)
+	if err != nil {
+		return 0, false
+	}
+	resolution := req.Resolution
+	if resolution == "" {
+		resolution = req.Size
+	}
+	if resolution == "" {
+		resolution = ratio_setting.VideoGenerationResolution720P
+	}
+	return ratio_setting.GetVideoGenerationPrice(info.OriginModelName, resolution)
 }
 
 func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, promptTokens int, meta *types.TokenCountMeta, groupRatioInfo hosttypes.GroupRatioInfo, exprStr string) (hosttypes.PriceData, error) {

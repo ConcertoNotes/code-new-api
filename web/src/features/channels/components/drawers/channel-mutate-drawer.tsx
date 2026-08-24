@@ -748,6 +748,7 @@ export function ChannelMutateDrawer({
   const currentDisableTaskPollingSleep = form.watch(
     'disable_task_polling_sleep'
   )
+  const currentSupportsImageMask = form.watch('supports_image_mask')
   const currentProxy = form.watch('proxy')
   const currentHttpProtocol = form.watch('http_protocol')
   const currentHttp2ConnectionShards = form.watch('http2_connection_shards')
@@ -1031,7 +1032,8 @@ export function ChannelMutateDrawer({
       currentDisableStore ||
       currentAllowSafetyIdentifier ||
       currentAllowIncludeObfuscation ||
-      currentAllowInferenceGeo
+      currentAllowInferenceGeo ||
+      currentSupportsImageMask
     )
   } else if (currentType === 14) {
     fieldPassthroughConfigured = Boolean(
@@ -4248,9 +4250,7 @@ export function ChannelMutateDrawer({
                                         <SelectValue />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent
-                                      alignItemWithTrigger={false}
-                                    >
+                                    <SelectContent alignItemWithTrigger={false}>
                                       <SelectGroup>
                                         <SelectItem value='auto'>
                                           {t('Auto')}
@@ -4433,6 +4433,31 @@ export function ChannelMutateDrawer({
 
                                 {(currentType === 1 || currentType === 57) && (
                                   <>
+                                    <FormField
+                                      control={form.control}
+                                      name='supports_image_mask'
+                                      render={({ field }) => (
+                                        <FormItem className='flex items-center justify-between gap-3 px-4 py-3'>
+                                          <div className='space-y-0.5'>
+                                            <FormLabel className='text-sm'>
+                                              {t('Support image mask editing')}
+                                            </FormLabel>
+                                            <FormDescription>
+                                              {t(
+                                                'Route OpenAI image edit requests with a mask to this channel'
+                                              )}
+                                            </FormDescription>
+                                          </div>
+                                          <FormControl>
+                                            <Switch
+                                              checked={field.value}
+                                              onCheckedChange={field.onChange}
+                                            />
+                                          </FormControl>
+                                        </FormItem>
+                                      )}
+                                    />
+
                                     <FormField
                                       control={form.control}
                                       name='disable_store'

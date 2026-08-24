@@ -42,6 +42,7 @@ import {
   SettingsSwitchContent,
   SettingsSwitchItem,
 } from '../components/settings-form-layout'
+import { removeModelPricing } from './model-pricing-delete'
 import {
   ModelRatioVisualEditor,
   type ModelRatioVisualEditorHandle,
@@ -50,6 +51,7 @@ import {
 type ModelFormValues = {
   ModelPrice: string
   ImageGenerationPrice: string
+  VideoGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -66,7 +68,7 @@ type ModelFormValues = {
 type ModelRatioFormProps = {
   form: UseFormReturn<ModelFormValues>
   savedValues: ModelFormValues
-  onSave: (values: ModelFormValues) => Promise<void>
+  onSave: (values: ModelFormValues) => Promise<boolean>
   onReset: () => void
   isSaving: boolean
   isResetting: boolean
@@ -76,6 +78,7 @@ type ModelRatioFormProps = {
 type ModelJsonFieldName =
   | 'ModelPrice'
   | 'ImageGenerationPrice'
+  | 'VideoGenerationPrice'
   | 'ModelRatio'
   | 'CacheRatio'
   | 'CreateCacheRatio'
@@ -101,6 +104,12 @@ const modelJsonFields: Array<{
     labelKey: 'Image generation pricing',
     descriptionKey:
       'JSON map of model → 1K/2K/4K USD price per generated image. Structured size parameters take priority; an unambiguous prompt resolution is used as fallback.',
+  },
+  {
+    name: 'VideoGenerationPrice',
+    labelKey: 'Video generation pricing',
+    descriptionKey:
+      'JSON map of model → resolution → USD price per second. Resolution names can be customized.',
   },
   {
     name: 'ModelRatio',
@@ -232,6 +241,24 @@ export const ModelRatioForm = memo(function ModelRatioForm({
     await form.handleSubmit(onSave)()
   }, [editMode, form, onSave])
 
+  const handleDelete = useCallback(
+    async (modelName: string) => {
+      const currentValues = form.getValues()
+      const pricingValues = removeModelPricing(currentValues, modelName)
+      const saved = await onSave({ ...currentValues, ...pricingValues })
+      if (!saved) return false
+
+      for (const [field, value] of Object.entries(pricingValues)) {
+        form.setValue(field as keyof ModelFormValues, value, {
+          shouldDirty: false,
+          shouldValidate: true,
+        })
+      }
+      return true
+    },
+    [form, onSave]
+  )
+
   return (
     <div className='space-y-6'>
       {!isUnsetVariant && (
@@ -279,6 +306,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
             <ModelRatioVisualEditor
               ref={visualEditorRef}
               savedModelPrice={savedValues.ModelPrice}
+              savedVideoGenerationPrice={savedValues.VideoGenerationPrice}
               savedModelRatio={savedValues.ModelRatio}
               savedCacheRatio={savedValues.CacheRatio}
               savedCreateCacheRatio={savedValues.CreateCacheRatio}
@@ -289,6 +317,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               savedBillingMode={savedValues.BillingMode}
               savedBillingExpr={savedValues.BillingExpr}
               modelPrice={form.watch('ModelPrice')}
+              videoGenerationPrice={form.watch('VideoGenerationPrice')}
               modelRatio={form.watch('ModelRatio')}
               cacheRatio={form.watch('CacheRatio')}
               createCacheRatio={form.watch('CreateCacheRatio')}
@@ -305,6 +334,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
                 isUnsetVariant && enabledModelsQuery.isLoading
               }
               filterMode={isUnsetVariant ? 'unset' : 'all'}
+              onDelete={handleDelete}
               onSave={handleSave}
               isSaving={isSaving}
               onChange={(field, value) => {

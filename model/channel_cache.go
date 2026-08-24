@@ -255,11 +255,15 @@ func filterChannelsByRequestPathAndModel(channels []int, requestPath string, mod
 			filtered = append(filtered, channelId)
 			continue
 		}
+		if strings.HasPrefix(requestPath, "/v1/images/edits") && strings.Contains(requestPath, "#mask") && !channel.GetOtherSettings().SupportsImageMask {
+			continue
+		}
 		if channel.Type != constant.ChannelTypeAdvancedCustom {
 			filtered = append(filtered, channelId)
 			continue
 		}
-		if config := channel2advancedCustomConfig[channelId]; config != nil && config.SupportsPathForModel(requestPath, model) {
+		baseRequestPath := strings.TrimSuffix(requestPath, "#mask")
+		if config := channel2advancedCustomConfig[channelId]; config != nil && config.SupportsPathForModel(baseRequestPath, model) {
 			filtered = append(filtered, channelId)
 		}
 	}

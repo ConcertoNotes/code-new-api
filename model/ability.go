@@ -107,40 +107,58 @@ func getChannelQuery(group string, model string, retry int) (*gorm.DB, error) {
 
 func GetChannel(group string, model string, retry int, requestPath string) (*Channel, error) {
 	var abilities []Ability
-
-	var err error = nil
-	channelQuery, err := getChannelQuery(group, model, retry)
-	if err != nil {
-		return nil, err
-	}
-	if common.UsingMainDatabase(common.DatabaseTypeSQLite) || common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
-	} else {
-		err = channelQuery.Order("weight DESC").Find(&abilities).Error
-	}
+	err := DB.Where(commonGroupCol+" = ? and model = ? and enabled = ?", group, model, true).
+		Order("priority DESC").
+		Order("weight DESC").
+		Find(&abilities).Error
 	if err != nil {
 		return nil, err
 	}
 	abilities = filterAbilitiesByRequestPathAndModel(abilities, requestPath, model)
-	channel := Channel{}
-	if len(abilities) > 0 {
-		// Randomly choose one
-		weightSum := uint(0)
-		for _, ability_ := range abilities {
-			weightSum += ability_.Weight + 10
-		}
-		// Randomly choose one
-		weight := common.GetRandomInt(int(weightSum))
-		for _, ability_ := range abilities {
-			weight -= int(ability_.Weight) + 10
-			//log.Printf("weight: %d, ability weight: %d", weight, *ability_.Weight)
-			if weight <= 0 {
-				channel.Id = ability_.ChannelId
-				break
-			}
-		}
-	} else {
+	if len(abilities) == 0 {
 		return nil, nil
+	}
+
+	priorities := make([]int64, 0)
+	seenPriorities := make(map[int64]struct{})
+	for _, ability := range abilities {
+		priority := int64(0)
+		if ability.Priority != nil {
+			priority = *ability.Priority
+		}
+		if _, exists := seenPriorities[priority]; exists {
+			continue
+		}
+		seenPriorities[priority] = struct{}{}
+		priorities = append(priorities, priority)
+	}
+	if retry >= len(priorities) {
+		retry = len(priorities) - 1
+	}
+	targetPriority := priorities[retry]
+	eligible := abilities[:0]
+	for _, ability := range abilities {
+		priority := int64(0)
+		if ability.Priority != nil {
+			priority = *ability.Priority
+		}
+		if priority == targetPriority {
+			eligible = append(eligible, ability)
+		}
+	}
+	abilities = eligible
+	channel := Channel{}
+	weightSum := uint(0)
+	for _, ability := range abilities {
+		weightSum += ability.Weight + 10
+	}
+	weight := common.GetRandomInt(int(weightSum))
+	for _, ability := range abilities {
+		weight -= int(ability.Weight) + 10
+		if weight <= 0 {
+			channel.Id = ability.ChannelId
+			break
+		}
 	}
 	err = DB.First(&channel, "id = ?", channel.Id).Error
 	return &channel, err
@@ -173,7 +191,9 @@ func filterAbilitiesByRequestPathAndModel(abilities []Ability, requestPath strin
 	}
 
 	advancedConfigs := make(map[int]*dto.AdvancedCustomConfig)
+	imageMaskSupport := make(map[int]bool)
 	for _, channel := range channels {
+		imageMaskSupport[channel.Id] = channel.GetOtherSettings().SupportsImageMask
 		if channel.Type == constant.ChannelTypeAdvancedCustom {
 			advancedConfigs[channel.Id] = channel.GetOtherSettings().AdvancedCustom
 		}
@@ -181,12 +201,15 @@ func filterAbilitiesByRequestPathAndModel(abilities []Ability, requestPath strin
 
 	filtered := make([]Ability, 0, len(abilities))
 	for _, ability := range abilities {
+		if strings.HasPrefix(requestPath, "/v1/images/edits") && strings.Contains(requestPath, "#mask") && !imageMaskSupport[ability.ChannelId] {
+			continue
+		}
 		config, isAdvancedCustom := advancedConfigs[ability.ChannelId]
 		if !isAdvancedCustom {
 			filtered = append(filtered, ability)
 			continue
 		}
-		if config != nil && config.SupportsPathForModel(requestPath, model) {
+		if config != nil && config.SupportsPathForModel(strings.TrimSuffix(requestPath, "#mask"), model) {
 			filtered = append(filtered, ability)
 		}
 	}

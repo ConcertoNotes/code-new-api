@@ -147,7 +147,7 @@ func TestValidateTokenFallbackGroupsRejectsInvalidStructure(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert.Error(t, ValidateTokenFallbackGroups("default", test.primaryGroup, test.fallbackGroups))
+			assert.Error(t, ValidateTokenFallbackGroups(0, "default", test.primaryGroup, test.fallbackGroups))
 		})
 	}
 }

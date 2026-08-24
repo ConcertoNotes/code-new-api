@@ -356,6 +356,9 @@ func updatePricing() {
 
 	pricingMap = make([]Pricing, 0)
 	for model, groups := range modelGroupsMap {
+		if common.PublicImageModelName(model) != model {
+			continue
+		}
 		pricing := Pricing{
 			ModelName:              model,
 			EnableGroup:            groups.Items(),

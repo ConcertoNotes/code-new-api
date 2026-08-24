@@ -32,10 +32,10 @@ test('documentation navigation uses the configured external link', () => {
   })
 })
 
-test('documentation navigation falls back to the project documentation', () => {
+test('documentation navigation falls back to the internal project documentation', () => {
   assert.deepEqual(getDocumentationLink('Docs'), {
     title: 'Docs',
     href: DEFAULT_DOCUMENTATION_URL,
-    external: true,
+    external: false,
   })
 })
