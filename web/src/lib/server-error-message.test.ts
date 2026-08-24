@@ -16,8 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+import { describe, expect, test } from 'vitest'
 
 import { getServerErrorMessageKey } from './server-error-message'
 
@@ -39,16 +38,15 @@ describe('server error message mapping', () => {
     }
 
     for (const [code, message] of Object.entries(expected)) {
-      assert.equal(getServerErrorMessageKey({ code }), message)
+      expect(getServerErrorMessageKey({ code })).toBe(message)
     }
 
-    assert.equal(
+    expect(
       getServerErrorMessageKey({
         response: {
           data: { code: 'TELEGRAM_BIND_INTERNAL_ERROR', message: 'raw detail' },
         },
-      }),
-      expected.TELEGRAM_BIND_INTERNAL_ERROR
-    )
+      })
+    ).toBe(expected.TELEGRAM_BIND_INTERNAL_ERROR)
   })
 })

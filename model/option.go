@@ -217,6 +217,9 @@ func validateOptionValue(key string, value string) error {
 	if key == "group_ratio_setting.group_user_allowlist" {
 		return ratio_setting.ValidateGroupUserAllowlistJSON(value)
 	}
+	if key == operation_setting.ChannelTestConcurrencyOptionKey {
+		return operation_setting.ValidateChannelTestConcurrency(value)
+	}
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
 	}

@@ -17,39 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
-import { after, afterEach, describe, test } from 'node:test'
 
-import { Window } from 'happy-dom'
-
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLButtonElement',
-  'HTMLInputElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'FocusEvent',
-  'MouseEvent',
-  'PointerEvent',
-  'CustomEvent',
-  'MutationObserver',
-  'ResizeObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
+import { afterEach, describe, test } from 'vitest'
 
 const { act, useState } = await import('react')
 const { createRoot } = await import('react-dom/client')
@@ -100,21 +69,17 @@ function Harness() {
 }
 
 function click(element: Element) {
-  element.dispatchEvent(
-    new domWindow.MouseEvent('click', { bubbles: true }) as unknown as Event
-  )
+  element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 }
 
 function enterValue(input: HTMLInputElement, value: string) {
   const valueSetter = Object.getOwnPropertyDescriptor(
-    domWindow.HTMLInputElement.prototype,
+    HTMLInputElement.prototype,
     'value'
   )?.set
   assert.ok(valueSetter)
   valueSetter.call(input, value)
-  input.dispatchEvent(
-    new domWindow.Event('input', { bubbles: true }) as unknown as Event
-  )
+  input.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
 describe('video resolution price editor', () => {
@@ -123,8 +88,6 @@ describe('video resolution price editor', () => {
     container.remove()
     document.body.replaceChildren()
   })
-
-  after(() => domWindow.close())
 
   test('adds, edits, and removes a custom resolution row', async () => {
     container = document.createElement('div')

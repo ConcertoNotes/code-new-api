@@ -17,41 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
-import { after, afterEach, describe, test } from 'node:test'
 
-import { Window } from 'happy-dom'
-
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'localStorage',
-  'HTMLElement',
-  'HTMLButtonElement',
-  'HTMLInputElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'FocusEvent',
-  'MouseEvent',
-  'KeyboardEvent',
-  'PointerEvent',
-  'CustomEvent',
-  'MutationObserver',
-  'ResizeObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
+import { afterEach, describe, test } from 'vitest'
 
 const { QueryClient, QueryClientProvider } =
   await import('@tanstack/react-query')
@@ -117,9 +84,7 @@ function Harness(props: { saveResult?: boolean }) {
 }
 
 function click(element: Element) {
-  element.dispatchEvent(
-    new domWindow.MouseEvent('click', { bubbles: true }) as unknown as Event
-  )
+  element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 }
 
 async function flush() {
@@ -154,10 +119,6 @@ describe('model pricing delete flow', () => {
     container.remove()
     document.body.replaceChildren()
     savedValues.length = 0
-  })
-
-  after(() => {
-    domWindow.close()
   })
 
   test('clicking delete saves the removal immediately and removes the row', async () => {

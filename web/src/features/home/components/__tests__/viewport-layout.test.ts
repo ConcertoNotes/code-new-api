@@ -18,15 +18,17 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import test from 'node:test'
+import path from 'node:path'
 
-const COMPONENT_DIRECTORY = new URL('../', import.meta.url)
-const HOME_STYLES = new URL('../../../../styles/index.css', import.meta.url)
+import { test } from 'vitest'
+
+const COMPONENT_DIRECTORY = path.resolve('src/features/home/components')
+const HOME_STYLES = path.resolve('src/styles/index.css')
 
 test('desktop landing keeps the hero and raised marquee within one viewport', async () => {
   const [landingSource, marqueeSource] = await Promise.all([
-    readFile(new URL('modern-landing.tsx', COMPONENT_DIRECTORY), 'utf8'),
-    readFile(new URL('model-marquee.tsx', COMPONENT_DIRECTORY), 'utf8'),
+    readFile(path.join(COMPONENT_DIRECTORY, 'modern-landing.tsx'), 'utf8'),
+    readFile(path.join(COMPONENT_DIRECTORY, 'model-marquee.tsx'), 'utf8'),
   ])
 
   assert.match(landingSource, /min-h-svh[^']*lg:h-svh/)
@@ -36,7 +38,7 @@ test('desktop landing keeps the hero and raised marquee within one viewport', as
 
 test('hero keeps variable switch beside the primary action', async () => {
   const landingSource = await readFile(
-    new URL('modern-landing.tsx', COMPONENT_DIRECTORY),
+    path.join(COMPONENT_DIRECTORY, 'modern-landing.tsx'),
     'utf8'
   )
 

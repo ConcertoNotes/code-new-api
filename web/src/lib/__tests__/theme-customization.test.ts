@@ -18,7 +18,9 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import test from 'node:test'
+import path from 'node:path'
+
+import { test } from 'vitest'
 
 import {
   DEFAULT_THEME_CUSTOMIZATION,
@@ -37,23 +39,14 @@ test('aurora is the default color preset and white preserves the old default pal
 test('aurora canvas is shared by public and authenticated page layouts', async () => {
   const [publicLayout, authenticatedLayout, themeStyles] = await Promise.all([
     readFile(
-      new URL(
-        '../../components/layout/components/public-layout.tsx',
-        import.meta.url
-      ),
+      path.resolve('src/components/layout/components/public-layout.tsx'),
       'utf8'
     ),
     readFile(
-      new URL(
-        '../../components/layout/components/authenticated-layout.tsx',
-        import.meta.url
-      ),
+      path.resolve('src/components/layout/components/authenticated-layout.tsx'),
       'utf8'
     ),
-    readFile(
-      new URL('../../styles/theme-presets.css', import.meta.url),
-      'utf8'
-    ),
+    readFile(path.resolve('src/styles/theme-presets.css'), 'utf8'),
   ])
 
   assert.match(publicLayout, /app-theme-canvas/)

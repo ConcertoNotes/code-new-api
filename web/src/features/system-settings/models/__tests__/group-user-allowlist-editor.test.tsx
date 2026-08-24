@@ -17,40 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import assert from 'node:assert/strict'
-import { after, afterEach, before, describe, test } from 'node:test'
 
-import { Window } from 'happy-dom'
-
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLButtonElement',
-  'HTMLInputElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'FocusEvent',
-  'MouseEvent',
-  'KeyboardEvent',
-  'PointerEvent',
-  'CustomEvent',
-  'MutationObserver',
-  'ResizeObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
+import { afterEach, beforeAll, describe, test } from 'vitest'
 
 const { QueryClient, QueryClientProvider } =
   await import('@tanstack/react-query')
@@ -118,13 +86,11 @@ async function flushQueries() {
 }
 
 function click(element: Element) {
-  element.dispatchEvent(
-    new domWindow.MouseEvent('click', { bubbles: true }) as unknown as Event
-  )
+  element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 }
 
 describe('user-specific group access editor', () => {
-  before(() => {
+  beforeAll(() => {
     api.defaults.adapter = async (config) => ({
       data: {
         success: true,
@@ -151,10 +117,6 @@ describe('user-specific group access editor', () => {
     document.body.replaceChildren()
   })
 
-  after(() => {
-    domWindow.close()
-  })
-
   test('adds the selected user to the selected private group', async () => {
     container = document.createElement('div')
     document.body.append(container)
@@ -173,10 +135,10 @@ describe('user-specific group access editor', () => {
     assert.ok(privateOption)
     await act(async () => {
       privateOption.dispatchEvent(
-        new domWindow.PointerEvent('pointerdown', {
+        new MouseEvent('pointerdown', {
           bubbles: true,
           button: 0,
-        }) as unknown as Event
+        })
       )
       click(privateOption)
     })
@@ -188,9 +150,9 @@ describe('user-specific group access editor', () => {
     assert.ok(userInput)
     await act(async () => {
       userInput.dispatchEvent(
-        new domWindow.PointerEvent('pointerdown', {
+        new MouseEvent('pointerdown', {
           bubbles: true,
-        }) as unknown as Event
+        })
       )
       userInput.focus()
     })
@@ -198,9 +160,9 @@ describe('user-specific group access editor', () => {
     assert.ok(userOption)
     await act(async () => {
       userOption.dispatchEvent(
-        new domWindow.MouseEvent('mousedown', {
+        new MouseEvent('mousedown', {
           bubbles: true,
-        }) as unknown as Event
+        })
       )
     })
     assert.match(userInput.value, /Alice/)

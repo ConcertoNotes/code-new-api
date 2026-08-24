@@ -58,6 +58,7 @@ import {
   isTagAggregateRow,
   getChannelTypeIcon,
   getChannelTypeLabel,
+  getChannelTableRowId,
 } from '../lib'
 import type { Channel, ChannelSortBy } from '../types'
 import { ChannelCard } from './channel-card'
@@ -323,6 +324,7 @@ export function ChannelsTable() {
     columnFilters,
     pagination,
     globalFilter,
+    getRowId: getChannelTableRowId,
     enableRowSelection: batchMode
       ? (row: Row<Channel>) => !isTagAggregateRow(row.original)
       : false,
