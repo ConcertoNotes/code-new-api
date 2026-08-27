@@ -53,10 +53,72 @@ func TestModelPriceHelperPerCallUsesResolutionVideoPrice(t *testing.T) {
 			priceData, err := ModelPriceHelperPerCall(ctx, info)
 			require.NoError(t, err)
 			require.True(t, priceData.UsePrice)
+			require.False(t, priceData.FixedPrice)
 			require.Equal(t, test.wantPrice, priceData.ModelPrice)
 			require.Equal(t, test.wantQuota, priceData.Quota)
 		})
 	}
+}
+
+func TestModelPriceHelperPerCallVideoFixedPriceIgnoresGroupRatio(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	savedPrices := ratio_setting.ModelPrice2JSONString()
+	savedGroupRatios := ratio_setting.GroupRatio2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedPrices))
+		require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(savedGroupRatios))
+	})
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(`{"seedance-2.0":10}`))
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":10}`))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("task_request", relaycommon.TaskSubmitReq{
+		Resolution: "1280x720",
+		Duration:   10,
+	})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "seedance-2.0",
+		RequestURLPath:  "/v1/videos",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+	}
+
+	priceData, err := ModelPriceHelperPerCall(ctx, info)
+	require.NoError(t, err)
+	require.True(t, priceData.UsePrice)
+	require.True(t, priceData.FixedPrice)
+	require.Equal(t, 1.0, priceData.GroupRatioInfo.GroupRatio)
+	require.Equal(t, 5_000_000, priceData.Quota)
+}
+
+func TestModelPriceHelperPerCallVideoPerSecondIgnoresGroupRatio(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	savedVideoPrices := ratio_setting.VideoGenerationPrice2JSONString()
+	savedGroupRatios := ratio_setting.GroupRatio2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(savedVideoPrices))
+		require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(savedGroupRatios))
+	})
+	require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(`{"seedance-2.0":{"720p":10}}`))
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":10}`))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("task_request", relaycommon.TaskSubmitReq{Resolution: "1280x720"})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "seedance-2.0",
+		RequestURLPath:  "/v1/video/generations",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+	}
+
+	priceData, err := ModelPriceHelperPerCall(ctx, info)
+	require.NoError(t, err)
+	require.True(t, priceData.UsePrice)
+	require.False(t, priceData.FixedPrice)
+	require.Equal(t, 1.0, priceData.GroupRatioInfo.GroupRatio)
+	require.Equal(t, 5_000_000, priceData.Quota)
 }
 
 func TestModelPriceHelperTieredUsesPreloadedRequestInput(t *testing.T) {

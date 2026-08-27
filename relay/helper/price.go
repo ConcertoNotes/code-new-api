@@ -205,9 +205,15 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 
 // ModelPriceHelperPerCall 按次/按量计费的 PriceHelper (MJ、Task)
 func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hosttypes.PriceData, error) {
+	isVideoRequest := info != nil && strings.Contains(info.RequestURLPath, "/v1/video")
 	groupRatioInfo := HandleGroupRatio(c, info)
+	if isVideoRequest {
+		// 视频价格是独立的最终客户价格，不再叠加用户/令牌分组倍率。
+		groupRatioInfo = hosttypes.GroupRatioInfo{GroupRatio: 1, GroupSpecialRatio: -1}
+	}
 
 	modelPrice, usePrice := configuredVideoPrice(c, info)
+	videoPriceConfigured := usePrice
 	var modelRatio float64
 	if !usePrice {
 		modelPrice, usePrice = ratio_setting.GetModelPrice(info.OriginModelName, true)
@@ -268,6 +274,7 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 		ModelPrice:     modelPrice,
 		ModelRatio:     modelRatio,
 		UsePrice:       usePrice,
+		FixedPrice:     usePrice && !videoPriceConfigured,
 		Quota:          quota,
 		GroupRatioInfo: groupRatioInfo,
 	}
