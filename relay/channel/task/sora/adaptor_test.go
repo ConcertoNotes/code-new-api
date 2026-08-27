@@ -40,7 +40,7 @@ func TestSoraEstimateBillingUsesDurationOnlyForResolutionPricing(t *testing.T) {
 	assert.Equal(t, map[string]float64{"seconds": 6}, (&TaskAdaptor{}).EstimateBilling(ctx, info))
 }
 
-func TestSoraBuildRequestURLPreservesVideoGenerationEndpoint(t *testing.T) {
+func TestSoraBuildRequestURLUsesCanonicalVideoEndpoint(t *testing.T) {
 	adaptor := &TaskAdaptor{baseURL: "https://video.example.com"}
 
 	tests := []struct {
@@ -56,10 +56,10 @@ func TestSoraBuildRequestURLPreservesVideoGenerationEndpoint(t *testing.T) {
 			want:        "https://video.example.com/v1/videos",
 		},
 		{
-			name:        "video generations endpoint",
+			name:        "legacy video generation endpoint uses OpenAI videos upstream",
 			requestPath: "/v1/video/generations",
 			taskInfo:    &relaycommon.TaskRelayInfo{},
-			want:        "https://video.example.com/v1/video/generations",
+			want:        "https://video.example.com/v1/videos",
 		},
 		{
 			name:        "remix remains on standard endpoint",
@@ -82,6 +82,24 @@ func TestSoraBuildRequestURLPreservesVideoGenerationEndpoint(t *testing.T) {
 			assert.Equal(t, tt.want, url)
 		})
 	}
+}
+
+func TestSoraFetchTaskUsesCanonicalOpenAIVideoPath(t *testing.T) {
+	var requestPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	resp, err := (&TaskAdaptor{}).FetchTask(server.URL, "test-key", map[string]any{
+		"task_id":      "video_123",
+		"request_path": "/v1/video/generations",
+	}, "")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NoError(t, resp.Body.Close())
+	assert.Equal(t, "/v1/videos/video_123", requestPath)
 }
 
 func TestSoraBuildRequestBodyReturnsReplayablePassThroughBody(t *testing.T) {
