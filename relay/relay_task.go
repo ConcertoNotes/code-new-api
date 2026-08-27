@@ -198,7 +198,8 @@ func RelayTaskSubmit(c *gin.Context, info *relaycommon.RelayInfo) (*TaskSubmitRe
 	}
 
 	// 6. 将 OtherRatios 应用到基础额度（饱和转换，防止溢出成负数）
-	if !info.PriceData.FixedPrice && !common.StringsContains(constant.TaskPricePatches, modelName) {
+	legacyPerCallPatch := common.StringsContains(constant.TaskPricePatches, modelName) && !info.PriceData.VideoPriceConfigured
+	if !info.PriceData.FixedPrice && !legacyPerCallPatch {
 		quotaWithRatios := info.PriceData.ApplyOtherRatiosToFloat(float64(info.PriceData.Quota))
 		quota, clamp := common.QuotaFromFloatChecked(quotaWithRatios)
 		info.PriceData.Quota = quota

@@ -28,9 +28,18 @@ type PriceData struct {
 	otherRatios          map[string]float64
 	UsePrice             bool
 	FixedPrice           bool // 固定按次价格：不应用任务附加倍率
+	VideoPriceConfigured bool // 已配置按秒视频价格：需要应用时长/分辨率等任务倍率
 	Quota                int  // 按次计费的最终额度（MJ / Task）
 	QuotaToPreConsume    int  // 按量计费的预消耗额度
 	GroupRatioInfo       GroupRatioInfo
+}
+
+// UsesPerCallBilling reports whether an asynchronous task should keep its
+// submit-time quota unchanged during polling. A configured per-second video
+// price takes precedence over the legacy task-price patch, because its quota
+// must be settled with the actual task duration.
+func (p PriceData) UsesPerCallBilling(legacyPatch bool) bool {
+	return p.FixedPrice || (legacyPatch && !p.VideoPriceConfigured)
 }
 
 func (p *PriceData) AddOtherRatio(key string, ratio float64) {

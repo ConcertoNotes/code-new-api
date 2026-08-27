@@ -54,6 +54,8 @@ func TestModelPriceHelperPerCallUsesResolutionVideoPrice(t *testing.T) {
 			require.NoError(t, err)
 			require.True(t, priceData.UsePrice)
 			require.False(t, priceData.FixedPrice)
+			require.True(t, priceData.VideoPriceConfigured)
+			require.False(t, priceData.UsesPerCallBilling(false))
 			require.Equal(t, test.wantPrice, priceData.ModelPrice)
 			require.Equal(t, test.wantQuota, priceData.Quota)
 		})

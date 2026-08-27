@@ -20,8 +20,8 @@ import (
 func LogTaskConsumption(c *gin.Context, info *relaycommon.RelayInfo) {
 	tokenName := c.GetString("token_name")
 	logContent := fmt.Sprintf("操作 %s", info.Action)
-	// 支持任务仅按次计费
-	if common.StringsContains(constant.TaskPricePatches, info.OriginModelName) {
+	// 固定价格或旧版按次补丁任务才标记为按次计费；按秒视频需保留参数倍率。
+	if info.PriceData.UsesPerCallBilling(common.StringsContains(constant.TaskPricePatches, info.OriginModelName)) {
 		logContent = fmt.Sprintf("%s，按次计费", logContent)
 	} else {
 		if otherRatios := info.PriceData.OtherRatios(); len(otherRatios) > 0 {
