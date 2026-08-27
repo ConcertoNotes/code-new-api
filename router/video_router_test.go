@@ -18,6 +18,8 @@ func TestVideoGenerationRoutes(t *testing.T) {
 	}
 
 	assert.Contains(t, routes, "POST /v1/videos")
+	assert.Contains(t, routes, "GET /v1/videos/:task_id")
 	assert.Contains(t, routes, "POST /v1/video/generations")
+	assert.Contains(t, routes, "GET /v1/video/generations/:task_id")
 	assert.NotContains(t, routes, "POST /v1/videos/generations")
 }
