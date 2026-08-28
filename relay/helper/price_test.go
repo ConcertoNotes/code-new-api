@@ -123,6 +123,61 @@ func TestModelPriceHelperPerCallVideoPerSecondIgnoresGroupRatio(t *testing.T) {
 	require.Equal(t, 5_000_000, priceData.Quota)
 }
 
+func TestModelPriceHelperPerCallKeepsSeedanceModelNamesIndependent(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	savedVideoPrices := ratio_setting.VideoGenerationPrice2JSONString()
+	savedModelPrices := ratio_setting.ModelPrice2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(savedVideoPrices))
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedModelPrices))
+	})
+	require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(`{"seedance-2.5":{"720p":0.7}}`))
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(`{"seedance-2-5":14}`))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("task_request", relaycommon.TaskSubmitReq{Resolution: "1280x720", Duration: 10})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "seedance-2-5",
+		RequestURLPath:  "/v1/videos",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+	}
+
+	priceData, err := ModelPriceHelperPerCall(ctx, info)
+	require.NoError(t, err)
+	require.Equal(t, 14.0, priceData.ModelPrice)
+	require.True(t, priceData.FixedPrice)
+	require.False(t, priceData.VideoPriceConfigured)
+}
+
+func TestModelPriceHelperPerCallDoesNotUseSimilarFixedModelPrice(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	savedModelPrices := ratio_setting.ModelPrice2JSONString()
+	savedModelRatios := ratio_setting.ModelRatio2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(savedModelPrices))
+		require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(savedModelRatios))
+	})
+	require.NoError(t, ratio_setting.UpdateModelPriceByJSONString(`{"gpt-4-gizmo-*":14}`))
+	require.NoError(t, ratio_setting.UpdateModelRatioByJSONString(`{"gpt-4-gizmo-custom":8}`))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "gpt-4-gizmo-custom",
+		RequestURLPath:  "/v1/videos",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+	}
+
+	priceData, err := ModelPriceHelperPerCall(ctx, info)
+	require.NoError(t, err)
+	require.Equal(t, -1.0, priceData.ModelPrice)
+	require.Equal(t, 8.0, priceData.ModelRatio)
+	require.Equal(t, 2_000_000, priceData.Quota)
+}
+
 func TestModelPriceHelperTieredUsesPreloadedRequestInput(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

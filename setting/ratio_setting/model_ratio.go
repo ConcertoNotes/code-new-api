@@ -370,6 +370,17 @@ func GetModelPrice(name string, printErr bool) (float64, bool) {
 	return -1, false
 }
 
+// GetModelPriceExact returns only the price configured under the supplied
+// model name. Task billing uses this lookup so a similarly named model cannot
+// inherit a wildcard or normalized price intended for another model.
+func GetModelPriceExact(name string) (float64, bool) {
+	price, ok := modelPriceMap.Get(strings.TrimSpace(name))
+	if !ok {
+		return -1, false
+	}
+	return price, true
+}
+
 func UpdateModelRatioByJSONString(jsonStr string) error {
 	return types.LoadFromJsonStringWithCallback(modelRatioMap, jsonStr, InvalidateExposedDataCache)
 }
@@ -385,6 +396,17 @@ func handleThinkingBudgetModel(name, prefix, wildcard string) string {
 func GetModelRatio(name string) (float64, bool, string) {
 	name = FormatMatchingModelName(name)
 
+	ratio, ok := modelRatioMap.Get(name)
+	if !ok {
+		return 37.5, operation_setting.SelfUseModeEnabled, name
+	}
+	return ratio, true, name
+}
+
+// GetModelRatioExact returns only the ratio configured under the supplied
+// model name, without applying FormatMatchingModelName.
+func GetModelRatioExact(name string) (float64, bool, string) {
+	name = strings.TrimSpace(name)
 	ratio, ok := modelRatioMap.Get(name)
 	if !ok {
 		return 37.5, operation_setting.SelfUseModeEnabled, name

@@ -72,7 +72,7 @@ func parseVideoGenerationPrices(jsonStr string) (map[string]map[string]float64, 
 }
 
 func GetVideoGenerationPrice(model, resolution string) (float64, bool) {
-	tiers, ok := videoGenerationPriceMap.Get(FormatMatchingModelName(model))
+	tiers, ok := videoGenerationPriceMap.Get(strings.TrimSpace(model))
 	if !ok {
 		return 0, false
 	}
@@ -85,7 +85,7 @@ func GetVideoGenerationPrice(model, resolution string) (float64, bool) {
 }
 
 func HasVideoGenerationPrice(model string) bool {
-	_, ok := videoGenerationPriceMap.Get(FormatMatchingModelName(model))
+	_, ok := videoGenerationPriceMap.Get(strings.TrimSpace(model))
 	return ok
 }
 

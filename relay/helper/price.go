@@ -216,7 +216,11 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 	videoPriceConfigured := usePrice
 	var modelRatio float64
 	if !usePrice {
-		modelPrice, usePrice = ratio_setting.GetModelPrice(info.OriginModelName, true)
+		if isVideoRequest {
+			modelPrice, usePrice = ratio_setting.GetModelPriceExact(info.OriginModelName)
+		} else {
+			modelPrice, usePrice = ratio_setting.GetModelPrice(info.OriginModelName, true)
+		}
 	}
 
 	if !usePrice {
@@ -227,7 +231,11 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 		} else {
 			var ratioSuccess bool
 			var matchName string
-			modelRatio, ratioSuccess, matchName = ratio_setting.GetModelRatio(info.OriginModelName)
+			if isVideoRequest {
+				modelRatio, ratioSuccess, matchName = ratio_setting.GetModelRatioExact(info.OriginModelName)
+			} else {
+				modelRatio, ratioSuccess, matchName = ratio_setting.GetModelRatio(info.OriginModelName)
+			}
 			acceptUnsetRatio := false
 			if info.UserSetting.AcceptUnsetRatioModel {
 				acceptUnsetRatio = true

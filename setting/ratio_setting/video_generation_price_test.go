@@ -35,3 +35,14 @@ func TestVideoGenerationPriceRejectsInvalidConfiguration(t *testing.T) {
 	assert.Error(t, UpdateVideoGenerationPriceByJSONString(`{"seedance-2.0":{"720p":0.4,"1280x720":0.5}}`))
 	assert.Error(t, ValidateVideoGenerationPriceJSON(`{"":{"720p":0.4}}`))
 }
+
+func TestVideoGenerationPriceDoesNotMatchSimilarModelNames(t *testing.T) {
+	saved := VideoGenerationPrice2JSONString()
+	t.Cleanup(func() { require.NoError(t, UpdateVideoGenerationPriceByJSONString(saved)) })
+
+	require.NoError(t, UpdateVideoGenerationPriceByJSONString(`{"gpt-4-gizmo-*":{"720p":0.7}}`))
+
+	price, ok := GetVideoGenerationPrice("gpt-4-gizmo-custom", "720p")
+	assert.False(t, ok)
+	assert.Zero(t, price)
+}
