@@ -200,6 +200,8 @@ func HandleOAuth(c *gin.Context) {
 			return
 		}
 		switch err.(type) {
+		case *OAuthEmailBlacklistedError:
+			common.ApiErrorI18n(c, i18n.MsgUserBlacklisted)
 		case *OAuthUserDeletedError:
 			common.ApiErrorI18n(c, i18n.MsgOAuthUserDeleted)
 		case *OAuthRegistrationDisabledError:
@@ -291,6 +293,9 @@ func handleOAuthBind(c *gin.Context, provider oauth.Provider, pendingFlow *model
 // findOrCreateOAuthUser finds existing user or creates new user
 func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *oauth.OAuthUser, affiliateCode string) (*model.User, error) {
 	user := &model.User{}
+	if markBlacklistedEmailIP(c, oauthUser.Email) {
+		return nil, &OAuthEmailBlacklistedError{}
+	}
 
 	// Check if user already exists with new ID
 	if provider.IsUserIDTaken(oauthUser.ProviderUserID) {
@@ -445,6 +450,12 @@ type OAuthEmailAlreadyTakenError struct{}
 
 func (e *OAuthEmailAlreadyTakenError) Error() string {
 	return "email is already in use"
+}
+
+type OAuthEmailBlacklistedError struct{}
+
+func (e *OAuthEmailBlacklistedError) Error() string {
+	return "email is blacklisted"
 }
 
 // handleOAuthError handles OAuth errors and returns translated message

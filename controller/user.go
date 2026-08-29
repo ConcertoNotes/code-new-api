@@ -37,6 +37,18 @@ var (
 	errOriginalPasswordFail = errors.New("original password is incorrect")
 )
 
+func markBlacklistedEmailIP(c *gin.Context, email string) bool {
+	if !common.IsBlacklistedEmail(email) {
+		return false
+	}
+	if c != nil {
+		if err := model.AddBlacklistIP(c.ClientIP()); err != nil {
+			common.SysError(fmt.Sprintf("failed to persist blacklist IP: %v", err))
+		}
+	}
+	return true
+}
+
 func Login(c *gin.Context) {
 	if !common.PasswordLoginEnabled {
 		common.ApiErrorI18n(c, i18n.MsgUserPasswordLoginDisabled)
@@ -52,6 +64,15 @@ func Login(c *gin.Context) {
 	password := loginRequest.Password
 	if username == "" || password == "" {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if strings.Contains(username, "@") && markBlacklistedEmailIP(c, model.NormalizeEmail(username)) {
+		common.ApiErrorI18n(c, i18n.MsgUserBlacklisted)
+		return
+	}
+	var candidate model.User
+	if err := model.DB.Where("username = ?", username).Select("email").First(&candidate).Error; err == nil && markBlacklistedEmailIP(c, candidate.Email) {
+		common.ApiErrorI18n(c, i18n.MsgUserBlacklisted)
 		return
 	}
 	user := model.User{
@@ -220,6 +241,10 @@ func Register(c *gin.Context) {
 	}
 	user.Username = strings.TrimSpace(user.Username)
 	user.Email = model.NormalizeEmail(user.Email)
+	if markBlacklistedEmailIP(c, user.Email) {
+		common.ApiErrorI18n(c, i18n.MsgUserBlacklisted)
+		return
+	}
 	if user.Username == "" {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
