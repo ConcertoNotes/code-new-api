@@ -19,6 +19,9 @@ func AddBlacklistIP(ip string) error {
 
 	blacklistPersistMu.Lock()
 	defer blacklistPersistMu.Unlock()
+	if DB == nil {
+		return gorm.ErrInvalidData
+	}
 
 	var option Option
 	err := DB.Where("key = ?", "BlacklistIPs").First(&option).Error
@@ -36,5 +39,14 @@ func AddBlacklistIP(ip string) error {
 		}
 	}
 	current = append(current, normalized)
-	return UpdateOption("BlacklistIPs", strings.Join(current, "\n"))
+	value := strings.Join(current, "\n")
+	option = Option{Key: "BlacklistIPs"}
+	if err := DB.FirstOrCreate(&option, Option{Key: "BlacklistIPs"}).Error; err != nil {
+		return err
+	}
+	option.Value = value
+	if err := DB.Save(&option).Error; err != nil {
+		return err
+	}
+	return updateOptionMap("BlacklistIPs", value)
 }
