@@ -57,6 +57,8 @@ func InitOptionMap() {
 	common.OptionMap["EmailDomainRestrictionEnabled"] = strconv.FormatBool(common.EmailDomainRestrictionEnabled)
 	common.OptionMap["EmailAliasRestrictionEnabled"] = strconv.FormatBool(common.EmailAliasRestrictionEnabled)
 	common.OptionMap["EmailDomainWhitelist"] = strings.Join(common.EmailDomainWhitelist, ",")
+	common.OptionMap["BlacklistEmails"] = ""
+	common.OptionMap["BlacklistIPs"] = ""
 	common.OptionMap["SMTPServer"] = ""
 	common.OptionMap["SMTPFrom"] = ""
 	common.OptionMap["SMTPPort"] = strconv.Itoa(common.SMTPPort)
@@ -208,6 +210,10 @@ func SyncOptions(frequency int) {
 }
 
 func validateOptionValue(key string, value string) error {
+	if key == "BlacklistIPs" {
+		_, err := common.ParseBlacklistIPs(value)
+		return err
+	}
 	if key == operation_setting.ToolPriceOptionKey {
 		return operation_setting.ValidateToolPricesJSON(value)
 	}
@@ -403,6 +409,14 @@ func updateOptionMap(key string, value string) (err error) {
 		}
 	}
 	switch key {
+	case "BlacklistEmails":
+		common.SetBlacklistEmails(common.ParseBlacklistEmails(value))
+	case "BlacklistIPs":
+		ips, parseErr := common.ParseBlacklistIPs(value)
+		if parseErr != nil {
+			return parseErr
+		}
+		common.SetBlacklistIPs(ips)
 	case "EmailDomainWhitelist":
 		common.EmailDomainWhitelist = strings.Split(value, ",")
 	case "SMTPServer":
