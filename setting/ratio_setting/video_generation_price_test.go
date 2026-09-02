@@ -46,3 +46,16 @@ func TestVideoGenerationPriceDoesNotMatchSimilarModelNames(t *testing.T) {
 	assert.False(t, ok)
 	assert.Zero(t, price)
 }
+
+func TestVideoGenerationPriceForModelsUsesFirstConfiguredName(t *testing.T) {
+	saved := VideoGenerationPrice2JSONString()
+	t.Cleanup(func() { require.NoError(t, UpdateVideoGenerationPriceByJSONString(saved)) })
+
+	require.NoError(t, UpdateVideoGenerationPriceByJSONString(
+		`{"upstream-video":{"720p":0.4}}`,
+	))
+
+	price, ok := GetVideoGenerationPriceForModels([]string{"public-video", "upstream-video"}, "1280x720")
+	require.True(t, ok)
+	assert.Equal(t, 0.4, price)
+}

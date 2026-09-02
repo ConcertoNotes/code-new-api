@@ -151,6 +151,37 @@ func TestModelPriceHelperPerCallKeepsSeedanceModelNamesIndependent(t *testing.T)
 	require.False(t, priceData.VideoPriceConfigured)
 }
 
+func TestModelPriceHelperPerCallUsesUpstreamVideoPriceWhenPublicModelIsMapped(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	savedVideoPrices := ratio_setting.VideoGenerationPrice2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(savedVideoPrices))
+	})
+	require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(
+		`{"grok-imagine-video-1.5":{"480p":0.1,"720p":0.15,"1080p":0.2}}`,
+	))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("task_request", relaycommon.TaskSubmitReq{Resolution: "1920x1080"})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "grok-imagine-video",
+		RequestURLPath:  "/v1/videos",
+		UserGroup:       "default",
+		UsingGroup:      "default",
+		ChannelMeta: &relaycommon.ChannelMeta{
+			UpstreamModelName: "grok-imagine-video-1.5",
+		},
+	}
+
+	priceData, err := ModelPriceHelperPerCall(ctx, info)
+	require.NoError(t, err)
+	require.True(t, priceData.UsePrice)
+	require.True(t, priceData.VideoPriceConfigured)
+	require.False(t, priceData.FixedPrice)
+	require.Equal(t, 0.2, priceData.ModelPrice)
+}
+
 func TestModelPriceHelperPerCallDoesNotUseSimilarFixedModelPrice(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

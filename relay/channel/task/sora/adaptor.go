@@ -136,10 +136,25 @@ func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInf
 	if resolution == "" {
 		resolution = req.Size
 	}
+	if resolution == "" && req.Metadata != nil {
+		if metadataResolution, ok := req.Metadata["resolution"].(string); ok {
+			resolution = metadataResolution
+		}
+		if resolution == "" {
+			if metadataSize, ok := req.Metadata["size"].(string); ok {
+				resolution = metadataSize
+			}
+		}
+	}
 	if resolution == "" {
 		resolution = ratio_setting.VideoGenerationResolution720P
 	}
-	if _, ok := ratio_setting.GetVideoGenerationPrice(info.OriginModelName, resolution); ok {
+	modelNames := []string{info.OriginModelName}
+	upstreamModelName := info.GetUpstreamModelName()
+	if upstreamModelName != info.OriginModelName {
+		modelNames = append(modelNames, upstreamModelName)
+	}
+	if _, ok := ratio_setting.GetVideoGenerationPriceForModels(modelNames, resolution); ok {
 		return map[string]float64{"seconds": float64(seconds)}
 	}
 

@@ -462,6 +462,12 @@ func (a *TaskAdaptor) EstimateBilling(c *gin.Context, info *relaycommon.RelayInf
 	otherRatios := map[string]float64{
 		"seconds": float64(min(aliReq.Parameters.Duration, relaycommon.MaxTaskDurationSeconds)),
 	}
+	// A configured per-second video price already includes the selected
+	// resolution. Do not apply Ali's built-in resolution multiplier on top of
+	// the administrator's explicit tier price.
+	if info.PriceData.VideoPriceConfigured {
+		return otherRatios
+	}
 	ratios, err := ProcessAliOtherRatios(aliReq)
 	if err != nil {
 		return otherRatios

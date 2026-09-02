@@ -319,10 +319,25 @@ func configuredVideoPrice(c *gin.Context, info *relaycommon.RelayInfo) (float64,
 	if resolution == "" {
 		resolution = req.Size
 	}
+	if resolution == "" && req.Metadata != nil {
+		if metadataResolution, ok := req.Metadata["resolution"].(string); ok {
+			resolution = metadataResolution
+		}
+		if resolution == "" {
+			if metadataSize, ok := req.Metadata["size"].(string); ok {
+				resolution = metadataSize
+			}
+		}
+	}
 	if resolution == "" {
 		resolution = ratio_setting.VideoGenerationResolution720P
 	}
-	return ratio_setting.GetVideoGenerationPrice(info.OriginModelName, resolution)
+	modelNames := []string{info.OriginModelName}
+	upstreamModelName := info.GetUpstreamModelName()
+	if upstreamModelName != info.OriginModelName {
+		modelNames = append(modelNames, upstreamModelName)
+	}
+	return ratio_setting.GetVideoGenerationPriceForModels(modelNames, resolution)
 }
 
 func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, promptTokens int, meta *types.TokenCountMeta, groupRatioInfo hosttypes.GroupRatioInfo, exprStr string) (hosttypes.PriceData, error) {

@@ -84,6 +84,23 @@ func GetVideoGenerationPrice(model, resolution string) (float64, bool) {
 	return price, ok
 }
 
+// GetVideoGenerationPriceForModels looks up a resolution price using the
+// supplied model names in order. Video tasks may expose a public model name
+// while routing to a different upstream model name; in that case either name
+// can be the one configured by the administrator. The first configured model
+// wins, so an explicit public-model price always takes precedence.
+func GetVideoGenerationPriceForModels(models []string, resolution string) (float64, bool) {
+	for _, model := range models {
+		if strings.TrimSpace(model) == "" {
+			continue
+		}
+		if price, ok := GetVideoGenerationPrice(model, resolution); ok {
+			return price, true
+		}
+	}
+	return 0, false
+}
+
 func HasVideoGenerationPrice(model string) bool {
 	_, ok := videoGenerationPriceMap.Get(strings.TrimSpace(model))
 	return ok

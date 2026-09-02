@@ -40,6 +40,28 @@ func TestSoraEstimateBillingUsesDurationOnlyForResolutionPricing(t *testing.T) {
 	assert.Equal(t, map[string]float64{"seconds": 6}, (&TaskAdaptor{}).EstimateBilling(ctx, info))
 }
 
+func TestSoraEstimateBillingUsesUpstreamVideoPriceWhenPublicModelIsMapped(t *testing.T) {
+	savedVideoPrices := ratio_setting.VideoGenerationPrice2JSONString()
+	t.Cleanup(func() {
+		require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(savedVideoPrices))
+	})
+	require.NoError(t, ratio_setting.UpdateVideoGenerationPriceByJSONString(
+		`{"grok-imagine-video-1.5":{"1080p":0.2}}`,
+	))
+
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Set("task_request", relaycommon.TaskSubmitReq{Resolution: "1920x1080", Duration: 6})
+	info := &relaycommon.RelayInfo{
+		OriginModelName: "grok-imagine-video",
+		ChannelMeta: &relaycommon.ChannelMeta{
+			UpstreamModelName: "grok-imagine-video-1.5",
+		},
+		TaskRelayInfo: &relaycommon.TaskRelayInfo{},
+	}
+
+	assert.Equal(t, map[string]float64{"seconds": 6}, (&TaskAdaptor{}).EstimateBilling(ctx, info))
+}
+
 func TestSoraBuildRequestURLUsesCanonicalVideoEndpoint(t *testing.T) {
 	adaptor := &TaskAdaptor{baseURL: "https://video.example.com"}
 
