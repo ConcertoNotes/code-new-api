@@ -5,6 +5,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	"github.com/QuantumNous/new-api/model"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/gin-gonic/gin"
@@ -73,16 +74,11 @@ func usageBillingPathForLog(isLocalCountTokens bool, usage *dto.Usage) string {
 	return usageBillingPathUpstream
 }
 
-func appendUsageBillingPathForLog(other map[string]interface{}, isLocalCountTokens bool, usage *dto.Usage) {
+func appendUsageBillingPathForLog(other *model.LogOther, isLocalCountTokens bool, usage *dto.Usage) {
 	if other == nil {
 		return
 	}
-	adminInfo, ok := other["admin_info"].(map[string]interface{})
-	if !ok || adminInfo == nil {
-		adminInfo = make(map[string]interface{})
-		other["admin_info"] = adminInfo
-	}
-	adminInfo["usage_billing_path"] = usageBillingPathForLog(isLocalCountTokens, usage)
+	other.SetAdmin("usage_billing_path", usageBillingPathForLog(isLocalCountTokens, usage))
 }
 
 func usageFromBillingUsage(usage *dto.Usage) (*dto.Usage, bool) {

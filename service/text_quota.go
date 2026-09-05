@@ -488,13 +488,8 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 	}
 	appendUsageBillingPathForLog(other, common.GetContextKeyBool(ctx, constant.ContextKeyLocalCountTokens), originUsage)
 	if suppressedQuota > 0 {
-		adminInfo, ok := other["admin_info"].(map[string]interface{})
-		if !ok || adminInfo == nil {
-			adminInfo = make(map[string]interface{})
-			other["admin_info"] = adminInfo
-		}
-		adminInfo["billing_suppressed"] = "client_gone_without_upstream_usage"
-		adminInfo["billing_suppressed_quota"] = suppressedQuota
+		other.SetAdmin("billing_suppressed", "client_gone_without_upstream_usage")
+		other.SetAdmin("billing_suppressed_quota", suppressedQuota)
 	}
 	if adminRejectReason != "" {
 		other.SetAdmin("reject_reason", adminRejectReason)
