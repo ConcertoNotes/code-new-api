@@ -26,6 +26,7 @@ import {
   LayoutDashboard,
   ListTodo,
   MessageSquare,
+  Paintbrush,
   PlugZap,
   Radio,
   ServerCog,
@@ -59,6 +60,13 @@ export function useSidebarData(): SidebarData {
             title: t('Playground'),
             url: '/playground',
             icon: FlaskConical,
+          },
+          {
+            title: t('Drawing Workbench'),
+            url: 'https://draw.strova.top/',
+            external: true,
+            configUrls: ['/playground'],
+            icon: Paintbrush,
           },
           {
             title: t('Chat'),
