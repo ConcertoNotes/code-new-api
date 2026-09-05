@@ -88,6 +88,11 @@ export function getPaymentIcon(
       <ReactIconByName
         name={iconValue}
         className={className}
+        style={
+          paymentType === PAYMENT_TYPES.ALIPAY && iconValue === 'SiAlipay'
+            ? { color: PAYMENT_ICON_COLORS[PAYMENT_TYPES.ALIPAY] }
+            : undefined
+        }
         title={altName || paymentType || iconValue}
       />
     )

@@ -204,7 +204,6 @@ func PostWssConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, mod
 	if tieredOk {
 		quota = tieredQuota
 	}
-
 	totalTokens := usage.TotalTokens
 	var logContent string
 	if !usePrice {
@@ -333,6 +332,14 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	if tieredOk {
 		quota = tieredQuota
 	}
+	suppressEstimatedClientGoneCharge := shouldSuppressEstimatedClientGoneCharge(ctx, relayInfo)
+	suppressedQuota := 0
+	if suppressEstimatedClientGoneCharge {
+		// As with text billing, do not charge a locally estimated usage when a
+		// streamed client disconnected before any upstream response arrived.
+		suppressedQuota = quota
+		quota = 0
+	}
 
 	totalTokens := usage.TotalTokens
 	var logContent string
@@ -364,8 +371,23 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	if extraContent != "" {
 		logContent += ", " + extraContent
 	}
+	if suppressedQuota > 0 {
+		if logContent != "" {
+			logContent += ", "
+		}
+		logContent += "客户端中断且无上游 usage，跳过本地估算扣费"
+	}
 	other := GenerateAudioOtherInfo(ctx, relayInfo, usage, modelRatio, groupRatio,
 		completionRatio.InexactFloat64(), audioRatio.InexactFloat64(), audioCompletionRatio.InexactFloat64(), modelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
+	if suppressedQuota > 0 {
+		adminInfo, ok := other["admin_info"].(map[string]interface{})
+		if !ok || adminInfo == nil {
+			adminInfo = make(map[string]interface{})
+			other["admin_info"] = adminInfo
+		}
+		adminInfo["billing_suppressed"] = "client_gone_without_upstream_usage"
+		adminInfo["billing_suppressed_quota"] = suppressedQuota
+	}
 	if tieredResult != nil {
 		InjectTieredBillingInfo(other, relayInfo, tieredResult)
 	}

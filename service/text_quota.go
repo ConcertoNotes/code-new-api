@@ -397,6 +397,7 @@ func usageSemanticFromUsage(relayInfo *relaycommon.RelayInfo, usage *dto.Usage) 
 func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, usage *dto.Usage, extraContent []string) {
 	originUsage := usage
 	billingUsage := effectiveBillingUsage(usage)
+	suppressEstimatedClientGoneCharge := shouldSuppressEstimatedClientGoneCharge(ctx, relayInfo)
 	if usage == nil {
 		extraContent = append(extraContent, "上游无计费信息")
 	}
@@ -420,6 +421,15 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 			tieredResult = tieredRes
 			summary.Quota = composeTieredTextQuota(relayInfo, summary, tieredQuota, tieredRes)
 		}
+	}
+	var suppressedQuota int
+	if suppressEstimatedClientGoneCharge {
+		// The fallback usage is a local prompt estimate from a streamed request
+		// that never received an upstream response. Do not settle that estimate;
+		// SettleBilling(0) below returns any pre-consumed quota.
+		suppressedQuota = summary.Quota
+		summary.Quota = 0
+		extraContent = append(extraContent, "客户端中断且无上游 usage，跳过本地估算扣费")
 	}
 
 	for _, item := range summary.ToolSurchargeItems {
@@ -477,6 +487,15 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		other = GenerateTextOtherInfo(ctx, relayInfo, summary.ModelRatio, summary.GroupRatio, summary.CompletionRatio, summary.CacheTokens, summary.CacheRatio, summary.ModelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
 	}
 	appendUsageBillingPathForLog(other, common.GetContextKeyBool(ctx, constant.ContextKeyLocalCountTokens), originUsage)
+	if suppressedQuota > 0 {
+		adminInfo, ok := other["admin_info"].(map[string]interface{})
+		if !ok || adminInfo == nil {
+			adminInfo = make(map[string]interface{})
+			other["admin_info"] = adminInfo
+		}
+		adminInfo["billing_suppressed"] = "client_gone_without_upstream_usage"
+		adminInfo["billing_suppressed_quota"] = suppressedQuota
+	}
 	if adminRejectReason != "" {
 		other.SetAdmin("reject_reason", adminRejectReason)
 	}

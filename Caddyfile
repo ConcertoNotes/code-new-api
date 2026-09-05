@@ -1,0 +1,25 @@
+code.strova.top {
+    reverse_proxy new-api:3000
+}
+
+codex.strova.top {
+    reverse_proxy codex2api:8080
+}
+
+draw.strova.top {
+    handle_path /qiniu/* {
+        # 七牛旧测试域名已下线，统一通过当前有效的自定义图片域名访问。
+        # 外部仍保留 /qiniu/ 路径，兼容数据库中已经保存的历史媒体地址。
+        reverse_proxy http://image.strova.top {
+            header_up Host image.strova.top
+        }
+    }
+
+    handle {
+        reverse_proxy novanovastudio-nginx:80
+    }
+}
+
+price.strova.top {
+    reverse_proxy price-models:3000
+}
