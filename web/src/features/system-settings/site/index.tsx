@@ -25,6 +25,8 @@ import {
 } from './section-registry.tsx'
 
 const defaultSiteSettings: SiteSettings = {
+  'console_setting.announcements': '[]',
+  'console_setting.announcements_enabled': true,
   Notice: '',
   SystemName: 'New API',
   Logo: '',

@@ -68,6 +68,14 @@ import {
   generateTaskExprFromConfig,
 } from '@/features/pricing/lib/task-expr'
 import { cn } from '@/lib/utils'
+import { VideoResolutionPriceEditor } from '@/components/video-resolution-price-editor'
+import {
+  createVideoResolutionPriceRows,
+  hasConfiguredVideoResolutionPrice,
+  hasDuplicateVideoResolution,
+  videoResolutionPriceRowsToRecord,
+  type VideoResolutionPriceRow,
+} from '@/components/video-resolution-pricing'
 
 import {
   EMPTY_LANE_ENABLED,
@@ -164,6 +172,8 @@ export const ModelPricingEditorPanel = forwardRef<
   })
   const [billingExpr, setBillingExpr] = useState('')
   const [requestRuleExpr, setRequestRuleExpr] = useState('')
+  const [videoPriceRows, setVideoPriceRows] = useState<VideoResolutionPriceRow[]>(() => createVideoResolutionPriceRows())
+  const videoPrices = useMemo(() => videoResolutionPriceRowsToRecord(videoPriceRows), [videoPriceRows])
   const [editorReloadToken, setEditorReloadToken] = useState(0)
   const autoSwitchedForRef = useRef<string | null>(null)
   const isEditMode = !!editData
@@ -238,7 +248,9 @@ export const ModelPricingEditorPanel = forwardRef<
         audioCompletionRatio: editData.audioCompletionRatio || '',
       })
       let nextPricingMode: PricingMode = 'per-token'
-      if (editData.billingMode === 'tiered_expr') {
+      if (editData.billingMode === 'per-video') {
+        nextPricingMode = 'per-video'
+      } else if (editData.billingMode === 'tiered_expr') {
         nextPricingMode = 'tiered_expr'
       } else if (editData.price) {
         nextPricingMode = 'per-request'
@@ -246,6 +258,7 @@ export const ModelPricingEditorPanel = forwardRef<
       setPricingMode(nextPricingMode)
       setBillingExpr(editData.billingExpr || '')
       setRequestRuleExpr(editData.requestRuleExpr || '')
+      setVideoPriceRows(createVideoResolutionPriceRows(editData.videoPrices))
     } else {
       form.reset({
         name: '',
@@ -261,6 +274,7 @@ export const ModelPricingEditorPanel = forwardRef<
       setPricingMode('per-token')
       setBillingExpr('')
       setRequestRuleExpr('')
+      setVideoPriceRows(createVideoResolutionPriceRows())
     }
 
     setPromptPrice(nextLaneState.promptPrice)
@@ -273,6 +287,7 @@ export const ModelPricingEditorPanel = forwardRef<
   useEffect(() => {
     if (!editData) return
     if (editData.billingMode === 'tiered_expr') return
+    if (editData.billingMode === 'per-video') return
     if (editData.price || editData.ratio) return
 
     const usageSchema = usageSchemaByModel.get(editData.name)
@@ -413,6 +428,7 @@ export const ModelPricingEditorPanel = forwardRef<
         promptPrice,
         lanePrices,
         laneEnabled,
+        videoPrices,
         t
       ),
     [
@@ -424,6 +440,7 @@ export const ModelPricingEditorPanel = forwardRef<
       requestRuleExpr,
       t,
       watchedValues,
+      videoPrices,
     ]
   )
 
@@ -462,6 +479,20 @@ export const ModelPricingEditorPanel = forwardRef<
     }
 
     if (
+      pricingMode === 'per-video' &&
+      !hasConfiguredVideoResolutionPrice(videoPriceRows)
+    ) {
+      nextWarnings.push(t('Configure at least one video resolution price.'))
+    }
+
+    if (
+      pricingMode === 'per-video' &&
+      hasDuplicateVideoResolution(videoPriceRows)
+    ) {
+      nextWarnings.push(t('Resolution names must be unique.'))
+    }
+
+    if (
       pricingMode === 'per-token' &&
       laneEnabled.audioOutput &&
       !hasValue(lanePrices.audioInput)
@@ -470,7 +501,15 @@ export const ModelPricingEditorPanel = forwardRef<
     }
 
     return nextWarnings
-  }, [editData, laneEnabled, lanePrices, pricingMode, promptPrice, t])
+  }, [
+    editData,
+    laneEnabled,
+    lanePrices,
+    pricingMode,
+    promptPrice,
+    t,
+    videoPriceRows,
+  ])
 
   const validatePricingValues = useCallback(() => {
     if (
@@ -497,14 +536,43 @@ export const ModelPricingEditorPanel = forwardRef<
       return false
     }
 
+    if (
+      pricingMode === 'per-video' &&
+      !hasConfiguredVideoResolutionPrice(videoPriceRows)
+    ) {
+      form.setError('price', {
+        message: t('Configure at least one video resolution price.'),
+      })
+      return false
+    }
+
+    if (
+      pricingMode === 'per-video' &&
+      hasDuplicateVideoResolution(videoPriceRows)
+    ) {
+      form.setError('price', {
+        message: t('Resolution names must be unique.'),
+      })
+      return false
+    }
+
     return true
-  }, [form, laneEnabled, lanePrices, pricingMode, promptPrice, t])
+  }, [
+    form,
+    laneEnabled,
+    lanePrices,
+    pricingMode,
+    promptPrice,
+    t,
+    videoPriceRows,
+  ])
 
   const buildSubmitData = useCallback(
     (values: ModelPricingFormValues) => {
       const data: ModelRatioData = {
         name: values.name.trim(),
         billingMode: pricingMode,
+        videoPrices,
         price: values.price || '',
         ratio: values.ratio || '',
         cacheRatio: values.cacheRatio || '',
@@ -522,7 +590,7 @@ export const ModelPricingEditorPanel = forwardRef<
 
       return data
     },
-    [pricingMode, requestRuleExpr, resolvedBillingExpr]
+    [pricingMode, requestRuleExpr, resolvedBillingExpr, videoPrices]
   )
 
   useImperativeHandle(
@@ -606,7 +674,8 @@ export const ModelPricingEditorPanel = forwardRef<
                   onValueChange={handleModeChange}
                   className='gap-4'
                 >
-                  <TabsList className='grid w-full grid-cols-3'>
+                  <TabsList className='grid w-full grid-cols-2 auto-rows-7 group-data-horizontal/tabs:h-auto sm:grid-cols-4'>
+                    <TabsTrigger value='per-video'>{t('Video per second')}</TabsTrigger>
                     <TabsTrigger value='per-token'>
                       {t('Per-token')}
                     </TabsTrigger>
@@ -724,6 +793,18 @@ export const ModelPricingEditorPanel = forwardRef<
                           </FormItem>
                         )}
                       />
+                    </FieldGroup>
+                  </TabsContent>
+
+                  <TabsContent value='per-video' className='pt-0'>
+                    <FieldGroup className='gap-5'>
+                      <VideoResolutionPriceEditor
+                        rows={videoPriceRows}
+                        onChange={setVideoPriceRows}
+                      />
+                      <FormMessage>
+                        {form.formState.errors.price?.message}
+                      </FormMessage>
                     </FieldGroup>
                   </TabsContent>
 

@@ -88,6 +88,17 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		return modelPriceHelperTiered(c, info, billingModelName, promptTokens, meta, groupRatioInfo)
 	}
 
+	usesImageGenerationPrice := false
+	if meta != nil && meta.ImageBillingTier != "" {
+		imagePrice, ok := ratio_setting.GetImageGenerationPrice(billingModelName, meta.ImageBillingTier)
+		if !ok {
+			imagePrice, ok = ratio_setting.GetImageGenerationPrice(BaseImageModel(billingModelName), meta.ImageBillingTier)
+		}
+		if ok {
+			modelPrice, usePrice, usesImageGenerationPrice = imagePrice, true, true
+		}
+	}
+
 	var preConsumedQuota int
 	var modelRatio float64
 	var completionRatio float64
@@ -132,7 +143,7 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		}
 		preConsumedQuota = quota
 	} else {
-		if meta.ImagePriceRatio != 0 {
+		if meta.ImagePriceRatio != 0 && !usesImageGenerationPrice {
 			modelPrice = modelPrice * meta.ImagePriceRatio
 		}
 	}
@@ -194,8 +205,15 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 // ModelPriceHelperPerCall 按次/按量计费的 PriceHelper (MJ、Task)
 func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hosttypes.PriceData, error) {
 	groupRatioInfo := HandleGroupRatio(c, info)
+	isVideo := strings.Contains(info.RequestURLPath, "/video")
+	if isVideo {
+		groupRatioInfo = hosttypes.GroupRatioInfo{GroupRatio: 1, GroupSpecialRatio: -1}
+	}
 
 	modelPrice, success := ratio_setting.GetModelPrice(info.OriginModelName, true)
+	if isVideo {
+		modelPrice, success = ratio_setting.GetModelPriceExact(info.OriginModelName)
+	}
 	usePrice := success
 	var modelRatio float64
 
@@ -208,6 +226,9 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 			var ratioSuccess bool
 			var matchName string
 			modelRatio, ratioSuccess, matchName = ratio_setting.GetModelRatio(info.OriginModelName)
+			if isVideo {
+				modelRatio, ratioSuccess, matchName = ratio_setting.GetModelRatioExact(info.OriginModelName)
+			}
 			acceptUnsetRatio := false
 			if info.UserSetting.AcceptUnsetRatioModel {
 				acceptUnsetRatio = true
@@ -254,6 +275,7 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 		ModelPrice:     modelPrice,
 		ModelRatio:     modelRatio,
 		UsePrice:       usePrice,
+		FixedPrice:     usePrice,
 		Quota:          quota,
 		GroupRatioInfo: groupRatioInfo,
 	}
@@ -261,6 +283,9 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 }
 
 func HasModelBillingConfig(modelName string) bool {
+	if ratio_setting.HasVideoGenerationPrice(modelName) {
+		return true
+	}
 	if _, ok := ratio_setting.GetModelPrice(modelName, false); ok {
 		return true
 	}

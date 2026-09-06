@@ -58,7 +58,6 @@ const SITE_SECTIONS = [
       <AnnouncementsSection
         enabled={settings['console_setting.announcements_enabled']}
         data={settings['console_setting.announcements']}
-        titleKey='System Announcements'
       />
     ),
   },

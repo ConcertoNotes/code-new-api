@@ -107,6 +107,8 @@ export type SystemTaskListResponse = {
 }
 
 export type SiteSettings = {
+  'console_setting.announcements': string
+  'console_setting.announcements_enabled': boolean
   Notice: string
   SystemName: string
   Logo: string
@@ -208,6 +210,8 @@ export type ModelSettings = {
   'grok.violation_deduction_enabled': boolean
   'grok.violation_deduction_amount': number
   ModelPrice: string
+  ImageGenerationPrice: string
+  VideoGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -267,6 +271,8 @@ export type BillingSettings = {
   DisplayInCurrencyEnabled: boolean
   DisplayTokenStatEnabled: boolean
   ModelPrice: string
+  ImageGenerationPrice: string
+  VideoGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string

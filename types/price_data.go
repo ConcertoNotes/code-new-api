@@ -27,9 +27,15 @@ type PriceData struct {
 	AudioCompletionRatio float64
 	otherRatios          map[string]float64
 	UsePrice             bool
+	FixedPrice           bool
+	VideoPriceConfigured bool
 	Quota                int // 按次计费的最终额度（MJ / Task）
 	QuotaToPreConsume    int // 按量计费的预消耗额度
 	GroupRatioInfo       GroupRatioInfo
+}
+
+func (p PriceData) UsesPerCallBilling(legacyPatch bool) bool {
+	return p.FixedPrice || (legacyPatch && !p.VideoPriceConfigured)
 }
 
 func (p *PriceData) AddOtherRatio(key string, ratio float64) {

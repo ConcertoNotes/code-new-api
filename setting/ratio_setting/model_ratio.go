@@ -369,6 +369,23 @@ func GetModelPrice(name string, printErr bool) (float64, bool) {
 	return -1, false
 }
 
+func GetModelPriceExact(name string) (float64, bool) {
+	price, ok := modelPriceMap.Get(strings.TrimSpace(name))
+	if !ok {
+		return -1, false
+	}
+	return price, true
+}
+
+func GetModelRatioExact(name string) (float64, bool, string) {
+	name = strings.TrimSpace(name)
+	ratio, ok := modelRatioMap.Get(name)
+	if !ok {
+		return 37.5, operation_setting.SelfUseModeEnabled, name
+	}
+	return ratio, true, name
+}
+
 func UpdateModelRatioByJSONString(jsonStr string) error {
 	return types.LoadFromJsonStringWithCallback(modelRatioMap, jsonStr, InvalidateExposedDataCache)
 }

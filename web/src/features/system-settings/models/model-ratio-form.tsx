@@ -49,6 +49,8 @@ import {
 
 type ModelFormValues = {
   ModelPrice: string
+  ImageGenerationPrice: string
+  VideoGenerationPrice: string
   ModelRatio: string
   CacheRatio: string
   CreateCacheRatio: string
@@ -73,6 +75,8 @@ type ModelRatioFormProps = {
 
 type ModelJsonFieldName =
   | 'ModelPrice'
+  | 'ImageGenerationPrice'
+  | 'VideoGenerationPrice'
   | 'ModelRatio'
   | 'CacheRatio'
   | 'CreateCacheRatio'
@@ -91,6 +95,18 @@ const modelJsonFields: Array<{
     labelKey: 'Model fixed pricing',
     descriptionKey:
       'JSON map of model → USD cost per request. Takes precedence over ratio based billing.',
+  },
+  {
+    name: 'ImageGenerationPrice',
+    labelKey: 'Image generation pricing',
+    descriptionKey:
+      'JSON map of model → 1K/2K/4K USD price per generated image. Structured size parameters take priority; an unambiguous prompt resolution is used as fallback.',
+  },
+  {
+    name: 'VideoGenerationPrice',
+    labelKey: 'Video generation pricing',
+    descriptionKey:
+      'JSON map of model → resolution → USD price per second. Resolution names can be customized.',
   },
   {
     name: 'ModelRatio',
@@ -266,6 +282,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
             <ModelRatioVisualEditor
               ref={visualEditorRef}
               savedModelPrice={savedValues.ModelPrice}
+              savedVideoGenerationPrice={savedValues.VideoGenerationPrice}
               savedModelRatio={savedValues.ModelRatio}
               savedCacheRatio={savedValues.CacheRatio}
               savedCreateCacheRatio={savedValues.CreateCacheRatio}
@@ -276,6 +293,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               savedBillingMode={savedValues.BillingMode}
               savedBillingExpr={savedValues.BillingExpr}
               modelPrice={form.watch('ModelPrice')}
+              videoGenerationPrice={form.watch('VideoGenerationPrice')}
               modelRatio={form.watch('ModelRatio')}
               cacheRatio={form.watch('CacheRatio')}
               createCacheRatio={form.watch('CreateCacheRatio')}
