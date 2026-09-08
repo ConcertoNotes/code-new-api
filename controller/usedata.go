@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -83,6 +84,25 @@ func GetUserQuotaDates(c *gin.Context) {
 		"data":    dates,
 	})
 	return
+}
+
+func GetUserUsageSummary(c *gin.Context) {
+	windowEnd := time.Now().Unix()
+	windowStart := windowEnd - 24*60*60
+	userID := c.GetInt("id")
+	if c.GetInt("role") >= common.RoleAdminUser {
+		userID = 0
+	}
+	summary, err := model.GetUserUsageSummary(userID, windowStart, windowEnd)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    summary,
+	})
 }
 
 func GetAllFlowQuotaDates(c *gin.Context) {

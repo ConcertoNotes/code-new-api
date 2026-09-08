@@ -168,6 +168,38 @@ func TestCreateLoginSessionEnforcesIssuanceLimitAcrossAllStatuses(t *testing.T) 
 	assert.Equal(t, int64(4), count)
 }
 
+func TestCreateLoginSessionSkipsDisabledSessionLimits(t *testing.T) {
+	useTestSessionSecret(t)
+	user := setupAuthSessionTestDB(t)
+	common.UserSessionActiveLimit = 0
+	common.UserSessionIssuanceLimit = 0
+	now := time.Now().Unix()
+	rows := make([]model.UserSession, 0, 4)
+	for i := range 4 {
+		rows = append(rows, model.UserSession{
+			SID:             fmt.Sprintf("disabled-limit-%02d", i),
+			UserID:          user.Id,
+			Version:         1,
+			UserAuthVersion: user.AuthVersion,
+			Status:          model.UserSessionStatusActive,
+			RefreshHash:     fmt.Sprintf("disabled-hash-%02d", i),
+			LoginMethod:     "password",
+			CreatedAt:       now - int64(i),
+			LastActiveAt:    now - int64(i),
+			ExpiresAt:       now + 3600,
+		})
+	}
+	require.NoError(t, model.DB.Create(&rows).Error)
+
+	for range 3 {
+		_, err := CreateLoginSession(user.Id, "password", "127.0.0.1", "test-agent")
+		require.NoError(t, err, "disabled limits must never reject a session")
+	}
+	var count int64
+	require.NoError(t, model.DB.Model(&model.UserSession{}).Count(&count).Error)
+	assert.Equal(t, int64(7), count)
+}
+
 func TestPasswordResetDoesNotClearSessionIssuanceHistory(t *testing.T) {
 	useTestSessionSecret(t)
 	user := setupAuthSessionTestDB(t)

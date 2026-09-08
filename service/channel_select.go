@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
@@ -110,18 +111,34 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 	var err error
 	selectGroup := param.TokenGroup
 	userGroup := common.GetContextKeyString(param.Ctx, constant.ContextKeyUserGroup)
-	filters := GetChannelConstraints(param.Ctx).Filters
+	filters := append([]dto.ChannelFilter(nil), GetChannelConstraints(param.Ctx).Filters...)
+	excluded := make(map[int]struct{})
+	for _, value := range param.Ctx.GetStringSlice("use_channel") {
+		if id, parseErr := strconv.Atoi(value); parseErr == nil && id > 0 {
+			excluded[id] = struct{}{}
+		}
+	}
+	if len(excluded) > 0 {
+		filters = append(filters, dto.ChannelFilter{Kind: dto.FilterExcludedChannels, ExcludedChannelIDs: excluded})
+	}
+	var autoGroups []string
+	crossGroupRetry := false
 
 	if param.TokenGroup == "auto" {
-		autoGroups := GetRequestAutoGroups(param.Ctx, userGroup)
+		autoGroups = GetRequestAutoGroups(param.Ctx, userGroup)
 		if len(autoGroups) == 0 {
 			return nil, selectGroup, errors.New("auto groups is not enabled")
 		}
+		crossGroupRetry = common.GetContextKeyBool(param.Ctx, constant.ContextKeyTokenCrossGroupRetry)
+	} else if fallback, ok := common.GetContextKeyType[[]string](param.Ctx, constant.ContextKeyTokenFallbackGroups); ok && len(fallback) > 0 {
+		autoGroups = append([]string{param.TokenGroup}, fallback...)
+		crossGroupRetry = true
+	}
 
+	if len(autoGroups) > 0 {
 		// startGroupIndex: the group index to start searching from
 		// startGroupIndex: 开始搜索的分组索引
 		startGroupIndex := 0
-		crossGroupRetry := common.GetContextKeyBool(param.Ctx, constant.ContextKeyTokenCrossGroupRetry)
 
 		if lastGroupIndex, exists := common.GetContextKey(param.Ctx, constant.ContextKeyAutoGroupIndex); exists {
 			if idx, ok := lastGroupIndex.(int); ok {
@@ -141,12 +158,15 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 			}
 			logger.LogDebug(param.Ctx, "Auto selecting group: %s, priorityRetry: %d", autoGroup, priorityRetry)
 
-			channel, _ = model.GetRandomSatisfiedChannel(
+			channel, err = model.GetRandomSatisfiedChannel(
 				autoGroup,
 				param.ModelName,
 				priorityRetry,
 				filters,
 			)
+			if err != nil {
+				return nil, autoGroup, err
+			}
 			if channel == nil {
 				// Current group has no available channel for this model, try next group
 				// 当前分组没有该模型的可用渠道，尝试下一个分组

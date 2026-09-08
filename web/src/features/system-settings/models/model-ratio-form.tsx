@@ -46,6 +46,7 @@ import {
   ModelRatioVisualEditor,
   type ModelRatioVisualEditorHandle,
 } from './model-ratio-visual-editor'
+import { removeModelPricing } from './model-pricing-delete'
 
 type ModelFormValues = {
   ModelPrice: string
@@ -61,12 +62,13 @@ type ModelFormValues = {
   ExposeRatioEnabled: boolean
   BillingMode: string
   BillingExpr: string
+  GroupBillingExpr: string
 }
 
 type ModelRatioFormProps = {
   form: UseFormReturn<ModelFormValues>
   savedValues: ModelFormValues
-  onSave: (values: ModelFormValues) => Promise<void>
+  onSave: (values: ModelFormValues) => Promise<boolean>
   onReset: () => void
   isSaving: boolean
   isResetting: boolean
@@ -84,6 +86,7 @@ type ModelJsonFieldName =
   | 'ImageRatio'
   | 'AudioRatio'
   | 'AudioCompletionRatio'
+  | 'GroupBillingExpr'
 
 const modelJsonFields: Array<{
   name: ModelJsonFieldName
@@ -146,6 +149,12 @@ const modelJsonFields: Array<{
     labelKey: 'Audio completion ratio',
     descriptionKey: 'Ratio applied to audio completions for streaming models.',
   },
+  {
+    name: 'GroupBillingExpr',
+    labelKey: 'Group-specific model pricing',
+    descriptionKey:
+      'JSON map of group to model to billing expression. Prices are final customer prices and do not apply the group ratio again.',
+  },
 ]
 
 function ModelJsonTextareaField(props: {
@@ -193,6 +202,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
   const isUnsetVariant = variant === 'unset'
   const [editMode, setEditMode] = useState<'visual' | 'json'>('visual')
   const visualEditorRef = useRef<ModelRatioVisualEditorHandle>(null)
+  const deletingRef = useRef(false)
 
   const enabledModelsQuery = useQuery({
     queryKey: ['enabled-models'],
@@ -226,13 +236,32 @@ export const ModelRatioForm = memo(function ModelRatioForm({
     setEditMode((prev) => (prev === 'visual' ? 'json' : 'visual'))
   }, [])
 
+  const handleDelete = useCallback(async (modelName: string) => {
+    if (deletingRef.current || isSaving) return false
+    deletingRef.current = true
+    try {
+      const currentValues = form.getValues()
+      const pricingValues = removeModelPricing(currentValues, modelName)
+      if (!(await onSave({ ...currentValues, ...pricingValues }))) return false
+      for (const field of Object.keys(pricingValues) as Array<keyof typeof pricingValues>) {
+        form.setValue(field, pricingValues[field], { shouldDirty: false, shouldValidate: true })
+      }
+      return true
+    } catch {
+      toast.error(t('Failed to update setting'))
+      return false
+    } finally {
+      deletingRef.current = false
+    }
+  }, [form, isSaving, onSave, t])
+
   const handleSave = useCallback(async () => {
     if (editMode === 'visual') {
       const committed = await visualEditorRef.current?.commitOpenEditor()
       if (committed === false) return
     }
 
-    await form.handleSubmit(onSave)()
+    await form.handleSubmit(async (values) => { await onSave(values) })()
   }, [editMode, form, onSave])
 
   return (
@@ -311,6 +340,7 @@ export const ModelRatioForm = memo(function ModelRatioForm({
               }
               filterMode={isUnsetVariant ? 'unset' : 'all'}
               onSave={handleSave}
+              onDelete={handleDelete}
               isSaving={isSaving}
               onChange={(field, value) => {
                 const fieldMap: Record<string, keyof ModelFormValues> = {

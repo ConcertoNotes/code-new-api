@@ -39,6 +39,18 @@ var (
 	errOriginalPasswordFail = errors.New("original password is incorrect")
 )
 
+func markBlacklistedEmailIP(c *gin.Context, email string) bool {
+	if !common.IsBlacklistedEmail(email) {
+		return false
+	}
+	if c != nil {
+		if err := model.AddBlacklistIP(c.ClientIP()); err != nil {
+			common.SysError(fmt.Sprintf("failed to persist blacklist IP: %v", err))
+		}
+	}
+	return true
+}
+
 func GetPasswordEncryptionKey(c *gin.Context) {
 	if !common.PasswordLoginEncryptionEnabled {
 		common.ApiSuccess(c, gin.H{"enabled": false})
@@ -82,6 +94,15 @@ func Login(c *gin.Context) {
 	}
 	if username == "" || password == "" {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if strings.Contains(username, "@") && markBlacklistedEmailIP(c, model.NormalizeEmail(username)) {
+		common.ApiErrorI18n(c, i18n.MsgUserBlacklisted)
+		return
+	}
+	var candidate model.User
+	if err := model.DB.Where("username = ?", username).Select("email").First(&candidate).Error; err == nil && markBlacklistedEmailIP(c, candidate.Email) {
+		common.ApiErrorI18n(c, i18n.MsgUserBlacklisted)
 		return
 	}
 	user := model.User{
@@ -250,6 +271,10 @@ func Register(c *gin.Context) {
 	}
 	user.Username = strings.TrimSpace(user.Username)
 	user.Email = model.NormalizeEmail(user.Email)
+	if markBlacklistedEmailIP(c, user.Email) {
+		common.ApiErrorI18n(c, i18n.MsgUserBlacklisted)
+		return
+	}
 	if user.Username == "" {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
@@ -396,6 +421,35 @@ func SearchUsers(c *gin.Context) {
 	pageInfo.SetItems(users)
 	common.ApiSuccess(c, pageInfo)
 	return
+}
+
+func GetUserGroupAccessOptions(c *gin.Context) {
+	idsParam := strings.TrimSpace(c.Query("ids"))
+	userIDs := make([]int, 0)
+	if idsParam != "" {
+		seen := make(map[int]struct{})
+		for _, rawID := range strings.Split(idsParam, ",") {
+			userID, err := strconv.Atoi(strings.TrimSpace(rawID))
+			if err != nil || userID <= 0 {
+				common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+				return
+			}
+			if _, ok := seen[userID]; ok {
+				continue
+			}
+			seen[userID] = struct{}{}
+			userIDs = append(userIDs, userID)
+			if len(userIDs) == 50 {
+				break
+			}
+		}
+	}
+	options, err := model.GetUserGroupAccessOptions(strings.TrimSpace(c.Query("keyword")), userIDs)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, options)
 }
 
 func canManageTargetRole(myRole int, targetRole int) bool {
@@ -668,7 +722,7 @@ func GetUserModels(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	groups := service.GetUserUsableGroups(user.Group)
+	groups := service.GetUserUsableGroups(user.Id, user.Group)
 	group := c.Query("group")
 	var groupsToQuery []string
 	switch {
@@ -678,7 +732,7 @@ func GetUserModels(c *gin.Context) {
 		}
 	case group == "auto":
 		if _, ok := groups[group]; ok {
-			groupsToQuery = service.GetUserAutoGroup(user.Group)
+			groupsToQuery = service.GetUserAutoGroup(user.Id, user.Group)
 		}
 	default:
 		if _, ok := groups[group]; ok {

@@ -26,11 +26,13 @@ var defaultGroupGroupRatio = map[string]map[string]float64{
 var groupGroupRatioMap = types.NewRWMap[string, map[string]float64]()
 
 var defaultGroupSpecialUsableGroup = map[string]map[string]string{}
+var defaultGroupUserAllowlist = map[string][]int{}
 
 type GroupRatioSetting struct {
 	GroupRatio              *types.RWMap[string, float64]            `json:"group_ratio"`
 	GroupGroupRatio         *types.RWMap[string, map[string]float64] `json:"group_group_ratio"`
 	GroupSpecialUsableGroup *types.RWMap[string, map[string]string]  `json:"group_special_usable_group"`
+	GroupUserAllowlist      *types.RWMap[string, []int]              `json:"group_user_allowlist"`
 }
 
 var groupRatioSetting GroupRatioSetting
@@ -38,12 +40,15 @@ var groupRatioSetting GroupRatioSetting
 func init() {
 	groupSpecialUsableGroup := types.NewRWMap[string, map[string]string]()
 	groupSpecialUsableGroup.AddAll(defaultGroupSpecialUsableGroup)
+	groupUserAllowlist := types.NewRWMap[string, []int]()
+	groupUserAllowlist.AddAll(defaultGroupUserAllowlist)
 
 	groupRatioMap.AddAll(defaultGroupRatio)
 	groupGroupRatioMap.AddAll(defaultGroupGroupRatio)
 
 	groupRatioSetting = GroupRatioSetting{
 		GroupSpecialUsableGroup: groupSpecialUsableGroup,
+		GroupUserAllowlist:      groupUserAllowlist,
 		GroupRatio:              groupRatioMap,
 		GroupGroupRatio:         groupGroupRatioMap,
 	}
@@ -56,7 +61,34 @@ func GetGroupRatioSetting() *GroupRatioSetting {
 		groupRatioSetting.GroupSpecialUsableGroup = types.NewRWMap[string, map[string]string]()
 		groupRatioSetting.GroupSpecialUsableGroup.AddAll(defaultGroupSpecialUsableGroup)
 	}
+	if groupRatioSetting.GroupUserAllowlist == nil {
+		groupRatioSetting.GroupUserAllowlist = types.NewRWMap[string, []int]()
+		groupRatioSetting.GroupUserAllowlist.AddAll(defaultGroupUserAllowlist)
+	}
 	return &groupRatioSetting
+}
+
+func ValidateGroupUserAllowlistJSON(jsonStr string) error {
+	allowlist := make(map[string][]int)
+	if err := common.Unmarshal([]byte(jsonStr), &allowlist); err != nil {
+		return err
+	}
+	for group, userIDs := range allowlist {
+		if group == "" {
+			return errors.New("group user allowlist contains an empty group")
+		}
+		seen := make(map[int]struct{}, len(userIDs))
+		for _, userID := range userIDs {
+			if userID <= 0 {
+				return errors.New("group user allowlist contains an invalid user ID")
+			}
+			if _, ok := seen[userID]; ok {
+				return errors.New("group user allowlist contains a duplicate user ID")
+			}
+			seen[userID] = struct{}{}
+		}
+	}
+	return nil
 }
 
 func GetGroupRatioCopy() map[string]float64 {

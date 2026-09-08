@@ -47,6 +47,7 @@ const baseApiKey: ApiKey = {
   accessed_time: 0,
   group: 'auto',
   auto_groups: null,
+  fallback_groups: [],
   cross_group_retry: true,
   model_limits_enabled: false,
   model_limits: '',

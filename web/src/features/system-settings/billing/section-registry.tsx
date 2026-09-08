@@ -40,6 +40,7 @@ const getModelDefaults = (settings: BillingSettings) => ({
   ExposeRatioEnabled: settings.ExposeRatioEnabled,
   BillingMode: settings['billing_setting.billing_mode'],
   BillingExpr: settings['billing_setting.billing_expr'],
+  GroupBillingExpr: settings['billing_setting.group_billing_expr'] ?? '{}',
 })
 
 const getGroupDefaults = (settings: BillingSettings) => ({
@@ -52,6 +53,7 @@ const getGroupDefaults = (settings: BillingSettings) => ({
   DefaultUseAutoGroup: settings.DefaultUseAutoGroup,
   GroupSpecialUsableGroup:
     settings['group_ratio_setting.group_special_usable_group'],
+  GroupUserAllowlist: settings['group_ratio_setting.group_user_allowlist'],
 })
 
 const BILLING_SECTIONS = [

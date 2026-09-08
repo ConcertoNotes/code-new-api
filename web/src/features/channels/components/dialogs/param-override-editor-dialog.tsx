@@ -1960,7 +1960,7 @@ export function ParamOverrideEditorDialog(
                                 </p>
                                 {operation.description.trim() && (
                                   <p className='text-muted-foreground mt-0.5 line-clamp-2 text-[10px]'>
-                                    {operation.description}
+                                    {t(operation.description)}
                                   </p>
                                 )}
                                 <span

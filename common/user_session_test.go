@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestInitUserSessionSettingsUsesPositiveFallbacksAndClampsWindow(t *testing.T) {
+func TestInitUserSessionSettingsAppliesFallbacksDisablesQuotasAndClampsWindow(t *testing.T) {
 	previousActiveLimit := UserSessionActiveLimit
 	previousIssuanceLimit := UserSessionIssuanceLimit
 	previousIssuanceWindow := UserSessionIssuanceWindowSeconds
@@ -20,7 +20,7 @@ func TestInitUserSessionSettingsUsesPositiveFallbacksAndClampsWindow(t *testing.
 		UserSessionHourlyAlertThreshold = previousAlertThreshold
 	})
 
-	t.Setenv("USER_SESSION_ACTIVE_LIMIT", "0")
+	t.Setenv("USER_SESSION_ACTIVE_LIMIT", "-1")
 	t.Setenv("USER_SESSION_ISSUANCE_LIMIT", "-2")
 	t.Setenv("USER_SESSION_ISSUANCE_WINDOW_SECONDS", "invalid")
 	t.Setenv("USER_SESSION_REVOKED_RETENTION_DAYS", "0")
@@ -32,6 +32,13 @@ func TestInitUserSessionSettingsUsesPositiveFallbacksAndClampsWindow(t *testing.
 	assert.Equal(t, int64(DefaultUserSessionIssuanceWindowSeconds), UserSessionIssuanceWindowSeconds)
 	assert.Equal(t, DefaultUserSessionRevokedRetentionDays, UserSessionRevokedRetentionDays)
 	assert.Equal(t, DefaultUserSessionHourlyAlertThreshold, UserSessionHourlyAlertThreshold)
+
+	t.Setenv("USER_SESSION_ACTIVE_LIMIT", "0")
+	t.Setenv("USER_SESSION_ISSUANCE_LIMIT", "0")
+	initUserSessionSettings()
+
+	assert.Equal(t, 0, UserSessionActiveLimit, "0 disables the active session limit instead of falling back")
+	assert.Equal(t, 0, UserSessionIssuanceLimit, "0 disables the issuance limit instead of falling back")
 
 	t.Setenv("USER_SESSION_ACTIVE_LIMIT", "12")
 	t.Setenv("USER_SESSION_ISSUANCE_LIMIT", "34")

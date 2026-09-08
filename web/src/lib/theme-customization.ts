@@ -25,9 +25,14 @@ For commercial licensing, please contact support@quantumnous.com
 
 export const THEME_PRESETS = [
   {
-    value: 'default',
+    value: 'aurora',
     name: 'Default',
-    swatches: ['oklch(0.72 0.18 250)', 'oklch(0.7 0.12 280)'],
+    swatches: ['oklch(0.64 0.2 255)', 'oklch(0.72 0.15 175)'],
+  },
+  {
+    value: 'default',
+    name: 'White',
+    swatches: ['oklch(1 0 0)', 'oklch(0.93 0 0)'],
   },
   {
     // Inspired by Anthropic's official brand language: warm cream canvas
@@ -88,9 +93,8 @@ export type ContentLayout = 'full' | 'centered'
  * Font axis for the theme.
  *
  * - `default` — resolve at runtime from the active preset
- *   (see `PRESET_DEFAULT_FONT`). The shipped `default` and `anthropic`
- *   presets resolve to serif; other named color presets fall back to
- *   sans unless they list a different choice. Mirrors how
+ *   (see `PRESET_DEFAULT_FONT`). Presets fall back to sans unless they
+ *   explicitly list a different choice. Mirrors how
  *   `radius: 'default'` defers to a per-preset hint.
  * - `sans` — humanist sans (Public Sans), the project's UI fallback.
  * - `serif` — editorial serif (Lora + CJK fallbacks), the project's
@@ -116,7 +120,7 @@ export type ThemeCustomization = {
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
-  preset: 'default',
+  preset: 'aurora',
   font: 'default',
   radius: 'default',
   scale: 'default',
@@ -168,14 +172,14 @@ export const THEME_COOKIE_KEYS = {
  *
  * Co-located with the preset registry so a preset's signature typography
  * is declared in one place. Presets not listed here fall back to the
- * `resolveThemeFont` default of `sans`. The shipped `default` preset
- * opts into serif so the editorial Lora voice is the out-of-the-box
- * experience; vivid color presets stay on the humanist sans so their
- * accents read clearly without competing with the body type.
+ * `resolveThemeFont` default of `sans`. The Anthropic preset opts into serif;
+ * the default Aurora experience and other vivid presets use the humanist sans
+ * so their accents read clearly without competing with the body type.
  */
 export const PRESET_DEFAULT_FONT: Partial<
   Record<ThemePreset, ResolvedThemeFont>
 > = {
+  aurora: 'sans',
   default: 'sans',
   anthropic: 'serif',
 }

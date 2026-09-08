@@ -202,6 +202,31 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 			break
 		}
 		addUsedChannel(c, channel.Id)
+		if relayInfo.GroupBillingExpressions != nil && relayInfo.GroupBillingSelectedGroup != relayInfo.UsingGroup {
+			updatedPrice, priceErr := helper.ModelPriceHelper(c, relayInfo, tokens, meta)
+			if priceErr != nil {
+				newAPIError = types.NewErrorWithStatusCode(priceErr, types.ErrorCodeModelPriceError, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
+				break
+			}
+			if relayInfo.Billing != nil {
+				updatedPrice.FreeModel = false
+			}
+			relayInfo.PriceData = updatedPrice
+			if relayInfo.TieredBillingSnapshot == nil && !updatedPrice.FreeModel {
+				var reserveError *types.NewAPIError
+				if relayInfo.Billing == nil {
+					reserveError = service.PreConsumeBilling(c, updatedPrice.QuotaToPreConsume, relayInfo)
+				} else if reserveErr := relayInfo.Billing.Reserve(updatedPrice.QuotaToPreConsume); reserveErr != nil {
+					reserveError = types.NewError(reserveErr, types.ErrorCodeUpdateDataError, types.ErrOptionWithSkipRetry())
+				} else {
+					relayInfo.FinalPreConsumedQuota = relayInfo.Billing.GetPreConsumedQuota()
+				}
+				if reserveError != nil {
+					newAPIError = reserveError
+					break
+				}
+			}
+		}
 		if billingErr := service.PrepareTieredBillingForSelectedGroup(c, relayInfo); billingErr != nil {
 			newAPIError = billingErr
 			break
@@ -366,7 +391,7 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	if openaiErr == nil {
 		return false
 	}
-	if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
+	if service.HandleChannelAffinityFailure(c) {
 		return false
 	}
 	if types.IsChannelError(openaiErr) {
@@ -860,7 +885,7 @@ func shouldRetryTaskRelay(c *gin.Context, channelId int, taskErr *taskdto.TaskEr
 	if taskErr == nil {
 		return false
 	}
-	if service.ShouldSkipRetryAfterChannelAffinityFailure(c) {
+	if service.HandleChannelAffinityFailure(c) {
 		return false
 	}
 	if retryTimes <= 0 {

@@ -405,7 +405,28 @@ func UpdateOption(c *gin.Context) {
 			return
 		}
 	}
-	err = model.UpdateOption(option.Key, option.Value.(string))
+	if option.Key == "GroupRatio" {
+		var validGroups map[string]float64
+		if err = common.UnmarshalJsonStr(option.Value.(string), &validGroups); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		prunedExpr, changed, pruneErr := billing_setting.PruneGroupBillingExpr(validGroups)
+		if pruneErr != nil {
+			common.ApiError(c, pruneErr)
+			return
+		}
+		if changed {
+			err = model.UpdateOptionsBulk(map[string]string{
+				option.Key:                           option.Value.(string),
+				"billing_setting.group_billing_expr": prunedExpr,
+			})
+		} else {
+			err = model.UpdateOption(option.Key, option.Value.(string))
+		}
+	} else {
+		err = model.UpdateOption(option.Key, option.Value.(string))
+	}
 	if err != nil {
 		common.ApiError(c, err)
 		return

@@ -119,6 +119,7 @@ const createModelSchema = (t: Translate) =>
     ExposeRatioEnabled: z.boolean(),
     BillingMode: createJsonStringField(t),
     BillingExpr: createJsonStringField(t),
+    GroupBillingExpr: createJsonStringField(t),
   })
 
 const createGroupSchema = (t: Translate) =>
@@ -136,6 +137,22 @@ const createGroupSchema = (t: Translate) =>
     MaxTokenAutoGroups: positiveIntegerSchema(t('Enter a positive integer')),
     DefaultUseAutoGroup: z.boolean(),
     GroupSpecialUsableGroup: createJsonStringField(t),
+    GroupUserAllowlist: createJsonStringField(t, {
+      predicate: (parsed) =>
+        typeof parsed === 'object' &&
+        parsed !== null &&
+        !Array.isArray(parsed) &&
+        Object.entries(parsed).every(
+          ([group, userIds]) =>
+            group.length > 0 &&
+            Array.isArray(userIds) &&
+            userIds.every(
+              (userId) => Number.isInteger(userId) && Number(userId) > 0
+            ) &&
+            new Set(userIds).size === userIds.length
+        ),
+      predicateMessage: 'Expected a JSON map of groups to user ID arrays',
+    }),
   })
 
 type ModelFormValues = z.infer<ReturnType<typeof createModelSchema>>
@@ -203,6 +220,7 @@ export function RatioSettingsCard({
     ExposeRatioEnabled: modelDefaults.ExposeRatioEnabled,
     BillingMode: normalizeJsonString(modelDefaults.BillingMode),
     BillingExpr: normalizeJsonString(modelDefaults.BillingExpr),
+    GroupBillingExpr: normalizeJsonString(modelDefaults.GroupBillingExpr),
   })
   const [savedModelValues, setSavedModelValues] = useState(
     modelNormalizedDefaults.current
@@ -219,6 +237,7 @@ export function RatioSettingsCard({
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup
     ),
+    GroupUserAllowlist: normalizeJsonString(groupDefaults.GroupUserAllowlist),
   })
   const modelSchema = useMemo(() => createModelSchema(t), [t])
   const groupSchema = useMemo(() => createGroupSchema(t), [t])
@@ -246,6 +265,7 @@ export function RatioSettingsCard({
       ),
       BillingMode: formatJsonForTextarea(modelDefaults.BillingMode),
       BillingExpr: formatJsonForTextarea(modelDefaults.BillingExpr),
+      GroupBillingExpr: formatJsonForTextarea(modelDefaults.GroupBillingExpr),
     },
   })
 
@@ -282,6 +302,7 @@ export function RatioSettingsCard({
       ExposeRatioEnabled: modelDefaults.ExposeRatioEnabled,
       BillingMode: normalizeJsonString(modelDefaults.BillingMode),
       BillingExpr: normalizeJsonString(modelDefaults.BillingExpr),
+      GroupBillingExpr: normalizeJsonString(modelDefaults.GroupBillingExpr),
     }
     setSavedModelValues(modelNormalizedDefaults.current)
 
@@ -301,6 +322,7 @@ export function RatioSettingsCard({
       ),
       BillingMode: formatJsonForTextarea(modelDefaults.BillingMode),
       BillingExpr: formatJsonForTextarea(modelDefaults.BillingExpr),
+      GroupBillingExpr: formatJsonForTextarea(modelDefaults.GroupBillingExpr),
     })
   }, [modelDefaults, modelForm])
 
@@ -316,6 +338,7 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup
       ),
+      GroupUserAllowlist: normalizeJsonString(groupDefaults.GroupUserAllowlist),
     }
 
     groupForm.reset({
@@ -327,6 +350,9 @@ export function RatioSettingsCard({
       AutoGroups: formatJsonForTextarea(groupDefaults.AutoGroups),
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
+      ),
+      GroupUserAllowlist: formatJsonForTextarea(
+        groupDefaults.GroupUserAllowlist
       ),
     })
   }, [groupDefaults, groupForm])
@@ -347,11 +373,13 @@ export function RatioSettingsCard({
         ExposeRatioEnabled: values.ExposeRatioEnabled,
         BillingMode: normalizeJsonString(values.BillingMode),
         BillingExpr: normalizeJsonString(values.BillingExpr),
+        GroupBillingExpr: normalizeJsonString(values.GroupBillingExpr),
       }
 
       const apiKeyMap: Record<string, string> = {
         BillingMode: 'billing_setting.billing_mode',
         BillingExpr: 'billing_setting.billing_expr',
+        GroupBillingExpr: 'billing_setting.group_billing_expr',
       }
 
       const updates = (
@@ -362,16 +390,22 @@ export function RatioSettingsCard({
 
       if (updates.length === 0) {
         toast.info(t('No model price changes to save'))
-        return
+        return true
       }
 
       for (const key of updates) {
         const apiKey = apiKeyMap[key as string] || (key as string)
-        await updateOption.mutateAsync({ key: apiKey, value: normalized[key] })
+        try {
+          const result = await updateOption.mutateAsync({ key: apiKey, value: normalized[key] })
+          if (!result.success) return false
+        } catch {
+          return false
+        }
       }
 
       modelNormalizedDefaults.current = normalized
       setSavedModelValues(normalized)
+      return true
     },
     [t, updateOption]
   )
@@ -389,12 +423,14 @@ export function RatioSettingsCard({
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup
         ),
+        GroupUserAllowlist: normalizeJsonString(values.GroupUserAllowlist),
       }
 
-      // Map form field names to API keys (most are 1:1, except GroupSpecialUsableGroup)
+      // Map form field names to their hierarchical API keys.
       const apiKeyMap: Record<string, string> = {
         GroupSpecialUsableGroup:
           'group_ratio_setting.group_special_usable_group',
+        GroupUserAllowlist: 'group_ratio_setting.group_user_allowlist',
       }
 
       const updates = (

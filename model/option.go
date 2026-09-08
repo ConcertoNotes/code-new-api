@@ -9,6 +9,7 @@ import (
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/setting"
+	"github.com/QuantumNous/new-api/setting/billing_setting"
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/performance_setting"
@@ -66,6 +67,8 @@ func InitOptionMap() {
 	common.OptionMap["EmailDomainRestrictionEnabled"] = strconv.FormatBool(common.EmailDomainRestrictionEnabled)
 	common.OptionMap["EmailAliasRestrictionEnabled"] = strconv.FormatBool(common.EmailAliasRestrictionEnabled)
 	common.OptionMap["EmailDomainWhitelist"] = strings.Join(common.EmailDomainWhitelist, ",")
+	common.OptionMap["BlacklistEmails"] = ""
+	common.OptionMap["BlacklistIPs"] = ""
 	common.OptionMap["SMTPServer"] = ""
 	common.OptionMap["SMTPFrom"] = ""
 	common.OptionMap["SMTPPort"] = strconv.Itoa(common.SMTPPort)
@@ -218,6 +221,16 @@ func SyncOptions(frequency int) {
 }
 
 func validateOptionValue(key string, value string) error {
+	if key == "billing_setting.group_billing_expr" {
+		return billing_setting.ValidateGroupBillingExpr(value)
+	}
+	if key == "BlacklistIPs" {
+		_, err := common.ParseBlacklistIPs(value)
+		return err
+	}
+	if key == "group_ratio_setting.group_user_allowlist" {
+		return ratio_setting.ValidateGroupUserAllowlistJSON(value)
+	}
 	if key == "VideoGenerationPrice" {
 		return ratio_setting.ValidateVideoGenerationPriceJSON(value)
 	}
@@ -248,12 +261,16 @@ func UpdateOption(key string, value string) error {
 		Key: key,
 	}
 	// https://gorm.io/docs/update.html#Save-All-Fields
-	DB.FirstOrCreate(&option, Option{Key: key})
+	if err := DB.FirstOrCreate(&option, Option{Key: key}).Error; err != nil {
+		return err
+	}
 	option.Value = value
 	// Save is a combination function.
 	// If save value does not contain primary key, it will execute Create,
 	// otherwise it will execute Update (with all fields).
-	DB.Save(&option)
+	if err := DB.Save(&option).Error; err != nil {
+		return err
+	}
 	// Update OptionMap
 	return updateOptionMap(key, value)
 }
@@ -427,6 +444,14 @@ func updateOptionMap(key string, value string) (err error) {
 	switch key {
 	case "EmailDomainWhitelist":
 		common.EmailDomainWhitelist = strings.Split(value, ",")
+	case "BlacklistEmails":
+		common.SetBlacklistEmails(common.ParseBlacklistEmails(value))
+	case "BlacklistIPs":
+		ips, parseErr := common.ParseBlacklistIPs(value)
+		if parseErr != nil {
+			return parseErr
+		}
+		common.SetBlacklistIPs(ips)
 	case "SMTPServer":
 		common.SMTPServer = value
 	case "SMTPPort":

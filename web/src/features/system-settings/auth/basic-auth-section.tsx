@@ -43,6 +43,7 @@ import { SettingsPageFormActions } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useResetForm } from '../hooks/use-reset-form'
 import { useUpdateOption } from '../hooks/use-update-option'
+import { normalizeBlacklistEntries } from './blacklist-utils'
 
 const basicAuthSchema = z.object({
   PasswordLoginEnabled: z.boolean(),
@@ -52,6 +53,8 @@ const basicAuthSchema = z.object({
   EmailDomainRestrictionEnabled: z.boolean(),
   EmailAliasRestrictionEnabled: z.boolean(),
   EmailDomainWhitelist: z.string(),
+  BlacklistEmails: z.string(),
+  BlacklistIPs: z.string(),
 })
 
 type BasicAuthFormValues = z.infer<typeof basicAuthSchema>
@@ -71,6 +74,8 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
         .map((domain) => domain.trim())
         .filter(Boolean)
         .join('\n'),
+      BlacklistEmails: normalizeBlacklistEntries(defaultValues.BlacklistEmails),
+      BlacklistIPs: normalizeBlacklistEntries(defaultValues.BlacklistIPs),
     }),
     [defaultValues]
   )
@@ -96,6 +101,13 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
         if (domains !== defaultValues.EmailDomainWhitelist) {
           updates.push({ key, value: domains })
         }
+      } else if (key === 'BlacklistEmails' || key === 'BlacklistIPs') {
+        if (typeof value !== 'string') return
+        const entries = normalizeBlacklistEntries(value)
+        const previous = normalizeBlacklistEntries(
+          defaultValues[key as keyof BasicAuthFormValues] as string
+        )
+        if (entries !== previous) updates.push({ key, value: entries })
       } else if (value !== defaultValues[key as keyof typeof defaultValues]) {
         updates.push({ key, value })
       }
@@ -257,6 +269,48 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
                   {t(
                     'One domain per line (only used when domain restriction is enabled)'
                   )}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='BlacklistEmails'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Blacklisted Emails')}</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder={t('user@example.com')}
+                    rows={4}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t('One complete email address per line; matching emails cannot log in or register')}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name='BlacklistIPs'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Blacklisted IP Addresses')}</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder={t('192.0.2.1')}
+                    rows={4}
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t('One IPv4 or IPv6 address per line; blocked IPs cannot access the site')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>

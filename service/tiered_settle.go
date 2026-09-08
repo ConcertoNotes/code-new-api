@@ -104,6 +104,12 @@ func refreshTieredBillingGroup(relayInfo *relaycommon.RelayInfo) (*billingexpr.B
 	}
 
 	groupRatio := relayInfo.PriceData.GroupRatioInfo.GroupRatio
+	if snap.GroupFinalPrice {
+		groupRatio = 1
+		relayInfo.PriceData.GroupRatioInfo.GroupRatio = 1
+		relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio = -1
+		relayInfo.PriceData.GroupRatioInfo.HasSpecialRatio = false
+	}
 	if snap.GroupRatio == groupRatio {
 		return snap, nil
 	}

@@ -11,6 +11,7 @@ build
 *.db-shm
 *.db-wal
 logs
+session.secret
 web/dist
 web/node_modules
 .env

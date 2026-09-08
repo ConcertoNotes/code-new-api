@@ -460,9 +460,10 @@ func TokenAuth() func(c *gin.Context) {
 
 		userGroup := userCache.Group
 		tokenGroup := token.Group
+		fallbackGroups := token.FallbackGroups.Values()
 		if tokenGroup != "" {
 			// check common.UserUsableGroups[userGroup]
-			if _, ok := service.GetUserUsableGroups(userGroup)[tokenGroup]; !ok {
+			if _, ok := service.GetUserUsableGroups(token.UserId, userGroup)[tokenGroup]; !ok {
 				abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", tokenGroup))
 				return
 			}
@@ -474,6 +475,15 @@ func TokenAuth() func(c *gin.Context) {
 				}
 			}
 			userGroup = tokenGroup
+		} else if !service.GroupInUserUsableGroups(token.UserId, userCache.Group, userGroup) {
+			abortWithOpenAiMessage(c, http.StatusForbidden, fmt.Sprintf("无权访问 %s 分组", userGroup))
+			return
+		}
+		if len(fallbackGroups) > 0 {
+			if err := service.ValidateTokenFallbackGroups(token.UserId, common.GetContextKeyString(c, constant.ContextKeyUserGroup), tokenGroup, fallbackGroups); err != nil {
+				abortWithOpenAiMessage(c, http.StatusForbidden, err.Error())
+				return
+			}
 		}
 		common.SetContextKey(c, constant.ContextKeyUsingGroup, userGroup)
 
@@ -505,6 +515,7 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 	}
 	common.SetContextKey(c, constant.ContextKeyTokenGroup, token.Group)
 	common.SetContextKey(c, constant.ContextKeyTokenCrossGroupRetry, token.CrossGroupRetry)
+	common.SetContextKey(c, constant.ContextKeyTokenFallbackGroups, token.FallbackGroups.Values())
 	if token.AutoGroups != "" {
 		autoGroups, err := token.GetAutoGroups()
 		if err != nil {

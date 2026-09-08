@@ -33,6 +33,22 @@ export interface QuotaDataItem {
   quota?: number
 }
 
+export interface UsageSummaryPeriod {
+  quota: number
+  official_quota: number
+  requests: number
+  input_tokens: number
+  output_tokens: number
+  total_tokens: number
+}
+
+export interface UserUsageSummary {
+  window_start: number
+  window_end: number
+  last_24_hours: UsageSummaryPeriod
+  all_time: UsageSummaryPeriod
+}
+
 export interface FlowQuotaDataItem {
   user_id?: number
   username?: string

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/logger"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relay/helper"
@@ -49,6 +50,11 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 		return nil, types.WithOpenAIError(*oaiError, resp.StatusCode)
 	}
 
+	responseBody, err = addOpenAIImageBase64(responseBody, service.GetImageFromUrl)
+	if err != nil {
+		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusBadGateway)
+	}
+
 	updateOpenAIImageCount(info, gjson.GetBytes(responseBody, "data.#").Int())
 
 	// 写入新的 response body
@@ -57,6 +63,94 @@ func OpenaiImageHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.
 	normalizeOpenAIUsage(&usageResp.Usage)
 	applyUsagePostProcessing(info, &usageResp.Usage, responseBody)
 	return &usageResp.Usage, nil
+}
+
+func addOpenAIImageBase64(responseBody []byte, download func(string) (string, string, error)) ([]byte, error) {
+	imageCount := gjson.GetBytes(responseBody, "data.#").Int()
+	for i := int64(0); i < imageCount; i++ {
+		path := "data." + strconv.FormatInt(i, 10)
+		if b64JSON := gjson.GetBytes(responseBody, path+".b64_json"); b64JSON.Type == gjson.String && b64JSON.String() != "" {
+			continue
+		}
+
+		imageURL := gjson.GetBytes(responseBody, path+".url")
+		if imageURL.Type != gjson.String || strings.TrimSpace(imageURL.String()) == "" {
+			continue
+		}
+
+		imageLocation := strings.TrimSpace(imageURL.String())
+		base64Data := ""
+		var err error
+		isDataURL := len(imageLocation) >= len("data:") && strings.EqualFold(imageLocation[:len("data:")], "data:")
+		if isDataURL {
+			commaIndex := strings.IndexByte(imageLocation, ',')
+			if commaIndex < 0 {
+				return nil, fmt.Errorf("failed to convert upstream image data[%d] to b64_json: malformed data URL", i)
+			}
+			metadata := strings.Split(strings.ToLower(imageLocation[len("data:"):commaIndex]), ";")
+			isBase64 := false
+			for _, value := range metadata[1:] {
+				if strings.TrimSpace(value) == "base64" {
+					isBase64 = true
+					break
+				}
+			}
+			if !isBase64 {
+				return nil, fmt.Errorf("failed to convert upstream image data[%d] to b64_json: data URL is not base64 encoded", i)
+			}
+			base64Data = strings.TrimSpace(imageLocation[commaIndex+1:])
+			if constant.MaxFileDownloadMB > 0 {
+				maxImageSize := int64(constant.MaxFileDownloadMB) * 1024 * 1024
+				maxEncodedSize := maxImageSize*4/3 + 4
+				if int64(len(base64Data)) > maxEncodedSize {
+					return nil, fmt.Errorf("failed to convert upstream image data[%d] to b64_json: image data exceeds maximum allowed size of %d bytes", i, maxImageSize)
+				}
+			}
+			if base64Data == "" {
+				return nil, fmt.Errorf("upstream image data[%d] converted to empty b64_json", i)
+			}
+			responseBody, err = sjson.DeleteBytes(responseBody, path+".url")
+			if err != nil {
+				return nil, fmt.Errorf("failed to remove upstream image data URL[%d]: %w", i, err)
+			}
+		} else {
+			_, base64Data, err = downloadOpenAIImageWithRetry(download, imageLocation)
+			if err != nil {
+				return nil, fmt.Errorf("failed to convert upstream image data[%d] to b64_json: %w", i, err)
+			}
+		}
+		if base64Data == "" {
+			return nil, fmt.Errorf("upstream image data[%d] converted to empty b64_json", i)
+		}
+
+		responseBody, err = sjson.SetBytes(responseBody, path+".b64_json", base64Data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode upstream image data[%d]: %w", i, err)
+		}
+	}
+	return responseBody, nil
+}
+
+func downloadOpenAIImageWithRetry(download func(string) (string, string, error), imageURL string) (mimeType, data string, err error) {
+	const maxAttempts = 3
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		mimeType, data, err = download(imageURL)
+		if err == nil || !isRetryableImageDownloadError(err) || attempt == maxAttempts {
+			return mimeType, data, err
+		}
+		time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+	}
+	return mimeType, data, err
+}
+
+func isRetryableImageDownloadError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := err.Error()
+	return strings.Contains(message, "HTTP 502") ||
+		strings.Contains(message, "HTTP 503") ||
+		strings.Contains(message, "HTTP 504")
 }
 
 // normalizeOpenAIUsage maps the OpenAI Images usage shape (input_tokens /

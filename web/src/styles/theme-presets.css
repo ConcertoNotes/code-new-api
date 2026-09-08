@@ -32,6 +32,30 @@ For commercial licensing, please contact support@quantumnous.com
  *   blocks so an explicit user choice overrides the preset's default radius.
  */
 
+/* Restored blue Aurora preset. */
+[data-theme-preset='aurora'] {
+  --background: oklch(0.975 0.012 245);
+  --foreground: oklch(0.19 0.035 260);
+  --primary: oklch(0.57 0.19 260);
+  --primary-foreground: oklch(0.99 0.005 240);
+  --secondary: oklch(0.91 0.04 225);
+  --secondary-foreground: oklch(0.27 0.06 255);
+  --ring: oklch(0.62 0.17 255);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-ring: var(--ring);
+}
+
+.dark [data-theme-preset='aurora'] {
+  --background: oklch(0.245 0.025 265);
+  --foreground: oklch(0.96 0.015 230);
+  --primary: oklch(0.7 0.17 252);
+  --primary-foreground: oklch(0.16 0.04 265);
+  --secondary: oklch(0.34 0.07 248);
+  --secondary-foreground: oklch(0.94 0.025 220);
+  --ring: oklch(0.73 0.16 248);
+}
+
 /* ── Underground ──────────────────────────────────────────────────────── */
 [data-theme-preset='underground'] {
   --primary: oklch(0.5315 0.0694 156.19);

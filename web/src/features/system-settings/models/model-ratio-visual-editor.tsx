@@ -98,6 +98,7 @@ type ModelRatioVisualEditorProps = {
   filterMode?: 'all' | 'unset'
   onChange: (field: string, value: string) => void
   onSave: () => void | Promise<void>
+  onDelete: (name: string) => Promise<boolean>
   isSaving: boolean
 }
 
@@ -139,6 +140,7 @@ const ModelRatioVisualEditorComponent = forwardRef<
     filterMode = 'all',
     onChange,
     onSave,
+    onDelete,
     isSaving,
   },
   ref
@@ -375,105 +377,15 @@ const ModelRatioVisualEditorComponent = forwardRef<
   )
 
   const handleDelete = useCallback(
-    (name: string) => {
-      const priceMap = safeJsonParse<Record<string, number>>(modelPrice, {
-        fallback: {},
-        silent: true,
-      })
-      const ratioMap = safeJsonParse<Record<string, number>>(modelRatio, {
-        fallback: {},
-        silent: true,
-      })
-      const videoPriceMap = safeJsonParse<
-        Record<string, Record<string, number>>
-      >(videoGenerationPrice, { fallback: {}, silent: true })
-      const cacheMap = safeJsonParse<Record<string, number>>(cacheRatio, {
-        fallback: {},
-        silent: true,
-      })
-      const createCacheMap = safeJsonParse<Record<string, number>>(
-        createCacheRatio,
-        { fallback: {}, silent: true }
-      )
-      const completionMap = safeJsonParse<Record<string, number>>(
-        completionRatio,
-        { fallback: {}, silent: true }
-      )
-      const imageMap = safeJsonParse<Record<string, number>>(imageRatio, {
-        fallback: {},
-        silent: true,
-      })
-      const audioMap = safeJsonParse<Record<string, number>>(audioRatio, {
-        fallback: {},
-        silent: true,
-      })
-      const audioCompletionMap = safeJsonParse<Record<string, number>>(
-        audioCompletionRatio,
-        { fallback: {}, silent: true }
-      )
-      const billingModeMap = safeJsonParse<Record<string, string>>(
-        billingMode,
-        { fallback: {}, silent: true }
-      )
-      const billingExprMap = safeJsonParse<Record<string, string>>(
-        billingExpr,
-        { fallback: {}, silent: true }
-      )
-
-      delete priceMap[name]
-      delete videoPriceMap[name]
-      delete ratioMap[name]
-      delete cacheMap[name]
-      delete createCacheMap[name]
-      delete completionMap[name]
-      delete imageMap[name]
-      delete audioMap[name]
-      delete audioCompletionMap[name]
-      delete billingModeMap[name]
-      delete billingExprMap[name]
-
-      onChange('ModelPrice', JSON.stringify(priceMap, null, 2))
-      onChange('VideoGenerationPrice', JSON.stringify(videoPriceMap, null, 2))
-      onChange('ModelRatio', JSON.stringify(ratioMap, null, 2))
-      onChange('CacheRatio', JSON.stringify(cacheMap, null, 2))
-      onChange('CreateCacheRatio', JSON.stringify(createCacheMap, null, 2))
-      onChange('CompletionRatio', JSON.stringify(completionMap, null, 2))
-      onChange('ImageRatio', JSON.stringify(imageMap, null, 2))
-      onChange('AudioRatio', JSON.stringify(audioMap, null, 2))
-      onChange(
-        'AudioCompletionRatio',
-        JSON.stringify(audioCompletionMap, null, 2)
-      )
-      onChange(
-        'billing_setting.billing_mode',
-        JSON.stringify(billingModeMap, null, 2)
-      )
-      onChange(
-        'billing_setting.billing_expr',
-        JSON.stringify(billingExprMap, null, 2)
-      )
-
+    async (name: string) => {
+      if (!(await onDelete(name))) return
       if (editData?.name === name) {
         setEditData(null)
         setEditorOpen(false)
         setSheetOpen(false)
       }
     },
-    [
-      modelPrice,
-      videoGenerationPrice,
-      modelRatio,
-      cacheRatio,
-      createCacheRatio,
-      completionRatio,
-      imageRatio,
-      audioRatio,
-      audioCompletionRatio,
-      billingMode,
-      billingExpr,
-      onChange,
-      editData,
-    ]
+    [onDelete, editData]
   )
 
   const columns = useMemo(

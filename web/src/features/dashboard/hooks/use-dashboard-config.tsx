@@ -91,39 +91,74 @@ export function useModelStatCardsConfig(): StatCardConfig[] {
 }
 
 export function useSummaryCardsConfig(totals: {
-  todayUsageDisplay: string
-  usedDisplay: string
-  requestCountDisplay: string
-  currencyLabel: string
-  currencyEnabled: boolean
+  recentUsageDisplay: string
+  recentOfficialDisplay: string
+  totalUsageDisplay: string
+  totalOfficialDisplay: string
+  recentRequestCountDisplay: string
+  totalRequestCountDisplay: string
+  recentTokenCountDisplay: string
+  recentInputOutputDisplay: string
+  totalTokenCountDisplay: string
 }) {
   const { t } = useTranslation()
 
   return [
     {
-      key: 'todayUsage',
-      title: t('Last 24h usage'),
-      value: totals.todayUsageDisplay,
-      description: totals.currencyEnabled
-        ? `${t('Consumed in the last 24 hours')} (${totals.currencyLabel})`
-        : t('Consumed in the last 24 hours'),
+      key: 'recentUsage',
+      title: t('Past 24 hours'),
+      value: totals.recentUsageDisplay,
+      description: t('Actual billed usage'),
+      details: [
+        {
+          label: t('Official USD'),
+          value: totals.recentOfficialDisplay,
+        },
+      ],
       icon: Flame,
     },
     {
       key: 'usage',
       title: t('Historical Usage'),
-      value: totals.usedDisplay,
-      description: totals.currencyEnabled
-        ? `${t('Total consumed')} (${totals.currencyLabel})`
-        : t('Total consumed quota'),
+      value: totals.totalUsageDisplay,
+      description: t('All-time billed usage'),
+      details: [
+        {
+          label: t('Official USD'),
+          value: totals.totalOfficialDisplay,
+        },
+      ],
       icon: TrendingUp,
     },
     {
       key: 'requests',
       title: t('Request Count'),
-      value: totals.requestCountDisplay,
-      description: t('Total requests made'),
+      value: totals.recentRequestCountDisplay,
+      description: t('Requests in the past 24 hours'),
+      details: [
+        {
+          label: t('All-time'),
+          value: totals.totalRequestCountDisplay,
+        },
+      ],
       icon: Activity,
+    },
+    {
+      key: 'tokens',
+      title: t('Total Tokens'),
+      value: totals.recentTokenCountDisplay,
+      description: t('Tokens in the past 24 hours'),
+      details: [
+        {
+          label: t('All-time'),
+          value: totals.totalTokenCountDisplay,
+        },
+        {
+          label: t('Input / Output'),
+          value: totals.recentInputOutputDisplay,
+        },
+      ],
+      icon: Layers,
     },
   ]
 }

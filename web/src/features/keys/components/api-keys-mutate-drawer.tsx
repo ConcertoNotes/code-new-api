@@ -262,18 +262,30 @@ export function ApiKeysMutateDrawer({
   // Correct group after groups load: if the form value is not in available groups, fall back
   useEffect(() => {
     if (groups.length === 0) return
-    const currentGroup = selectedGroup
+    let currentGroup = selectedGroup
     if (currentGroup && !groups.some((g) => g.value === currentGroup)) {
       const fallback =
         groups.find((g) => g.value === 'default')?.value ??
         groups[0]?.value ??
         ''
       form.setValue('group', fallback)
+      currentGroup = fallback
       if (currentGroup === 'auto') {
         form.setValue('auto_groups', [])
         form.setValue('auto_groups_mode', 'inherit')
         form.setValue('cross_group_retry', false)
       }
+    }
+    const availableGroupValues = new Set(groups.map((group) => group.value))
+    const fallbackGroups = form.getValues('fallback_groups')
+    const validFallbackGroups = fallbackGroups.filter(
+      (group) =>
+        group !== currentGroup &&
+        group !== 'auto' &&
+        availableGroupValues.has(group)
+    )
+    if (validFallbackGroups.length !== fallbackGroups.length) {
+      form.setValue('fallback_groups', validFallbackGroups)
     }
   }, [groups, form, selectedGroup])
 
@@ -357,6 +369,9 @@ export function ApiKeysMutateDrawer({
   const quotaPlaceholder = tokensOnly
     ? t('Enter quota in tokens')
     : t('Enter quota in {{currency}}', { currency: currencyLabel })
+  const fallbackGroupOptions = groups.filter(
+    (group) => group.value !== selectedGroup && group.value !== 'auto'
+  )
   const autoGroupsMode = form.watch('auto_groups_mode')
   const unlimitedQuota = form.watch('unlimited_quota')
 
@@ -424,6 +439,16 @@ export function ApiKeysMutateDrawer({
                         value={field.value}
                         onValueChange={(group) => {
                           field.onChange(group)
+                          const fallbackGroups =
+                            form.getValues('fallback_groups')
+                          form.setValue(
+                            'fallback_groups',
+                            group === 'auto'
+                              ? []
+                              : fallbackGroups.filter(
+                                  (fallbackGroup) => fallbackGroup !== group
+                                )
+                          )
                           if (group === 'auto') {
                             form.setValue('cross_group_retry', true, {
                               shouldDirty: true,
@@ -441,6 +466,33 @@ export function ApiKeysMutateDrawer({
                   </FormItem>
                 )}
               />
+
+              {selectedGroup !== 'auto' && (
+                <FormField
+                  control={form.control}
+                  name='fallback_groups'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Fallback groups')}</FormLabel>
+                      <FormControl>
+                        <MultiSelect
+                          options={fallbackGroupOptions}
+                          selected={field.value}
+                          onChange={field.onChange}
+                          placeholder={t('Select fallback groups...')}
+                          maxVisibleChips={4}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Requests switch to these groups in selection order when the current group is unavailable.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {selectedGroup === 'auto' && (
                 <FormField

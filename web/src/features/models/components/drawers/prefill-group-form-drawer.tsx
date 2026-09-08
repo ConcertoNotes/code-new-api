@@ -174,10 +174,10 @@ export function PrefillGroupFormDrawer({
         })
         onClose()
       } else {
-        toast.error(response.message || 'Operation failed')
+        toast.error(response.message || t('Operation failed'))
       }
     } catch (err: unknown) {
-      toast.error((err as Error)?.message || 'Operation failed')
+      toast.error((err as Error)?.message || t('Operation failed'))
     } finally {
       setIsSaving(false)
     }
@@ -275,19 +275,21 @@ export function PrefillGroupFormDrawer({
                 name='type'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Group Type</FormLabel>
+                    <FormLabel>{t('Group Type')}</FormLabel>
                     <Select
                       items={[
                         ...PREFILL_GROUP_TYPES.map((type) => ({
                           value: type.value,
                           label: (
                             <div className='flex flex-col text-left'>
-                              <span className='font-medium'>{type.label}</span>
+                              <span className='font-medium'>
+                                {t(type.label)}
+                              </span>
                               <span
                                 data-prefill-description
                                 className='text-muted-foreground text-xs'
                               >
-                                {type.description}
+                                {t(type.description)}
                               </span>
                             </div>
                           ),
@@ -310,13 +312,13 @@ export function PrefillGroupFormDrawer({
                             <SelectItem key={type.value} value={type.value}>
                               <div className='flex flex-col text-left'>
                                 <span className='font-medium'>
-                                  {type.label}
+                                  {t(type.label)}
                                 </span>
                                 <span
                                   data-prefill-description
                                   className='text-muted-foreground text-xs'
                                 >
-                                  {type.description}
+                                  {t(type.description)}
                                 </span>
                               </div>
                             </SelectItem>
@@ -336,7 +338,7 @@ export function PrefillGroupFormDrawer({
                 <div className='flex items-center gap-2'>
                   <h4 className='text-sm font-medium'>{t('Project')}</h4>
                   <StatusBadge
-                    label={meta.label}
+                    label={t(meta.label)}
                     variant={meta.badge}
                     size='sm'
                     copyable={false}

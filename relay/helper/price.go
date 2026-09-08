@@ -83,10 +83,40 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 
 	groupRatioInfo := HandleGroupRatio(c, info)
 
-	// Check if this model uses tiered_expr billing
-	if billing_setting.GetBillingMode(billingModelName) == billing_setting.BillingModeTieredExpr {
-		return modelPriceHelperTiered(c, info, billingModelName, promptTokens, meta, groupRatioInfo)
+	if info.GroupBillingExpressions == nil && billing_setting.HasGroupBillingExprForModel(billingModelName) {
+		info.GroupBillingExpressions = make(map[string]string)
+		for group, models := range billing_setting.GetGroupBillingExprCopy() {
+			if expr := models[billingModelName]; strings.TrimSpace(expr) != "" {
+				info.GroupBillingExpressions[group] = expr
+			}
+		}
+		info.GroupBillingDefaultMode = billing_setting.GetBillingMode(billingModelName)
+		info.GroupBillingDefaultExpr, _ = billing_setting.GetBillingExpr(billingModelName)
 	}
+	expr, hasExpr := billing_setting.GetBillingExpr(billingModelName)
+	mode := billing_setting.GetBillingMode(billingModelName)
+	groupOverride := false
+	if info.GroupBillingExpressions != nil {
+		info.GroupBillingSelectedGroup = info.UsingGroup
+		expr, mode = info.GroupBillingDefaultExpr, info.GroupBillingDefaultMode
+		hasExpr = strings.TrimSpace(expr) != ""
+		if override, ok := info.GroupBillingExpressions[info.UsingGroup]; ok {
+			expr, hasExpr, groupOverride = override, true, true
+			mode = billing_setting.BillingModeTieredExpr
+			groupRatioInfo = hosttypes.GroupRatioInfo{GroupRatio: 1, GroupSpecialRatio: -1}
+		}
+	}
+	if mode == billing_setting.BillingModeTieredExpr {
+		if !hasExpr {
+			return hosttypes.PriceData{}, fmt.Errorf("model %s has no billing expression", billingModelName)
+		}
+		price, err := modelPriceHelperTiered(c, info, billingModelName, promptTokens, meta, groupRatioInfo, expr)
+		if err == nil {
+			info.TieredBillingSnapshot.GroupFinalPrice = groupOverride
+		}
+		return price, err
+	}
+	info.TieredBillingSnapshot = nil
 
 	usesImageGenerationPrice := false
 	if meta != nil && meta.ImageBillingTier != "" {
@@ -283,6 +313,9 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (hostt
 }
 
 func HasModelBillingConfig(modelName string) bool {
+	if billing_setting.HasGroupBillingExprForModel(modelName) {
+		return true
+	}
 	if ratio_setting.HasVideoGenerationPrice(modelName) {
 		return true
 	}
@@ -303,6 +336,9 @@ func HasModelBillingConfig(modelName string) bool {
 // tiered billing-mode entry after a single wildcard normalization. Self-use
 // fallback does not count as a configured ratio.
 func HasPriceOrRatioEntry(name string) bool {
+	if billing_setting.HasGroupBillingExprForModel(name) {
+		return true
+	}
 	formatted := ratio_setting.FormatMatchingModelName(name)
 	if _, ok := ratio_setting.GetModelPrice(formatted, false); ok {
 		return true
@@ -343,11 +379,7 @@ func resolveBillingModelName(origin string) string {
 	return matched
 }
 
-func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, billingModelName string, promptTokens int, meta *types.TokenCountMeta, groupRatioInfo hosttypes.GroupRatioInfo) (hosttypes.PriceData, error) {
-	exprStr, ok := billing_setting.GetBillingExpr(billingModelName)
-	if !ok {
-		return hosttypes.PriceData{}, fmt.Errorf("model %s is configured as tiered_expr but has no billing expression", billingModelName)
-	}
+func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, billingModelName string, promptTokens int, meta *types.TokenCountMeta, groupRatioInfo hosttypes.GroupRatioInfo, exprStr string) (hosttypes.PriceData, error) {
 
 	estimatedCompletionTokens := meta.MaxTokens
 	if estimatedCompletionTokens == 0 && groupRatioInfo.GroupRatio != 0 {

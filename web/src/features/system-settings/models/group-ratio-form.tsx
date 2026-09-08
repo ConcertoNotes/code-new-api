@@ -52,6 +52,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 
 import {
   SettingsForm,
@@ -63,6 +64,7 @@ import { safeJsonParse } from '../utils/json-parser'
 import { safeNumberFieldProps } from '../utils/numeric-field'
 import { GroupRatioVisualEditor } from './group-ratio-visual-editor'
 import { GroupSpecialUsableRulesEditor } from './group-special-usable-editor'
+import { GroupUserAllowlistEditor } from './group-user-allowlist-editor'
 
 type GroupFormValues = {
   GroupRatio: string
@@ -73,6 +75,7 @@ type GroupFormValues = {
   MaxTokenAutoGroups: number
   DefaultUseAutoGroup: boolean
   GroupSpecialUsableGroup: string
+  GroupUserAllowlist: string
 }
 
 type GroupRatioFormProps = {
@@ -211,6 +214,14 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               groupOptions={groupNames}
               onChange={(value) =>
                 handleFieldChange('GroupSpecialUsableGroup', value)
+              }
+            />
+
+            <GroupUserAllowlistEditor
+              value={form.watch('GroupUserAllowlist')}
+              groupOptions={groupNames}
+              onChange={(value) =>
+                handleFieldChange('GroupUserAllowlist', value)
               }
             />
 
@@ -414,6 +425,23 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                     {t(
                       'Nested JSON defining per-group rules for adding (+:), removing (-:), or appending usable groups.'
                     )}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='GroupUserAllowlist'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('User-specific group access')}</FormLabel>
+                  <FormControl>
+                    <Textarea rows={8} {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    {t('JSON map of groups to allowed user ID arrays.')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

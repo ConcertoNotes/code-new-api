@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -11,7 +13,40 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetUserUsableGroups(userGroup string) map[string]string {
+const MaxTokenFallbackGroups = 8
+
+func ValidateTokenFallbackGroups(userID int, userGroup, primaryGroup string, fallbackGroups []string) error {
+	if len(fallbackGroups) == 0 {
+		return nil
+	}
+	if primaryGroup == "" || primaryGroup == "auto" {
+		return errors.New("兜底分组仅支持指定的主分组")
+	}
+	if len(fallbackGroups) > MaxTokenFallbackGroups {
+		return fmt.Errorf("兜底分组最多允许 %d 个", MaxTokenFallbackGroups)
+	}
+
+	usableGroups := GetUserUsableGroups(userID, userGroup)
+	if _, ok := usableGroups[primaryGroup]; !ok || !ratio_setting.ContainsGroupRatio(primaryGroup) {
+		return fmt.Errorf("无权访问主分组 %s", primaryGroup)
+	}
+	seen := map[string]struct{}{primaryGroup: {}}
+	for _, group := range fallbackGroups {
+		if group == "" || group == "auto" {
+			return errors.New("兜底分组不能包含空分组或 auto 分组")
+		}
+		if _, exists := seen[group]; exists {
+			return fmt.Errorf("分组 %s 重复", group)
+		}
+		if _, ok := usableGroups[group]; !ok || !ratio_setting.ContainsGroupRatio(group) {
+			return fmt.Errorf("无权访问兜底分组 %s", group)
+		}
+		seen[group] = struct{}{}
+	}
+	return nil
+}
+
+func GetUserUsableGroups(userID int, userGroup string) map[string]string {
 	groupsCopy := setting.GetUserUsableGroupsCopy()
 	if userGroup != "" {
 		specialSettings, b := ratio_setting.GetGroupRatioSetting().GroupSpecialUsableGroup.Get(userGroup)
@@ -37,27 +72,41 @@ func GetUserUsableGroups(userGroup string) map[string]string {
 			groupsCopy[userGroup] = "用户分组"
 		}
 	}
+	for group, allowedUserIDs := range ratio_setting.GetGroupRatioSetting().GroupUserAllowlist.ReadAll() {
+		allowed := false
+		for _, allowedUserID := range allowedUserIDs {
+			if userID > 0 && allowedUserID == userID {
+				allowed = true
+				break
+			}
+		}
+		if allowed {
+			groupsCopy[group] = setting.GetUsableGroupDescription(group)
+		} else {
+			delete(groupsCopy, group)
+		}
+	}
 	return groupsCopy
 }
 
-func GroupInUserUsableGroups(userGroup, groupName string) bool {
-	_, ok := GetUserUsableGroups(userGroup)[groupName]
+func GroupInUserUsableGroups(userID int, userGroup, groupName string) bool {
+	_, ok := GetUserUsableGroups(userID, userGroup)[groupName]
 	return ok
 }
 
-func IsUserSelectableGroup(userGroup, groupName string) bool {
+func IsUserSelectableGroup(userID int, userGroup, groupName string) bool {
 	if groupName == "" || groupName == "auto" {
 		return false
 	}
-	return GroupInUserUsableGroups(userGroup, groupName) && ratio_setting.ContainsGroupRatio(groupName)
+	return GroupInUserUsableGroups(userID, userGroup, groupName) && ratio_setting.ContainsGroupRatio(groupName)
 }
 
 // GetUserAutoGroup 根据用户分组获取自动分组设置
-func GetUserAutoGroup(userGroup string) []string {
+func GetUserAutoGroup(userID int, userGroup string) []string {
 	autoGroups := make([]string, 0)
 	seen := make(map[string]struct{})
 	for _, group := range setting.GetAutoGroups() {
-		if !IsUserSelectableGroup(userGroup, group) {
+		if !IsUserSelectableGroup(userID, userGroup, group) {
 			continue
 		}
 		if _, ok := seen[group]; ok {
@@ -71,12 +120,12 @@ func GetUserAutoGroup(userGroup string) []string {
 
 // FilterUserTokenAutoGroups applies current permissions before the current
 // per-token limit. It intentionally does not fall back to the global Auto list.
-func FilterUserTokenAutoGroups(userGroup string, groups []string) []string {
+func FilterUserTokenAutoGroups(userID int, userGroup string, groups []string) []string {
 	maxCount := setting.GetMaxTokenAutoGroups()
 	filtered := make([]string, 0, min(len(groups), maxCount))
 	seen := make(map[string]struct{})
 	for _, group := range groups {
-		if !IsUserSelectableGroup(userGroup, group) {
+		if !IsUserSelectableGroup(userID, userGroup, group) {
 			continue
 		}
 		if _, ok := seen[group]; ok {
@@ -95,15 +144,16 @@ func FilterUserTokenAutoGroups(userGroup string, groups []string) []string {
 // The absence of the context value means that the token inherits the complete
 // global Auto list; a present (even empty) value is an explicit token snapshot.
 func GetRequestAutoGroups(c *gin.Context, userGroup string) []string {
+	userID := c.GetInt("id")
 	value, ok := common.GetContextKey(c, constant.ContextKeyTokenAutoGroups)
 	if !ok {
-		return GetUserAutoGroup(userGroup)
+		return GetUserAutoGroup(userID, userGroup)
 	}
 	groups, ok := value.([]string)
 	if !ok {
 		return []string{}
 	}
-	return FilterUserTokenAutoGroups(userGroup, groups)
+	return FilterUserTokenAutoGroups(userID, userGroup, groups)
 }
 
 // GetGroupsEnabledModels 按 groups 顺序获取各分组启用的模型并去重

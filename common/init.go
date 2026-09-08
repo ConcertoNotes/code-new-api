@@ -56,6 +56,8 @@ func InitEnv() {
 		} else {
 			SessionSecret = ss
 		}
+	} else {
+		loadOrCreateSessionSecret()
 	}
 	if os.Getenv("CRYPTO_SECRET") != "" {
 		CryptoSecret = os.Getenv("CRYPTO_SECRET")
@@ -138,9 +140,37 @@ func InitEnv() {
 	initConstantEnv()
 }
 
+// sessionSecretFile is the fallback store for the auth signing secret when the
+// SESSION_SECRET environment variable is unset. Without it every process start
+// rolls a fresh random secret (see constants.go), which invalidates every
+// dashboard access token and the refresh hashes persisted in user_sessions —
+// so each container rebuild or restart logged everyone out. The file lives in
+// the working directory, which is the persisted /data volume in the official
+// image; an explicit SESSION_SECRET always takes precedence (multi-node
+// deployments must keep setting it so all nodes derive the same keys).
+var sessionSecretFile = "session.secret"
+
+// loadOrCreateSessionSecret reuses the secret persisted in sessionSecretFile,
+// or persists the process-generated secret on first boot so future restarts
+// keep validating existing sessions.
+func loadOrCreateSessionSecret() {
+	if data, err := os.ReadFile(sessionSecretFile); err == nil {
+		if secret := strings.TrimSpace(string(data)); secret != "" {
+			SessionSecret = secret
+			SysLog("SESSION_SECRET is not set; reusing the signing secret persisted in " + sessionSecretFile)
+			return
+		}
+	}
+	if err := os.WriteFile(sessionSecretFile, []byte(SessionSecret), 0600); err != nil {
+		SysError("failed to persist the signing secret to " + sessionSecretFile + ": " + err.Error() + "; login sessions will not survive restarts")
+		return
+	}
+	SysLog("SESSION_SECRET is not set; generated a new signing secret and persisted it to " + sessionSecretFile)
+}
+
 func initUserSessionSettings() {
-	UserSessionActiveLimit = positiveUserSessionEnv("USER_SESSION_ACTIVE_LIMIT", DefaultUserSessionActiveLimit)
-	UserSessionIssuanceLimit = positiveUserSessionEnv("USER_SESSION_ISSUANCE_LIMIT", DefaultUserSessionIssuanceLimit)
+	UserSessionActiveLimit = unlimitedUserSessionEnv("USER_SESSION_ACTIVE_LIMIT", DefaultUserSessionActiveLimit)
+	UserSessionIssuanceLimit = unlimitedUserSessionEnv("USER_SESSION_ISSUANCE_LIMIT", DefaultUserSessionIssuanceLimit)
 	UserSessionIssuanceWindowSeconds = int64(positiveUserSessionEnv("USER_SESSION_ISSUANCE_WINDOW_SECONDS", DefaultUserSessionIssuanceWindowSeconds))
 	UserSessionRevokedRetentionDays = positiveUserSessionEnv("USER_SESSION_REVOKED_RETENTION_DAYS", DefaultUserSessionRevokedRetentionDays)
 	UserSessionHourlyAlertThreshold = positiveUserSessionEnv("USER_SESSION_HOURLY_ALERT_THRESHOLD", DefaultUserSessionHourlyAlertThreshold)
@@ -171,6 +201,20 @@ func positiveUserSessionEnv(name string, fallback int) int {
 	if value <= 0 {
 		SysError(fmt.Sprintf("%s must be positive, using default value: %d", name, fallback))
 		return fallback
+	}
+	return value
+}
+
+// unlimitedUserSessionEnv reads a session quota where 0 explicitly disables the
+// quota. Negative values remain a misconfiguration and fall back to the default.
+func unlimitedUserSessionEnv(name string, fallback int) int {
+	value := GetEnvOrDefault(name, fallback)
+	if value < 0 {
+		SysError(fmt.Sprintf("%s must not be negative, using default value: %d", name, fallback))
+		return fallback
+	}
+	if value == 0 {
+		SysLog(fmt.Sprintf("%s is 0, the limit is disabled", name))
 	}
 	return value
 }

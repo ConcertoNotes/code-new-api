@@ -46,9 +46,7 @@ func maxTokenQuota() int {
 	quota, err := common.WalletQuotaFromDecimalStrict(
 		decimal.NewFromInt(1_000_000_000).Mul(decimal.NewFromFloat(common.QuotaPerUnit)),
 	)
-	if err != nil {
-		return common.MaxWalletQuota
-	}
+	if err != nil { return common.MaxWalletQuota }
 	return quota
 }
 
@@ -114,7 +112,7 @@ func setTokenAutoGroups(c *gin.Context, token *model.Token, groups []string) boo
 			return false
 		}
 		seen[group] = struct{}{}
-		if !service.IsUserSelectableGroup(userGroup, group) {
+		if !service.IsUserSelectableGroup(c.GetInt("id"), userGroup, group) {
 			common.ApiErrorI18n(c, i18n.MsgTokenAutoGroupsInvalid, map[string]any{"Group": group})
 			return false
 		}
@@ -180,7 +178,7 @@ func GetTokenAutoGroups(c *gin.Context) {
 		return
 	}
 	common.ApiSuccess(c, gin.H{
-		"groups":    service.GetUserAutoGroup(userGroup),
+		"groups":    service.GetUserAutoGroup(c.GetInt("id"), userGroup),
 		"max_count": setting.GetMaxTokenAutoGroups(),
 	})
 }
@@ -284,6 +282,10 @@ func AddToken(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
 		return
 	}
+	if err := service.ValidateTokenFallbackGroups(c.GetInt("id"), c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	// 非无限额度时，检查额度值是否超出有效范围
 	if !token.UnlimitedQuota {
 		if token.RemainQuota < 0 {
@@ -339,6 +341,7 @@ func AddToken(c *gin.Context) {
 		Group:              token.Group,
 		CrossGroupRetry:    token.CrossGroupRetry,
 		AutoGroups:         token.AutoGroups,
+		FallbackGroups:     token.FallbackGroups,
 	}
 	err = cleanToken.Insert()
 	if err != nil {
@@ -379,6 +382,12 @@ func UpdateToken(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
 		return
 	}
+	if statusOnly == "" {
+		if err := service.ValidateTokenFallbackGroups(c.GetInt("id"), c.GetString("group"), token.Group, token.FallbackGroups.Values()); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	}
 	if !token.UnlimitedQuota {
 		if token.RemainQuota < 0 {
 			common.ApiErrorI18n(c, i18n.MsgTokenQuotaNegative)
@@ -418,6 +427,7 @@ func UpdateToken(c *gin.Context) {
 		cleanToken.AllowIps = token.AllowIps
 		cleanToken.Group = token.Group
 		cleanToken.CrossGroupRetry = token.CrossGroupRetry
+		cleanToken.FallbackGroups = token.FallbackGroups
 		if token.Group != "auto" {
 			cleanToken.CrossGroupRetry = false
 			_ = cleanToken.SetAutoGroups(nil)
