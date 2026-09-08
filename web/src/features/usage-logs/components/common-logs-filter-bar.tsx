@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useQueryClient, useIsFetching } from '@tanstack/react-query'
+import { useQueryClient, useIsFetching, useQuery } from '@tanstack/react-query'
 import { useNavigate, getRouteApi } from '@tanstack/react-router'
 import type { Table } from '@tanstack/react-table'
 import { Eye, EyeOff } from 'lucide-react'
@@ -24,6 +24,7 @@ import { useState, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
+import { Combobox } from '@/components/ui/combobox'
 import {
   Select,
   SelectContent,
@@ -37,6 +38,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@/components/ui/toggle-group'
+import { getApiKeys } from '@/features/keys/api'
+import { cn } from '@/lib/utils'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
 import { buildSearchParams } from '../lib/filter'
@@ -57,6 +64,43 @@ type LogTypeValue = (typeof LOG_TYPE_FILTERS)[number]['value']
 const logTypeValueSet = new Set<string>(
   LOG_TYPE_FILTERS.map((type) => type.value)
 )
+
+type ModelMatchValue = CommonLogFilters['modelMatch']
+const MODEL_MATCH_DEFAULT: ModelMatchValue = 'fuzzy'
+
+function getModelMatchValue(value: unknown): ModelMatchValue {
+  return value === 'exact' ? 'exact' : MODEL_MATCH_DEFAULT
+}
+
+// The token list API caps page size at 100; paginate but bound the effort so a
+// pathological account cannot spin the filter bar into hundreds of requests.
+const TOKEN_OPTIONS_PAGE_SIZE = 100
+const TOKEN_OPTIONS_MAX_PAGES = 10
+
+/**
+ * Token names owned by the current user, for the token filter dropdown.
+ */
+function useSelfTokenNames() {
+  return useQuery({
+    queryKey: ['logs-token-options'],
+    queryFn: async (): Promise<string[]> => {
+      const names: string[] = []
+      for (let page = 1; page <= TOKEN_OPTIONS_MAX_PAGES; page++) {
+        const res = await getApiKeys({
+          p: page,
+          size: TOKEN_OPTIONS_PAGE_SIZE,
+        })
+        if (!res.success || !res.data) break
+        names.push(...res.data.items.map((item) => item.name))
+        if (page * TOKEN_OPTIONS_PAGE_SIZE >= (res.data.total ?? names.length)) {
+          break
+        }
+      }
+      return [...new Set(names)].sort((a, b) => a.localeCompare(b))
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
 
 type CommonLogDraft = {
   sourceKey: string
@@ -82,6 +126,7 @@ function buildSearchSourceKey(values: {
   endTime?: unknown
   channel?: unknown
   model?: unknown
+  modelMatch?: unknown
   token?: unknown
   group?: unknown
   username?: unknown
@@ -94,6 +139,7 @@ function buildSearchSourceKey(values: {
     values.endTime,
     values.channel,
     values.model,
+    values.modelMatch,
     values.token,
     values.group,
     values.username,
@@ -127,6 +173,7 @@ export function CommonLogsFilterBar<TData>(
       endTime: searchParams.endTime,
       channel: searchParams.channel,
       model: searchParams.model,
+      modelMatch: searchParams.modelMatch,
       token: searchParams.token,
       group: searchParams.group,
       username: searchParams.username,
@@ -141,6 +188,7 @@ export function CommonLogsFilterBar<TData>(
       endTime: searchParams.endTime ? new Date(searchParams.endTime) : end,
       channel: searchParams.channel || undefined,
       model: searchParams.model || undefined,
+      modelMatch: getModelMatchValue(searchParams.modelMatch),
       token: searchParams.token || undefined,
       group: searchParams.group || undefined,
       username: searchParams.username || undefined,
@@ -157,6 +205,7 @@ export function CommonLogsFilterBar<TData>(
     searchParams.endTime,
     searchParams.channel,
     searchParams.model,
+    searchParams.modelMatch,
     searchParams.token,
     searchParams.group,
     searchParams.username,
@@ -265,6 +314,15 @@ export function CommonLogsFilterBar<TData>(
   const logTypeLabel =
     logTypeItems.find((type) => type.value === logType)?.label ?? t('All Types')
 
+  const { data: tokenNames = [] } = useSelfTokenNames()
+  const tokenOptions = useMemo(
+    () => [
+      { value: '', label: t('All tokens') },
+      ...tokenNames.map((name) => ({ value: name, label: name })),
+    ],
+    [tokenNames, t]
+  )
+
   const statsBar = (
     <div className='flex flex-wrap items-center gap-2'>
       <CommonLogsStats />
@@ -305,12 +363,30 @@ export function CommonLogsFilterBar<TData>(
   )
   const modelFilter = (
     <LogsFilterField>
-      <LogsFilterInput
-        placeholder={t('Model Name')}
-        value={filters.model || ''}
-        onChange={(e) => handleChange('model', e.target.value)}
-        onKeyDown={handleKeyDown}
-      />
+      <div className='flex min-w-0 items-center gap-1.5'>
+        <LogsFilterInput
+          placeholder={t('Model Name')}
+          value={filters.model || ''}
+          onChange={(e) => handleChange('model', e.target.value)}
+          onKeyDown={handleKeyDown}
+          className='min-w-0 flex-1'
+        />
+        <ToggleGroup
+          variant='outline'
+          value={[filters.modelMatch ?? MODEL_MATCH_DEFAULT]}
+          onValueChange={(values) => {
+            const next = values[0]
+            if (next === 'exact' || next === 'fuzzy') {
+              handleChange('modelMatch', next)
+            }
+          }}
+          aria-label={t('Match Mode')}
+          className='shrink-0'
+        >
+          <ToggleGroupItem value='exact'>{t('Exact')}</ToggleGroupItem>
+          <ToggleGroupItem value='fuzzy'>{t('Fuzzy')}</ToggleGroupItem>
+        </ToggleGroup>
+      </div>
     </LogsFilterField>
   )
   const groupFilter = (
@@ -363,12 +439,13 @@ export function CommonLogsFilterBar<TData>(
   const advancedFilters = (
     <>
       <LogsFilterField>
-        <LogsFilterInput
+        <Combobox
+          options={tokenOptions}
+          value={filters.token ?? ''}
+          onValueChange={(value) => handleChange('token', value || undefined)}
           placeholder={t('Token Name')}
-          className={sensitiveInputClass}
-          value={filters.token || ''}
-          onChange={(e) => handleChange('token', e.target.value)}
-          onKeyDown={handleKeyDown}
+          aria-label={t('Token Name')}
+          className={cn('w-full', sensitiveInputClass)}
         />
       </LogsFilterField>
       {isAdmin && (

@@ -49,6 +49,7 @@ export interface CommonFilters {
  */
 export interface CommonLogFilters extends CommonFilters {
   model?: string
+  modelMatch?: 'exact' | 'fuzzy'
   token?: string
   group?: string
   username?: string

@@ -39,6 +39,7 @@ const usageLogsSearchSchema = z.object({
   type: logTypeSearchSchema.optional(),
   filter: z.string().optional().catch(''),
   model: z.string().optional().catch(''),
+  modelMatch: z.enum(['exact', 'fuzzy']).optional().catch(undefined),
   token: z.string().optional().catch(''),
   channel: z.string().optional().catch(''),
   group: z.string().optional().catch(''),

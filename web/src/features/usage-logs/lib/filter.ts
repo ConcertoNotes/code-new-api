@@ -51,6 +51,7 @@ export function buildSearchParams(
       return {
         ...baseParams,
         ...(commonFilters.model && { model: commonFilters.model }),
+        modelMatch: commonFilters.modelMatch ?? 'fuzzy',
         ...(commonFilters.token && { token: commonFilters.token }),
         ...(commonFilters.group && { group: commonFilters.group }),
         ...(commonFilters.username && { username: commonFilters.username }),

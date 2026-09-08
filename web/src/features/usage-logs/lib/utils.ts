@@ -94,6 +94,31 @@ function timestampToSeconds(ms: number): number {
 }
 
 /**
+ * Minimum keyword length for a fuzzy (LIKE '%keyword%') model search.
+ * The backend rejects fuzzy patterns whose keyword is shorter than 2 chars,
+ * so shorter inputs fall back to an exact match.
+ */
+const MODEL_FUZZY_MIN_LENGTH = 2
+
+/**
+ * Build the `model_name` API param from the raw model input and match mode.
+ * - exact: pass the input through as-is (a literal `%` inside still triggers
+ *   the backend's wildcard LIKE, preserving the legacy power-user syntax).
+ * - fuzzy: wrap the keyword in `%...%` after stripping user-typed `%` so the
+ *   backend's wildcard-count validation cannot be tripped accidentally.
+ */
+export function buildModelNameFilter(
+  model: unknown,
+  match: unknown
+): string | undefined {
+  const raw = model != null ? String(model).trim() : ''
+  if (!raw) return undefined
+  if (match !== 'fuzzy') return raw
+  const keyword = raw.replaceAll('%', '')
+  return keyword.length >= MODEL_FUZZY_MIN_LENGTH ? `%${keyword}%` : raw
+}
+
+/**
  * Build time range parameters with default values
  * Shared logic for all log types
  */
@@ -180,11 +205,15 @@ export function buildApiParams(config: {
   }
 
   // Build base params from search params
+  const modelName = buildModelNameFilter(
+    searchParams.model,
+    searchParams.modelMatch
+  )
   const params: GetLogsParams = {
     p: page,
     page_size: pageSize,
     ...(searchParams.type ? { type: processType(searchParams.type) } : {}),
-    ...(searchParams.model ? { model_name: String(searchParams.model) } : {}),
+    ...(modelName && { model_name: modelName }),
     ...(searchParams.token ? { token_name: String(searchParams.token) } : {}),
     ...(searchParams.group ? { group: String(searchParams.group) } : {}),
     ...(isAdmin && searchParams.channel
@@ -212,7 +241,9 @@ export function buildApiParams(config: {
           params.type = processType(value)
           break
         case 'model_name':
-          params.model_name = String(value)
+          params.model_name =
+            buildModelNameFilter(value, searchParams.modelMatch) ??
+            String(value)
           break
         case 'token_name':
           params.token_name = String(value)
