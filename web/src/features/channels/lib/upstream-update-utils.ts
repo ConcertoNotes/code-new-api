@@ -17,11 +17,79 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 export function normalizeModelList(models: unknown[] = []): string[] {
-  return Array.from(
-    new Set(
+  return [
+    ...new Set(
       (models || []).map((model) => String(model || '').trim()).filter(Boolean)
-    )
+    ),
+  ]
+}
+
+export function hasNormalizedModel(
+  models: readonly string[],
+  model: string
+): boolean {
+  const normalized = String(model || '').trim()
+  if (!normalized) return false
+  return models.some((item) => String(item || '').trim() === normalized)
+}
+
+export function toggleNormalizedModel(
+  models: readonly string[],
+  model: string
+): string[] {
+  const normalized = String(model || '').trim()
+  if (!normalized) return [...models]
+  if (hasNormalizedModel(models, normalized)) {
+    return models.filter((item) => String(item || '').trim() !== normalized)
+  }
+  return [...models, normalized]
+}
+
+export function applyNormalizedCategorySelection(
+  selected: readonly string[],
+  categoryModels: readonly string[],
+  isChecked: boolean
+): string[] {
+  if (isChecked) {
+    const next = [...selected]
+    for (const model of categoryModels) {
+      const normalized = String(model || '').trim()
+      if (!normalized || hasNormalizedModel(next, normalized)) continue
+      next.push(normalized)
+    }
+    return next
+  }
+
+  const categorySet = new Set(
+    categoryModels.map((model) => String(model || '').trim()).filter(Boolean)
   )
+  return selected.filter(
+    (model) => !categorySet.has(String(model || '').trim())
+  )
+}
+
+export function isNormalizedCategorySelected(
+  selected: readonly string[],
+  categoryModels: readonly string[]
+): boolean {
+  return (
+    categoryModels.length > 0 &&
+    categoryModels.every((model) => hasNormalizedModel(selected, model))
+  )
+}
+
+export function syncManualModelSelectionWithIgnoredList(
+  originModels: unknown[] = [],
+  nextModels: unknown[] = [],
+  ignoredModels: unknown[] = []
+): string[] {
+  const nextSet = new Set(normalizeModelList(nextModels))
+  return [
+    ...new Set([
+      ...normalizeModelList(ignoredModels),
+      ...normalizeModelList(originModels),
+    ]),
+  ].filter((model) => !nextSet.has(model))
 }
 
 export function parseUpstreamUpdateMeta(settings: unknown): {

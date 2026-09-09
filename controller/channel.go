@@ -1117,6 +1117,15 @@ func UpdateChannel(c *gin.Context) {
 			// 覆盖模式：直接使用新密钥（默认行为，不需要特殊处理）
 		}
 	}
+	if _, modelsProvided := requestData["models"]; modelsProvided {
+		originSettings := originChannel.GetOtherSettings()
+		nextSettings := originSettings
+		if _, settingsProvided := requestData["settings"]; settingsProvided {
+			nextSettings = channel.GetOtherSettings()
+		}
+		nextSettings = syncManualModelSelectionWithIgnoredList(originChannel.GetModels(), channel.GetModels(), nextSettings)
+		channel.SetOtherSettings(nextSettings)
+	}
 	err = channel.Update()
 	if err != nil {
 		common.ApiError(c, err)

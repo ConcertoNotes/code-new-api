@@ -532,6 +532,50 @@ func TestCollectPendingUpstreamModelChangesFromModels_WithIgnoredRegexPatterns(t
 	require.Equal(t, []string{}, pendingRemoveModels)
 }
 
+func TestSyncManualModelSelectionWithIgnoredList(t *testing.T) {
+	t.Run("removed models are ignored so auto-sync cannot re-add them", func(t *testing.T) {
+		settings := dto.ChannelOtherSettings{
+			UpstreamModelUpdateCheckEnabled:    true,
+			UpstreamModelUpdateAutoSyncEnabled: true,
+			UpstreamModelUpdateLastDetectedModels: []string{
+				"claude-3-opus",
+			},
+		}
+
+		next := syncManualModelSelectionWithIgnoredList(
+			[]string{"gpt-4o", "claude-3-opus", "claude-3-sonnet"},
+			[]string{"gpt-4o"},
+			settings,
+		)
+
+		require.Equal(t, []string{"claude-3-opus", "claude-3-sonnet"}, next.UpstreamModelUpdateIgnoredModels)
+		require.Empty(t, next.UpstreamModelUpdateLastDetectedModels)
+
+		pendingAdd, pendingRemove := collectPendingUpstreamModelChangesFromModels(
+			[]string{"gpt-4o"},
+			[]string{"gpt-4o", "claude-3-opus", "claude-3-sonnet"},
+			next.UpstreamModelUpdateIgnoredModels,
+			nil,
+		)
+		require.Empty(t, pendingAdd)
+		require.Empty(t, pendingRemove)
+	})
+
+	t.Run("re-added models leave regex ignore rules in place", func(t *testing.T) {
+		settings := dto.ChannelOtherSettings{
+			UpstreamModelUpdateIgnoredModels: []string{"claude-3-opus", "regex:^sora-.*$"},
+		}
+
+		next := syncManualModelSelectionWithIgnoredList(
+			[]string{"gpt-4o"},
+			[]string{"gpt-4o", "claude-3-opus"},
+			settings,
+		)
+
+		require.Equal(t, []string{"regex:^sora-.*$"}, next.UpstreamModelUpdateIgnoredModels)
+	})
+}
+
 func TestBuildUpstreamModelUpdateTaskNotificationContent_OmitOverflowDetails(t *testing.T) {
 	channelSummaries := make([]upstreamModelUpdateChannelSummary, 0, 12)
 	for i := 0; i < 12; i++ {

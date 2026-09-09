@@ -172,6 +172,7 @@ import {
   findMissingModelsInMapping,
   validateModelMappingJson,
   hasAdvancedSettingsErrors,
+  syncManualModelSelectionWithIgnoredList,
 } from '../../lib'
 import {
   collectInvalidStatusCodeEntries,
@@ -635,6 +636,7 @@ export function ChannelMutateDrawer({
   const [isCodexCredentialRefreshing, setIsCodexCredentialRefreshing] =
     useState(false)
   const initialModelsRef = useRef<string[]>([])
+  const loadedChannelIdRef = useRef<number | null>(null)
   const initialModelMappingRef = useRef<string>('')
   const initialStatusCodeMappingRef = useRef<string>('')
   const [statusCodeRiskOpen, setStatusCodeRiskOpen] = useState(false)
@@ -1266,6 +1268,13 @@ export function ChannelMutateDrawer({
   // Load channel data into form when editing
   useEffect(() => {
     if (isEditing && channelData?.data) {
+      const incomingId = channelData.data.id
+      if (
+        form.formState.isDirty &&
+        loadedChannelIdRef.current === incomingId
+      ) {
+        return
+      }
       const defaults = transformChannelToFormDefaults(channelData.data)
       form.reset(defaults)
       setAdvancedSettingsOpen(
@@ -1278,12 +1287,14 @@ export function ChannelMutateDrawer({
       initialModelMappingRef.current = channelData.data.model_mapping || ''
       initialStatusCodeMappingRef.current =
         channelData.data.status_code_mapping || ''
+      loadedChannelIdRef.current = incomingId
     } else if (!isEditing) {
       form.reset(CHANNEL_FORM_DEFAULT_VALUES)
       setAdvancedSettingsOpen(false)
       initialModelsRef.current = []
       initialModelMappingRef.current = ''
       initialStatusCodeMappingRef.current = ''
+      loadedChannelIdRef.current = null
     }
   }, [isEditing, channelData, form])
 
@@ -1434,16 +1445,40 @@ export function ChannelMutateDrawer({
     }
   }, [channelId, queryClient, t])
 
+  const applyModelSelection = useCallback(
+    (nextModels: string[]) => {
+      const normalized = formatModelsArray(nextModels)
+      const nextIgnored = syncManualModelSelectionWithIgnoredList(
+        initialModelsRef.current,
+        parseModelsString(normalized),
+        parseModelsString(
+          form.getValues('upstream_model_update_ignored_models') || ''
+        )
+      )
+      form.setValue('models', normalized, {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
+      form.setValue(
+        'upstream_model_update_ignored_models',
+        nextIgnored.join(','),
+        { shouldDirty: true }
+      )
+      return parseModelsString(normalized).length
+    },
+    [form]
+  )
+
   // Unified function to update models
   const updateModels = useCallback(
     (newModels: string[], merge: boolean = false) => {
       const finalModels = merge
         ? formatModelsArray([...currentModelsArray, ...newModels])
         : formatModelsArray(newModels)
-      form.setValue('models', finalModels)
+      applyModelSelection(parseModelsString(finalModels))
       return newModels.length
     },
-    [currentModelsArray, form]
+    [applyModelSelection, currentModelsArray]
   )
 
   // Handle fetching models from upstream
@@ -1521,9 +1556,9 @@ export function ChannelMutateDrawer({
   }, [allModelsList, updateModels, t])
 
   const handleClearModels = useCallback(() => {
-    form.setValue('models', '')
+    applyModelSelection([])
     toast.success(t('Cleared all models'))
-  }, [form, t])
+  }, [applyModelSelection, t])
 
   const handleCopyModels = useCallback(async () => {
     const models = form.getValues('models')
@@ -1563,9 +1598,9 @@ export function ChannelMutateDrawer({
   // Handle model selection change from MultiSelect
   const handleModelsChange = useCallback(
     (selected: string[]) => {
-      form.setValue('models', selected.join(','))
+      applyModelSelection(selected)
     },
-    [form]
+    [applyModelSelection]
   )
 
   // Handle successful submission
@@ -1734,8 +1769,11 @@ export function ChannelMutateDrawer({
             const updatedModels = [
               ...new Set([...normalizedModels, ...missingModels]),
             ]
+            applyModelSelection(updatedModels)
             data.models = formatModelsArray(updatedModels)
-            form.setValue('models', data.models)
+            data.upstream_model_update_ignored_models = form.getValues(
+              'upstream_model_update_ignored_models'
+            )
           }
         }
       }
@@ -1746,6 +1784,7 @@ export function ChannelMutateDrawer({
       isEditing,
       sensitiveLocked,
       form,
+      applyModelSelection,
       confirmMissingModelMappings,
       confirmStatusCodeRisk,
       channelMutation,
@@ -1867,6 +1906,7 @@ export function ChannelMutateDrawer({
       onOpenChange(v)
       if (!v) {
         form.reset(CHANNEL_FORM_DEFAULT_VALUES)
+        loadedChannelIdRef.current = null
         advancedNavScrollPendingRef.current = false
         setActiveEditorSectionId(CHANNEL_EDITOR_SECTION_IDS.identity)
         setExpandedEditorNavItemId(undefined)
@@ -4918,7 +4958,7 @@ export function ChannelMutateDrawer({
         open={fetchModelsDialogOpen}
         onOpenChange={setFetchModelsDialogOpen}
         onModelsSelected={(models) => {
-          form.setValue('models', formatModelsArray(models))
+          applyModelSelection(models)
         }}
         redirectModels={redirectModelList}
         redirectSourceModels={redirectModelKeyList}

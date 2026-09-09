@@ -150,6 +150,20 @@ func applySelectedModelChanges(originModels []string, addModels []string, remove
 	return subtractModelNames(mergeModelNames(originModels, normalizedAdd), normalizedRemove)
 }
 
+func syncManualModelSelectionWithIgnoredList(originModels []string, nextModels []string, settings dto.ChannelOtherSettings) dto.ChannelOtherSettings {
+	normalizedOrigin := normalizeModelNames(originModels)
+	normalizedNext := normalizeModelNames(nextModels)
+	settings.UpstreamModelUpdateIgnoredModels = subtractModelNames(
+		mergeModelNames(settings.UpstreamModelUpdateIgnoredModels, normalizedOrigin),
+		normalizedNext,
+	)
+	settings.UpstreamModelUpdateLastDetectedModels = subtractModelNames(
+		settings.UpstreamModelUpdateLastDetectedModels,
+		append(normalizedNext, settings.UpstreamModelUpdateIgnoredModels...),
+	)
+	return settings
+}
+
 func normalizeChannelModelMapping(channel *model.Channel) map[string]string {
 	if channel == nil || channel.ModelMapping == nil {
 		return nil

@@ -41,11 +41,16 @@ import {
 
 import { fetchUpstreamModels, updateChannel } from '../../api'
 import {
+  applyNormalizedCategorySelection,
   categorizeModels,
   categorizeModelsWithRedirect,
   channelsQueryKeys,
+  formatModelsArray,
+  hasNormalizedModel,
+  isNormalizedCategorySelected,
   normalizeModelName,
   parseModelsString,
+  toggleNormalizedModel,
 } from '../../lib'
 import { useChannels } from '../channels-provider'
 
@@ -184,7 +189,7 @@ export function FetchModelsDialog({
     if (!activeChannel) return
     setIsSaving(true)
     try {
-      const modelsString = selectedModels.join(',')
+      const modelsString = formatModelsArray(selectedModels)
       const response = await updateChannel(activeChannel.id, {
         models: modelsString,
       })
@@ -255,29 +260,17 @@ export function FetchModelsDialog({
     })
 
   const toggleModel = (model: string) => {
-    setSelectedModels((prev) =>
-      prev.includes(model) ? prev.filter((m) => m !== model) : [...prev, model]
-    )
+    setSelectedModels((prev) => toggleNormalizedModel(prev, model))
   }
 
   const toggleCategory = (categoryModels: string[], isChecked: boolean) => {
-    setSelectedModels((prev) => {
-      if (isChecked) {
-        const newSelected = [...prev]
-        categoryModels.forEach((model) => {
-          if (!newSelected.includes(model)) {
-            newSelected.push(model)
-          }
-        })
-        return newSelected
-      } else {
-        return prev.filter((m) => !categoryModels.includes(m))
-      }
-    })
+    setSelectedModels((prev) =>
+      applyNormalizedCategorySelection(prev, categoryModels, isChecked)
+    )
   }
 
   const isCategorySelected = (categoryModels: string[]) => {
-    return categoryModels.every((m) => selectedModels.includes(m))
+    return isNormalizedCategorySelected(selectedModels, categoryModels)
   }
 
   const renderModelCategory = (
@@ -297,7 +290,9 @@ export function FetchModelsDialog({
           </div>
           <div className='flex items-center gap-2'>
             <span className='text-muted-foreground text-sm'>
-              {categoryModels.filter((m) => selectedModels.includes(m)).length}{' '}
+              {categoryModels.filter((m) =>
+                hasNormalizedModel(selectedModels, m)
+              ).length}{' '}
               / {categoryModels.length} selected
             </span>
             <Checkbox
@@ -315,7 +310,7 @@ export function FetchModelsDialog({
               <div key={model} className='flex items-center space-x-2'>
                 <Checkbox
                   id={model}
-                  checked={selectedModels.includes(model)}
+                  checked={hasNormalizedModel(selectedModels, model)}
                   onCheckedChange={() => toggleModel(model)}
                 />
                 <Label
@@ -346,6 +341,12 @@ export function FetchModelsDialog({
     !!(activeChannel || customFetcher) &&
     !isFetching &&
     (fetchedModels.length > 0 || removedModels.length > 0)
+  let saveButtonLabel = t('Save Models')
+  if (isSaving) {
+    saveButtonLabel = t('Saving...')
+  } else if (onModelsSelected) {
+    saveButtonLabel = t('Apply to Form')
+  }
 
   let dialogDescription: ReactNode = t('Fetch available models from upstream')
   if (activeChannel) {
@@ -495,7 +496,7 @@ export function FetchModelsDialog({
             </Button>
             <Button onClick={handleSave} disabled={isSaving}>
               {isSaving && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-              {isSaving ? t('Saving...') : t('Save Models')}
+              {saveButtonLabel}
             </Button>
           </>
         ) : null
