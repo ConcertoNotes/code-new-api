@@ -33,7 +33,10 @@ func SaveGroupRatioWithRenames(groupRatioJSON string, renames map[string]string)
 			optionValues[key] = value
 		}
 	}
-	billingJSON := currentOptionValue("billing_setting.group_billing_expr", "{}")
+	billingJSON := "{}"
+	if data, err := common.Marshal(billing_setting.GetGroupBillingExprCopy()); err == nil {
+		billingJSON = string(data)
+	}
 	if remapped, ok := optionValues["billing_setting.group_billing_expr"]; ok {
 		billingJSON = remapped
 	}

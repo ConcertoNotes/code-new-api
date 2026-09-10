@@ -49,9 +49,8 @@ func TestRemapNestedAndSpecialGroups(t *testing.T) {
 	}, nested)
 
 	special := map[string]map[string]string{
-		"vip": {":vip": "keep", "+:vip": "add", "-:default": "remove"},
+		"vip": {"+:vip": "add", "-:default": "remove", "vip": "plain"},
 	}
-	special["vip"]["vip"] = "plain"
 	RemapSpecialUsableGroups(special, map[string]string{"vip": "gold"})
 	assert.Equal(t, "add", special["gold"]["+:gold"])
 	assert.Equal(t, "plain", special["gold"]["gold"])
