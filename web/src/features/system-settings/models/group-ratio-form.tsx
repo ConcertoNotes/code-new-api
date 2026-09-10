@@ -80,7 +80,10 @@ type GroupFormValues = {
 
 type GroupRatioFormProps = {
   form: UseFormReturn<GroupFormValues>
-  onSave: (values: GroupFormValues) => Promise<void>
+  onSave: (
+    values: GroupFormValues,
+    groupRenames?: Record<string, string>
+  ) => Promise<void>
   isSaving: boolean
 }
 
@@ -92,6 +95,8 @@ export const GroupRatioForm = memo(function GroupRatioForm({
   const { t } = useTranslation()
   const [editMode, setEditMode] = useState<'visual' | 'json'>('visual')
   const [guideOpen, setGuideOpen] = useState(false)
+  const [groupRenames, setGroupRenames] = useState<Record<string, string>>({})
+  const [editorEpoch, setEditorEpoch] = useState(0)
 
   const handleFieldChange = useCallback(
     (field: keyof GroupFormValues, value: string) => {
@@ -101,6 +106,15 @@ export const GroupRatioForm = memo(function GroupRatioForm({
       })
     },
     [form]
+  )
+
+  const handleSave = useCallback(
+    async (values: GroupFormValues) => {
+      await onSave(values, groupRenames)
+      setGroupRenames({})
+      setEditorEpoch((epoch) => epoch + 1)
+    },
+    [groupRenames, onSave]
   )
 
   const toggleEditMode = useCallback(() => {
@@ -161,7 +175,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
           <Button
             type='button'
             size='sm'
-            onClick={form.handleSubmit(onSave)}
+            onClick={form.handleSubmit(handleSave)}
             disabled={isSaving}
           >
             {isSaving ? t('Saving...') : t('Save group ratios')}
@@ -170,6 +184,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
         {editMode === 'visual' ? (
           <div className='space-y-6'>
             <GroupRatioVisualEditor
+              key={editorEpoch}
               groupRatio={form.watch('GroupRatio')}
               topupGroupRatio={form.watch('TopupGroupRatio')}
               userUsableGroups={form.watch('UserUsableGroups')}
@@ -207,6 +222,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               onChange={(field, value) =>
                 handleFieldChange(field as keyof GroupFormValues, value)
               }
+              onRenameMapChange={setGroupRenames}
             />
 
             <GroupSpecialUsableRulesEditor
@@ -249,7 +265,7 @@ export const GroupRatioForm = memo(function GroupRatioForm({
             />
           </div>
         ) : (
-          <SettingsForm onSubmit={form.handleSubmit(onSave)}>
+          <SettingsForm onSubmit={form.handleSubmit(handleSave)}>
             <FormField
               control={form.control}
               name='GroupRatio'

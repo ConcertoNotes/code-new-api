@@ -12,6 +12,7 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/samber/lo"
 )
 
@@ -100,11 +101,28 @@ func GetGroupBillingExprCopy() map[string]map[string]string {
 	return result
 }
 
-// PruneGroupBillingExpr removes overrides for groups that no longer exist in
-// GroupRatio. A rename is intentionally treated as deleting the old group and
-// creating a new one; pricing is never migrated to a different name silently.
-func PruneGroupBillingExpr(validGroups map[string]float64) (string, bool, error) {
-	groupExprs := GetGroupBillingExprCopy()
+func RemapGroupBillingExprJSON(jsonStr string, renames map[string]string) (string, error) {
+	values := make(map[string]map[string]string)
+	if strings.TrimSpace(jsonStr) != "" {
+		if err := common.UnmarshalJsonStr(jsonStr, &values); err != nil {
+			return "", err
+		}
+	}
+	ratio_setting.RemapGroupKeys(values, renames)
+	data, err := common.Marshal(values)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func PruneGroupBillingExprJSON(jsonStr string, validGroups map[string]float64) (string, bool, error) {
+	groupExprs := make(map[string]map[string]string)
+	if strings.TrimSpace(jsonStr) != "" {
+		if err := common.UnmarshalJsonStr(jsonStr, &groupExprs); err != nil {
+			return "", false, err
+		}
+	}
 	changed := false
 	for group := range groupExprs {
 		if _, ok := validGroups[group]; ok {
@@ -114,13 +132,23 @@ func PruneGroupBillingExpr(validGroups map[string]float64) (string, bool, error)
 		changed = true
 	}
 	if !changed {
-		return "", false, nil
+		return jsonStr, false, nil
 	}
 	data, err := common.Marshal(groupExprs)
 	if err != nil {
 		return "", false, err
 	}
 	return string(data), true, nil
+}
+
+// PruneGroupBillingExpr removes overrides for groups that no longer exist in
+// GroupRatio. Remaining stale names after an explicit rename cascade are dropped.
+func PruneGroupBillingExpr(validGroups map[string]float64) (string, bool, error) {
+	data, err := common.Marshal(GetGroupBillingExprCopy())
+	if err != nil {
+		return "", false, err
+	}
+	return PruneGroupBillingExprJSON(string(data), validGroups)
 }
 
 func GetPricingSyncData(base map[string]any) map[string]any {

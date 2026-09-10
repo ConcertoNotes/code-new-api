@@ -86,10 +86,12 @@ type GroupRatioVisualEditorProps = {
   maxTokenAutoGroupsField: ReactNode
   groupSpecialUsableGroup: string
   onChange: (field: string, value: string) => void
+  onRenameMapChange?: (renames: Record<string, string>) => void
 }
 
 type GroupPricingRow = {
   _id: string
+  originalName: string
   name: string
   ratio: string
   topupRatio: string
@@ -156,12 +158,25 @@ function buildGroupPricingRows(
 
   return [...names].map((name) => ({
     _id: createGroupPricingId(),
+    originalName: name,
     name,
     ratio: String(normalizeRatio(ratioMap[name])),
     topupRatio: Object.hasOwn(topupMap, name) ? String(topupMap[name]) : '',
     selectable: Object.hasOwn(usableMap, name),
     description: String(usableMap[name] ?? ''),
   }))
+}
+
+function collectGroupRenames(rows: GroupPricingRow[]): Record<string, string> {
+  const renames: Record<string, string> = {}
+  for (const row of rows) {
+    const oldName = row.originalName.trim()
+    const newName = row.name.trim()
+    if (oldName && newName && oldName !== newName) {
+      renames[oldName] = newName
+    }
+  }
+  return renames
 }
 
 function serializeGroupPricingRows(rows: GroupPricingRow[]) {
@@ -268,6 +283,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   maxTokenAutoGroupsField,
   groupSpecialUsableGroup,
   onChange,
+  onRenameMapChange,
 }: GroupRatioVisualEditorProps) {
   const { t } = useTranslation()
   const [detailGroup, setDetailGroup] = useState<string | null>(null)
@@ -339,6 +355,7 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         userUsableGroups={userUsableGroups}
         topupGroupRatio={topupGroupRatio}
         onChange={onChange}
+        onRenameMapChange={onRenameMapChange}
         onShowDetail={setDetailGroup}
       />
 
@@ -431,6 +448,7 @@ type GroupPricingTableProps = {
   userUsableGroups: string
   topupGroupRatio: string
   onChange: (field: string, value: string) => void
+  onRenameMapChange?: (renames: Record<string, string>) => void
   onShowDetail: (name: string) => void
 }
 
@@ -439,6 +457,7 @@ function GroupPricingTable({
   userUsableGroups,
   topupGroupRatio,
   onChange,
+  onRenameMapChange,
   onShowDetail,
 }: GroupPricingTableProps) {
   const { t } = useTranslation()
@@ -471,14 +490,15 @@ function GroupPricingTable({
       onChange('GroupRatio', serialized.GroupRatio)
       onChange('UserUsableGroups', serialized.UserUsableGroups)
       onChange('TopupGroupRatio', serialized.TopupGroupRatio)
+      onRenameMapChange?.(collectGroupRenames(nextRows))
     },
-    [onChange]
+    [onChange, onRenameMapChange]
   )
 
   const updateRow = useCallback(
     (
       id: string,
-      field: Exclude<keyof GroupPricingRow, '_id'>,
+      field: Exclude<keyof GroupPricingRow, '_id' | 'originalName'>,
       value: string | number | boolean
     ) => {
       emitRows(
@@ -500,6 +520,7 @@ function GroupPricingTable({
       ...rows,
       {
         _id: createGroupPricingId(),
+        originalName: '',
         name,
         ratio: '1',
         topupRatio: '',

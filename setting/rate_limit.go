@@ -3,9 +3,11 @@ package setting
 import (
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
 // maxRateLimitDurationSeconds is the largest window the count cap is computed
@@ -42,6 +44,21 @@ func UpdateModelRequestRateLimitGroupByJSONString(jsonStr string) error {
 
 	ModelRequestRateLimitGroup = make(map[string][2]int)
 	return common.Unmarshal([]byte(jsonStr), &ModelRequestRateLimitGroup)
+}
+
+func RemapModelRequestRateLimitGroupJSON(jsonStr string, renames map[string]string) (string, error) {
+	values := make(map[string][2]int)
+	if strings.TrimSpace(jsonStr) != "" {
+		if err := common.UnmarshalJsonStr(jsonStr, &values); err != nil {
+			return "", err
+		}
+	}
+	ratio_setting.RemapGroupKeys(values, renames)
+	data, err := common.Marshal(values)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func GetGroupRateLimit(group string) (totalCount, successCount int, found bool) {

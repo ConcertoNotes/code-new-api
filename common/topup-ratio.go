@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 )
 
@@ -27,6 +28,41 @@ func UpdateTopupGroupRatioByJSONString(jsonStr string) error {
 	defer topupGroupRatioMutex.Unlock()
 	topupGroupRatio = make(map[string]float64)
 	return json.Unmarshal([]byte(jsonStr), &topupGroupRatio)
+}
+
+func remapTopupGroupKeys(values map[string]float64, renames map[string]string) {
+	if len(values) == 0 || len(renames) == 0 {
+		return
+	}
+	pending := make(map[string]float64, len(renames))
+	for oldName, newName := range renames {
+		value, ok := values[oldName]
+		if !ok {
+			continue
+		}
+		delete(values, oldName)
+		pending[newName] = value
+	}
+	for newName, value := range pending {
+		if _, exists := values[newName]; !exists {
+			values[newName] = value
+		}
+	}
+}
+
+func RemapTopupGroupRatioJSON(jsonStr string, renames map[string]string) (string, error) {
+	values := make(map[string]float64)
+	if strings.TrimSpace(jsonStr) != "" {
+		if err := UnmarshalJsonStr(jsonStr, &values); err != nil {
+			return "", err
+		}
+	}
+	remapTopupGroupKeys(values, renames)
+	data, err := Marshal(values)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func GetTopupGroupRatio(name string) float64 {

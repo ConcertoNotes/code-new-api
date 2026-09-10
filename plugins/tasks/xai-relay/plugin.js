@@ -6,7 +6,7 @@ export const meta = {
     en: "Grok Imagine video generation through an upstream new-api gateway on /v1/video/generations",
     zh: "通过上游 new-api 网关的 /v1/video/generations 接口调用 Grok Imagine 视频生成",
   },
-  version: "1.1.0",
+  version: "1.1.1",
   channelTypes: [60], // New API — an upstream gateway relaying grok-imagine-* over /v1/video/generations
   author: { name: "QuantumNous" },
   models: ["grok-imagine-video", "grok-imagine-video-1.5"],
@@ -313,7 +313,7 @@ export function buildSubmitRequest(ctx) {
     width: frame.width,
     height: frame.height,
     metadata: metadata,
-    seconds: duration,
+    seconds: String(duration),
     size: frame.width + "x" + frame.height,
     resolution: resolution,
     aspect_ratio: ratio,
@@ -531,7 +531,7 @@ export const protocols = {
       const completedAt = Number(task.finished_at || task.updated_at || 0);
       if (completedAt > 0) output.completed_at = completedAt;
       const seconds = Number(data.seconds);
-      if (Number.isFinite(seconds) && seconds > 0) output.seconds = seconds;
+      if (Number.isFinite(seconds) && seconds > 0) output.seconds = String(seconds);
       if (task.status === "FAILURE") {
         const error = data.error || {};
         output.error = { code: trimmed(error.code) || "video_generation_failed", message: trimmed(error.message) || "The video generation task failed." };

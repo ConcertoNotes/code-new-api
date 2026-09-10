@@ -2,9 +2,11 @@ package setting
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 )
 
 var userUsableGroups = map[string]string{
@@ -41,6 +43,21 @@ func UpdateUserUsableGroupsByJSONString(jsonStr string) error {
 
 	userUsableGroups = make(map[string]string)
 	return json.Unmarshal([]byte(jsonStr), &userUsableGroups)
+}
+
+func RemapUserUsableGroupsJSON(jsonStr string, renames map[string]string) (string, error) {
+	values := make(map[string]string)
+	if strings.TrimSpace(jsonStr) != "" {
+		if err := common.UnmarshalJsonStr(jsonStr, &values); err != nil {
+			return "", err
+		}
+	}
+	ratio_setting.RemapGroupKeys(values, renames)
+	data, err := common.Marshal(values)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func GetUsableGroupDescription(groupName string) string {

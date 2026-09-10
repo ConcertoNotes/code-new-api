@@ -123,8 +123,9 @@ func GetOptions(c *gin.Context) {
 }
 
 type OptionUpdateRequest struct {
-	Key   string `json:"key"`
-	Value any    `json:"value"`
+	Key          string `json:"key"`
+	Value        any    `json:"value"`
+	GroupRenames any    `json:"group_renames,omitempty"`
 }
 
 func UpdateOption(c *gin.Context) {
@@ -411,19 +412,20 @@ func UpdateOption(c *gin.Context) {
 			common.ApiError(c, err)
 			return
 		}
-		prunedExpr, changed, pruneErr := billing_setting.PruneGroupBillingExpr(validGroups)
-		if pruneErr != nil {
-			common.ApiError(c, pruneErr)
+		requestedRenames, parseErr := model.ParseGroupRenames(option.GroupRenames)
+		if parseErr != nil {
+			common.ApiError(c, parseErr)
 			return
 		}
-		if changed {
-			err = model.UpdateOptionsBulk(map[string]string{
-				option.Key:                           option.Value.(string),
-				"billing_setting.group_billing_expr": prunedExpr,
-			})
-		} else {
-			err = model.UpdateOption(option.Key, option.Value.(string))
+		if len(requestedRenames) == 0 {
+			requestedRenames = ratio_setting.DetectGroupRenames(ratio_setting.GetGroupRatioCopy(), validGroups)
 		}
+		renames, renameErr := ratio_setting.ValidateGroupRenames(ratio_setting.GetGroupRatioCopy(), validGroups, requestedRenames)
+		if renameErr != nil {
+			common.ApiError(c, renameErr)
+			return
+		}
+		err = model.SaveGroupRatioWithRenames(option.Value.(string), renames)
 	} else {
 		err = model.UpdateOption(option.Key, option.Value.(string))
 	}

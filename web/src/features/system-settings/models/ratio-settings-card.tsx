@@ -37,7 +37,10 @@ import { ModelRatioForm } from './model-ratio-form'
 import { ToolPriceSettings } from './tool-price-settings'
 import { UpstreamRatioSync } from './upstream-ratio-sync'
 import {
+  applyGroupRenamesToJson,
+  detectGroupRenames,
   formatJsonForTextarea,
+  isGroupRenameMap,
   type JsonValidationError,
   normalizeJsonString,
   validateJsonString,
@@ -411,8 +414,8 @@ export function RatioSettingsCard({
   )
 
   const saveGroupRatios = useCallback(
-    async (values: GroupFormValues) => {
-      const normalized = {
+    async (values: GroupFormValues, groupRenames?: unknown) => {
+      let normalized = {
         GroupRatio: normalizeJsonString(values.GroupRatio),
         TopupGroupRatio: normalizeJsonString(values.TopupGroupRatio),
         UserUsableGroups: normalizeJsonString(values.UserUsableGroups),
@@ -424,6 +427,47 @@ export function RatioSettingsCard({
           values.GroupSpecialUsableGroup
         ),
         GroupUserAllowlist: normalizeJsonString(values.GroupUserAllowlist),
+      }
+      const renamePayload = isGroupRenameMap(groupRenames)
+        ? groupRenames
+        : detectGroupRenames(
+            groupNormalizedDefaults.current.GroupRatio,
+            normalized.GroupRatio
+          )
+      if (Object.keys(renamePayload).length > 0) {
+        normalized = {
+          ...normalized,
+          TopupGroupRatio: applyGroupRenamesToJson(
+            normalized.TopupGroupRatio,
+            renamePayload,
+            'map'
+          ),
+          UserUsableGroups: applyGroupRenamesToJson(
+            normalized.UserUsableGroups,
+            renamePayload,
+            'map'
+          ),
+          GroupGroupRatio: applyGroupRenamesToJson(
+            normalized.GroupGroupRatio,
+            renamePayload,
+            'nested'
+          ),
+          AutoGroups: applyGroupRenamesToJson(
+            normalized.AutoGroups,
+            renamePayload,
+            'list'
+          ),
+          GroupSpecialUsableGroup: applyGroupRenamesToJson(
+            normalized.GroupSpecialUsableGroup,
+            renamePayload,
+            'special'
+          ),
+          GroupUserAllowlist: applyGroupRenamesToJson(
+            normalized.GroupUserAllowlist,
+            renamePayload,
+            'map'
+          ),
+        }
       }
 
       // Map form field names to their hierarchical API keys.
@@ -438,10 +482,22 @@ export function RatioSettingsCard({
       ).filter(
         (key) => normalized[key] !== groupNormalizedDefaults.current[key]
       )
+      if (
+        Object.keys(renamePayload).length > 0 &&
+        !updates.includes('GroupRatio')
+      ) {
+        updates.unshift('GroupRatio')
+      }
 
       for (const key of updates) {
         const apiKey = apiKeyMap[key] || key
-        await updateOption.mutateAsync({ key: apiKey, value: normalized[key] })
+        await updateOption.mutateAsync({
+          key: apiKey,
+          value: normalized[key],
+          ...(key === 'GroupRatio' && Object.keys(renamePayload).length > 0
+            ? { group_renames: renamePayload }
+            : {}),
+        })
       }
 
       groupNormalizedDefaults.current = normalized

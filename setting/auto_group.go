@@ -3,6 +3,7 @@ package setting
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"sync/atomic"
 
 	"github.com/QuantumNous/new-api/common"
@@ -34,6 +35,32 @@ func ContainsAutoGroup(group string) bool {
 func UpdateAutoGroupsByJsonString(jsonString string) error {
 	autoGroups = make([]string, 0)
 	return common.Unmarshal([]byte(jsonString), &autoGroups)
+}
+
+func RemapAutoGroupsJSON(jsonStr string, renames map[string]string) (string, error) {
+	values := make([]string, 0)
+	if strings.TrimSpace(jsonStr) != "" {
+		if err := common.UnmarshalJsonStr(jsonStr, &values); err != nil {
+			return "", err
+		}
+	}
+	seen := make(map[string]struct{}, len(values))
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if next, ok := renames[value]; ok {
+			value = next
+		}
+		if _, dup := seen[value]; dup {
+			continue
+		}
+		seen[value] = struct{}{}
+		result = append(result, value)
+	}
+	data, err := common.Marshal(result)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func AutoGroups2JsonString() string {

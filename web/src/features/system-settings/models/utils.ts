@@ -43,6 +43,143 @@ export function normalizeJsonString(value: string) {
   }
 }
 
+export function isGroupRenameMap(
+  value: unknown
+): value is Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+  const entries = Object.entries(value)
+  return (
+    entries.length > 0 &&
+    entries.every(
+      ([oldName, newName]) =>
+        typeof oldName === 'string' &&
+        oldName.length > 0 &&
+        typeof newName === 'string' &&
+        newName.length > 0
+    )
+  )
+}
+
+export function detectGroupRenames(
+  oldJson: string,
+  newJson: string
+): Record<string, string> {
+  const oldMap = parseJsonRecord(oldJson)
+  const newMap = parseJsonRecord(newJson)
+  if (!oldMap || !newMap) return {}
+  const deleted = Object.keys(oldMap).filter((key) => !Object.hasOwn(newMap, key))
+  const added = Object.keys(newMap).filter((key) => !Object.hasOwn(oldMap, key))
+  if (deleted.length === 1 && added.length === 1) {
+    return { [deleted[0]]: added[0] }
+  }
+  return {}
+}
+
+export function applyGroupRenamesToJson(
+  json: string,
+  renames: Record<string, string>,
+  kind: 'map' | 'nested' | 'list' | 'special'
+): string {
+  if (!json.trim() || Object.keys(renames).length === 0) {
+    return json
+  }
+  try {
+    const parsed = JSON.parse(json) as unknown
+    if (kind === 'list') {
+      if (!Array.isArray(parsed)) return json
+      const seen = new Set<string>()
+      const next: string[] = []
+      for (const item of parsed) {
+        if (typeof item !== 'string') continue
+        const value = renames[item] ?? item
+        if (seen.has(value)) continue
+        seen.add(value)
+        next.push(value)
+      }
+      return JSON.stringify(next)
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return json
+    }
+    if (kind === 'map') {
+      return JSON.stringify(
+        remapRecordKeys(parsed as Record<string, unknown>, renames)
+      )
+    }
+    const nested = remapRecordKeys(
+      parsed as Record<string, Record<string, unknown>>,
+      renames
+    )
+    for (const key of Object.keys(nested)) {
+      const inner = nested[key]
+      if (!inner || typeof inner !== 'object' || Array.isArray(inner)) continue
+      nested[key] =
+        kind === 'special'
+          ? remapSpecialUsableKeys(inner as Record<string, unknown>, renames)
+          : remapRecordKeys(inner as Record<string, unknown>, renames)
+    }
+    return JSON.stringify(nested)
+  } catch {
+    return json
+  }
+}
+
+function parseJsonRecord(value: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(value || '{}') as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return null
+    }
+    return parsed as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
+function remapRecordKeys<T>(
+  record: Record<string, T>,
+  renames: Record<string, string>
+): Record<string, T> {
+  const next = { ...record }
+  const pending: Record<string, T> = {}
+  for (const [oldName, newName] of Object.entries(renames)) {
+    if (!Object.hasOwn(next, oldName)) continue
+    pending[newName] = next[oldName]
+    delete next[oldName]
+  }
+  for (const [newName, value] of Object.entries(pending)) {
+    if (!Object.hasOwn(next, newName)) {
+      next[newName] = value
+    }
+  }
+  return next
+}
+
+function remapSpecialUsableKeys(
+  record: Record<string, unknown>,
+  renames: Record<string, string>
+): Record<string, unknown> {
+  const next: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(record)) {
+    let prefix = ''
+    let name = key
+    if (key.startsWith('-:')) {
+      prefix = '-:'
+      name = key.slice(2)
+    } else if (key.startsWith('+:')) {
+      prefix = '+:'
+      name = key.slice(2)
+    }
+    const renamed = Object.hasOwn(renames, name) ? prefix + renames[name] : key
+    if (!Object.hasOwn(next, renamed)) {
+      next[renamed] = value
+    }
+  }
+  return next
+}
+
 type JsonValidationOptions = {
   allowEmpty?: boolean
   predicate?: (value: unknown) => boolean
