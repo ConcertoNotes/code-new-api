@@ -49,6 +49,7 @@ import {
   UserCog,
   Info,
   LogIn,
+  Terminal,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
@@ -65,6 +66,10 @@ import { formatLogQuota, formatTokens, formatUseTime } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import type { UsageLog } from '../../data/schema'
+import {
+  CLIENT_CATEGORY_LABEL_KEY,
+  classifyClientUserAgent,
+} from '../../lib/client-info'
 import {
   parseLogOther,
   getParamOverrideActionLabel,
@@ -629,6 +634,13 @@ export function DetailsDialog(props: DetailsDialogProps) {
     props.log.type !== 6 &&
     (other?.request_path || conversionChain.length > 0)
 
+  const clientInfo = classifyClientUserAgent(other?.client_user_agent)
+  const clientLabel = clientInfo
+    ? [clientInfo.name, t(CLIENT_CATEGORY_LABEL_KEY[clientInfo.category])]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
+
   const useChannel = other?.admin_info?.use_channel
   const channelChain =
     useChannel && useChannel.length > 0 ? useChannel.join(' → ') : undefined
@@ -712,6 +724,30 @@ export function DetailsDialog(props: DetailsDialogProps) {
               label={t('Group')}
               value={props.log.group || other?.group || ''}
               mono
+            />
+          )}
+
+          {other?.client_user_agent && (
+            <DetailRow
+              label={t('Client')}
+              value={
+                <span className='flex items-center gap-1'>
+                  <Terminal
+                    className='text-muted-foreground size-3'
+                    aria-hidden='true'
+                  />
+                  {clientLabel}
+                </span>
+              }
+            />
+          )}
+
+          {other?.client_user_agent && (
+            <DetailRow
+              label={t('User Agent')}
+              value={other.client_user_agent}
+              mono
+              muted
             />
           )}
 

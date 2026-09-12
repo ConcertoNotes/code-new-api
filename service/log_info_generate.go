@@ -65,6 +65,20 @@ func appendRequestPath(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other
 	}
 }
 
+// AppendClientInfo records the caller's raw User-Agent header (if present) as
+// a public other-field, so log viewers can tell what client issued the
+// request (terminal CLI, IDE plugin, SDK, browser, etc.) — the primary
+// signal used to diagnose client-side malformed-request errors such as an
+// upstream 400. Shared by successful and failed request logs.
+func AppendClientInfo(relayInfo *relaycommon.RelayInfo, other *model.LogOther) {
+	if relayInfo == nil || other == nil {
+		return
+	}
+	if ua := relayInfo.RequestHeaders["User-Agent"]; ua != "" {
+		other.SetPublic("client_user_agent", ua)
+	}
+}
+
 // AppendRelayLogAdminInfo records relay routing and conversion diagnostics in
 // the admin-only scope shared by successful and failed request logs.
 func AppendRelayLogAdminInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other *model.LogOther) {
@@ -119,6 +133,7 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	}
 
 	AppendRelayLogAdminInfo(ctx, relayInfo, other)
+	AppendClientInfo(relayInfo, other)
 	appendRequestPath(ctx, relayInfo, other)
 	appendRequestConversionChain(relayInfo, other)
 	appendFinalRequestFormat(relayInfo, other)
@@ -308,6 +323,7 @@ func GenerateMjOtherInfo(relayInfo *relaycommon.RelayInfo, priceData hosttypes.P
 		other.SetPublic("user_group_ratio", priceData.GroupRatioInfo.GroupSpecialRatio)
 	}
 	appendRequestPath(nil, relayInfo, other)
+	AppendClientInfo(relayInfo, other)
 	return other
 }
 

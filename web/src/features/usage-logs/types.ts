@@ -170,6 +170,10 @@ export interface LogOtherData {
   // Login audit fields (type=7); visible to the log owner
   login_method?: string
   user_agent?: string
+  // Raw User-Agent header captured for relay/consume and error logs, so
+  // admins can tell what client (terminal CLI, IDE plugin, SDK, browser)
+  // issued the request. See lib/client-info.ts for classification.
+  client_user_agent?: string
   request_path?: string
   request_conversion?: string[]
   ws?: boolean
