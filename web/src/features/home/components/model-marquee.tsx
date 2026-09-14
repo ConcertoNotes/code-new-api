@@ -16,51 +16,31 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { Link } from '@tanstack/react-router'
+import { ArrowRight, Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { HOME_MARQUEE_SEQUENCES } from './model-marquee-data'
-
-interface ModelSequenceProps {
-  hidden: boolean
-  models: readonly string[]
-}
-
-function ModelSequence(props: ModelSequenceProps) {
-  return (
-    <div
-      className='flex min-w-[100vw] shrink-0 items-center justify-around'
-      aria-hidden={props.hidden || undefined}
-    >
-      {props.models.map((model) => (
-        <div key={model} className='flex shrink-0 items-center'>
-          <span className='text-foreground/75 mx-5 text-sm font-medium sm:mx-8 sm:text-base'>
-            {model}
-          </span>
-          <span className='bg-primary size-1 rounded-full' />
-        </div>
-      ))}
-    </div>
-  )
-}
+const MODELS = ['OpenAI', 'Claude', 'GLM', 'DeepSeek', 'Gemini'] as const
 
 export function ModelMarquee() {
   const { t } = useTranslation()
-
   return (
     <section
-      className='home-marquee-surface relative border-y border-border py-4 backdrop-blur-xl lg:-mt-4'
+      className='lulu-models'
       aria-label={t('Available model providers')}
     >
-      <div className='home-marquee-mask overflow-hidden'>
-        <div className='home-marquee-track flex w-max'>
-          {HOME_MARQUEE_SEQUENCES.map((models, index) => (
-            <ModelSequence
-              key={index === 0 ? 'primary' : 'continuation'}
-              models={models}
-              hidden={index > 0}
-            />
-          ))}
-        </div>
+      <p>{t('Your favorite models, together')}</p>
+      <div className='lulu-model-list'>
+        {MODELS.map((model) => (
+          <span key={model} className='lulu-model-name'>
+            <Sparkles size={19} strokeWidth={1.4} aria-hidden='true' />
+            {model}
+          </span>
+        ))}
+        <Link to='/pricing' className='lulu-text-link'>
+          {t('More models')}
+          <ArrowRight size={16} aria-hidden='true' />
+        </Link>
       </div>
     </section>
   )

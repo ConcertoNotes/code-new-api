@@ -1,0 +1,355 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/* Shared station skin. Tokens reach routed pages and body-mounted portals. */
+:root {
+  --lulu-rounded:
+    'YouYuan', '幼圆', 'Yuanti SC', 'Hiragino Maru Gothic ProN',
+    'Microsoft YaHei', 'Public Sans', sans-serif;
+}
+body:not([data-theme-preset]),
+body[data-theme-preset='lulu'],
+.dark body[data-theme-preset='lulu'] {
+  --background: #031817;
+  --foreground: #f3f2df;
+  --card: #103831;
+  --card-foreground: #f3f2df;
+  --popover: #123b33;
+  --popover-foreground: #f3f2df;
+  --primary: #b7edcd;
+  --primary-foreground: #123b2b;
+  --secondary: #214b3e;
+  --secondary-foreground: #e8f3d8;
+  --muted: #153b33;
+  --muted-foreground: #afc8b9;
+  --accent: #285846;
+  --accent-foreground: #e7f8dc;
+  --border: #345749;
+  --input: #456e59;
+  --ring: #b7edcd;
+  --destructive: #ffa89b;
+  --destructive-foreground: #32130f;
+  --success: #a6e2ae;
+  --success-foreground: #113822;
+  --warning: #f3ce84;
+  --warning-foreground: #402d0f;
+  --info: #a4d8df;
+  --info-foreground: #102d36;
+  --neutral: #bbcbbb;
+  --neutral-foreground: #15352c;
+  --sidebar: #07251f;
+  --sidebar-foreground: #ddebd9;
+  --sidebar-primary: #c3efcd;
+  --sidebar-primary-foreground: #123b2b;
+  --sidebar-accent: #204a39;
+  --sidebar-accent-foreground: #d7f5d7;
+  --sidebar-border: #2d5141;
+  --sidebar-ring: #c3efcd;
+  --chart-1: #b7edcd;
+  --chart-2: #edc482;
+  --chart-3: #a4d8df;
+  --chart-4: #e3b9c4;
+  --chart-5: #b3c888;
+  --overview-accent-1: var(--chart-1);
+  --overview-accent-2: var(--chart-2);
+  --overview-accent-3: var(--chart-3);
+  --skeleton-base: #173b31;
+  --skeleton-highlight: #315344;
+  --table-row: var(--background);
+  --table-header: #15392e;
+  --table-header-hover: #204b3b;
+  --table-disabled: #18372d;
+  --table-disabled-hover: #214637;
+  --table-disabled-border: #3a5b47;
+  --app-canvas-background: radial-gradient(
+    ellipse at 95% 0,
+    #214b3540,
+    transparent 60%
+  );
+  --app-canvas-background-size: cover;
+}
+.dark body[data-theme-preset='lulu'] {
+  --background: #031817;
+  --card: #0a2823;
+  --popover: #10342c;
+  --sidebar: #041e1a;
+  --muted: #103029;
+}
+body[data-theme-preset='lulu'] {
+  color-scheme: dark;
+  background-color: var(--background);
+  background-image:
+    linear-gradient(#031817d9, #031817e8),
+    url('../../public/lulu/hero/hero-bg.webp');
+  background-size: cover;
+  background-attachment: fixed;
+}
+/* Shared route shells retain a visible forest backdrop on every page. */
+body[data-theme-preset='lulu'] :is(.app-theme-canvas, .lulu-public-layout) {
+  background:
+    linear-gradient(115deg, #031817ed, #082b26c9),
+    url('../../public/lulu/hero/hero-bg.webp') center / cover;
+}
+body[data-theme-preset='lulu'] [data-slot='sidebar-inner'] {
+  background: linear-gradient(160deg, #10372ef5, #041e1afa);
+}
+body[data-theme-preset='lulu']
+  :is(
+    [data-slot='card'],
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='sheet-content']
+  ) {
+  background-image: linear-gradient(135deg, #32614926, transparent 65%);
+  border-radius: 22px;
+}
+body[data-theme-preset='lulu'] [data-slot='card'] {
+  background-color: color-mix(in srgb, var(--card) 94%, transparent);
+}
+body[data-theme-preset='lulu'] .lulu-page-heading {
+  padding-top: 34px;
+  padding-bottom: 20px;
+  background: linear-gradient(90deg, #1c4d3333, transparent);
+}
+body[data-theme-preset='lulu'] [data-slot='section-page-content'] {
+  padding-top: 24px;
+}
+body[data-theme-preset='lulu'] {
+  --lulu-pagination-clip: 14px;
+}
+body[data-theme-preset='lulu'] [data-slot='table-container'] {
+  border: 1px solid #739c6733;
+  border-radius: 18px;
+  background: #082920d9;
+}
+body[data-theme-preset='lulu']
+  :is([data-slot='table-head'], [data-slot='table-header']) {
+  background-color: #15392e;
+}
+body[data-theme-preset='lulu'] [data-slot='tabs-list'] {
+  border-radius: 16px;
+  background-color: #153b33;
+}
+html:has(body[data-theme-preset='lulu']) {
+  background-color: #031817;
+  color-scheme: dark;
+}
+body[data-theme-preset='lulu']
+  :is(h1, h2, h3, [data-slot='card-title'], [data-slot='dialog-title']) {
+  font-family: var(--lulu-rounded);
+  letter-spacing: 0.025em;
+}
+body[data-theme-preset='lulu']
+  :is(
+    [data-slot='card'],
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='sheet-content'],
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='select-content']
+  ) {
+  border-color: var(--border);
+  box-shadow:
+    0 12px 36px #001b1933,
+    inset 0 1px #e4f8d908;
+}
+body[data-theme-preset='lulu']
+  :is(input, textarea, [data-slot='select-trigger']) {
+  border-radius: 14px;
+}
+/* All native controls share soft corners; specialized tab/checkbox semantics remain intact. */
+body[data-theme-preset='lulu']
+  button:not([role='checkbox']):not([role='switch']):not([role='radio']) {
+  border-radius: 16px;
+  font-family: var(--lulu-rounded);
+}
+body[data-theme-preset='lulu'] button[aria-pressed='true'] {
+  box-shadow: inset 0 -2px #b7edcd;
+}
+body[data-theme-preset='lulu'] [data-sidebar='menu-button'] {
+  border-radius: 15px;
+}
+body[data-theme-preset='lulu']
+  [data-sidebar='menu-button'][data-active='true'] {
+  box-shadow: inset 3px 0 #b9e8bc;
+}
+
+.lulu-control,
+.lulu-button,
+.lulu-header-cta {
+  border-radius: 18px 18px 15px 15px / 19px 19px 13px 13px;
+  font-family: var(--lulu-rounded);
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  transition:
+    background-color 180ms,
+    border-color 180ms,
+    box-shadow 180ms,
+    transform 180ms;
+}
+.lulu-button,
+.lulu-header-cta,
+.lulu-copy {
+  position: relative;
+}
+.lulu-control-primary,
+.lulu-button-primary,
+.lulu-header-cta {
+  background: linear-gradient(135deg, #e0f3bd, #a9e5c2);
+  color: #123b2b;
+  border: 1px solid #e6fbd24d;
+  box-shadow:
+    inset 0 2px #faffdf66,
+    0 3px 0 #4d947754;
+}
+.lulu-control-outline,
+.lulu-control-secondary,
+.lulu-button-glass {
+  border-color: #638571;
+  box-shadow:
+    inset 0 1px #edffcc0d,
+    0 3px 0 #00171326;
+}
+.lulu-control-destructive {
+  border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
+}
+.lulu-control-icon {
+  border-radius: 42% 42% 36% 36%;
+}
+body[data-theme-preset='lulu'] button[data-range-middle='true'] {
+  border-radius: 0;
+}
+.lulu-control:disabled,
+.lulu-control[aria-disabled='true'] {
+  box-shadow: none;
+}
+.lulu-control:focus-visible,
+.lulu-button:focus-visible,
+.lulu-header-cta:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+}
+@media (hover: hover) {
+  .lulu-control:not(:disabled):not([aria-disabled='true']):hover,
+  .lulu-button:hover,
+  .lulu-header-cta:hover {
+    transform: translateY(-2px);
+  }
+}
+.lulu-control:not(:disabled):active,
+.lulu-button:active {
+  transform: translateY(1px) scale(0.98);
+}
+.lulu-brand-mascot {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+.lulu-toolbar-wrapper {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  isolation: isolate;
+}
+.lulu-toolbar-wrapper.lulu-hero-actions {
+  width: fit-content;
+}
+.lulu-toolbar-peek {
+  position: absolute;
+  z-index: 10;
+  width: 54px;
+  height: auto;
+  right: -8px;
+  bottom: calc(100% - 7px);
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 4px 7px rgb(0 0 0 / 14%));
+  transform-origin: 55% 90%;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (hover: hover) {
+  .lulu-toolbar-wrapper:hover > .lulu-toolbar-peek {
+    transform: translateY(-2px) rotate(2deg);
+  }
+}
+@media (max-width: 640px) {
+  .lulu-toolbar-peek {
+    width: 46px;
+    right: 0;
+    bottom: calc(100% - 6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lulu-toolbar-peek,
+  .lulu-toolbar-wrapper:hover > .lulu-toolbar-peek {
+    transition: none;
+    transform: none;
+  }
+}
+.lulu-auth {
+  isolation: isolate;
+  background:
+    linear-gradient(90deg, #031817d9, #082b26bd),
+    url('../../public/lulu/hero/hero-bg.webp') center / cover;
+}
+.lulu-auth::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  width: min(38vw, 440px);
+  aspect-ratio: 1;
+  left: max(2%, calc(50% - 650px));
+  bottom: 5%;
+  opacity: 0.8;
+  background: url('../../public/lulu/hero/lulu-main.webp') center / contain
+    no-repeat;
+  animation: lulu-site-bob 7s ease-in-out infinite;
+}
+.lulu-auth-panel {
+  background: #092a25ed;
+  border: 1px solid #739c6745;
+  border-radius: 30px;
+  box-shadow: 0 25px 90px #00161366;
+}
+@keyframes lulu-site-bob {
+  50% {
+    transform: translateY(-14px) rotate(1deg);
+  }
+}
+@media (max-width: 800px) {
+  .lulu-auth::before {
+    display: none;
+  }
+  .lulu-auth-panel {
+    margin-block: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lulu-control,
+  .lulu-control::before,
+  .lulu-button,
+  .lulu-button::before,
+  .lulu-header-cta,
+  .lulu-header-cta::before,
+  .lulu-auth::before {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

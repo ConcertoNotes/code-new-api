@@ -19,7 +19,10 @@ For commercial licensing, please contact support@quantumnous.com
 import { useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import '@/styles/lulu-home.css'
+
 import { PublicLayout } from '@/components/layout'
+import { Footer } from '@/components/layout/components/footer'
 import { RichContent } from '@/components/rich-content'
 import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
@@ -120,8 +123,11 @@ export function Home() {
   }
 
   return (
-    <PublicLayout showMainContainer={false}>
-      <ModernLanding isAuthenticated={isAuthenticated} />
-    </PublicLayout>
+    <div className='lulu-home'>
+      <PublicLayout showMainContainer={false} headerProps={{ variant: 'lulu' }}>
+        <ModernLanding isAuthenticated={isAuthenticated} />
+        <Footer className='lulu-footer' />
+      </PublicLayout>
+    </div>
   )
 }

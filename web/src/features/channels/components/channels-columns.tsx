@@ -652,7 +652,7 @@ export function useChannelsColumns(
       // Name column
       {
         accessorKey: 'name',
-        header: t('Name'),
+        header: t('Supply Station Name'),
         meta: { mobileTitle: true },
         cell: ({ row }) => {
           const isTagRow = isTagAggregateRow(row.original)
@@ -764,7 +764,7 @@ export function useChannelsColumns(
       // Type column
       {
         accessorKey: 'type',
-        header: t('Type'),
+        header: t('Supply Type'),
         cell: ({ row }) => {
           const isTagRow = isTagAggregateRow(row.original)
 
@@ -899,7 +899,7 @@ export function useChannelsColumns(
       // Status column
       {
         accessorKey: 'status',
-        header: t('Status'),
+        header: t('Supply Status'),
         meta: { mobileBadge: true },
         cell: ({ row }) => {
           const isTagRow = isTagAggregateRow(row.original)
@@ -1030,7 +1030,7 @@ export function useChannelsColumns(
       // Models column
       {
         accessorKey: 'models',
-        header: t('Models'),
+        header: t('Provided Companions'),
         meta: { mobileHidden: true },
         cell: ({ row }) => {
           const models = row.getValue('models') as string
@@ -1113,7 +1113,7 @@ export function useChannelsColumns(
       // Priority column
       {
         accessorKey: 'priority',
-        header: t('Priority'),
+        header: t('Supply Priority'),
         meta: { mobileHidden: true },
         cell: ({ row }) => <PriorityCell channel={row.original} />,
         size: 100,
@@ -1122,7 +1122,7 @@ export function useChannelsColumns(
       // Weight column
       {
         accessorKey: 'weight',
-        header: t('Weight'),
+        header: t('Supply Weight'),
         meta: { mobileHidden: true },
         cell: ({ row }) => <WeightCell channel={row.original} />,
         size: 90,

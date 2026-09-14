@@ -105,7 +105,7 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
     // Model Name column (with model icon)
     {
       accessorKey: 'model_name',
-      header: t('Model Name'),
+      header: t('Official Model'),
       meta: { mobileTitle: true },
       cell: ({ row }) => {
         const model = row.original

@@ -146,7 +146,7 @@ function ApiKeysMobileList({
                   {apiKey.name}
                 </div>
                 <div className='text-muted-foreground text-[11px]'>
-                  {t('API Key')}
+                  {t('Access Key')}
                 </div>
               </div>
               {statusConfig && (
@@ -166,7 +166,9 @@ function ApiKeysMobileList({
             </div>
 
             <div className='flex items-center justify-between gap-2 text-xs'>
-              <span className='text-muted-foreground'>{t('Quota')}</span>
+              <span className='text-muted-foreground'>
+                {t('Available Yuzu')}
+              </span>
               {apiKey.unlimited_quota ? (
                 <UnlimitedQuotaBadge used={apiKey.used_quota} />
               ) : (
@@ -320,7 +322,7 @@ export function ApiKeysTable() {
         filters: [
           {
             columnId: 'status',
-            title: t('Status'),
+            title: t('Badge Status'),
             options: API_KEY_STATUS_OPTIONS,
             singleSelect: true,
           },

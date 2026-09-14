@@ -106,7 +106,7 @@ export function useSummaryCardsConfig(totals: {
   return [
     {
       key: 'recentUsage',
-      title: t('Past 24 hours'),
+      title: t('Daily Feeding'),
       value: totals.recentUsageDisplay,
       description: t('Actual billed usage'),
       details: [

@@ -132,7 +132,7 @@ async function renderCreateDrawer(): Promise<void> {
   )
   await waitFor(
     () => {
-      const saveButton = findButton('Save changes', false)
+      const saveButton = findButton('Claim Badge', false)
       expect(saveButton).toBeEnabled()
     },
     { timeout: 1500 }
@@ -151,8 +151,10 @@ function findButton(text: string, required = true): HTMLButtonElement | null {
   return button ?? null
 }
 
-function getControlByLabel(labelText: 'Name' | 'Quantity'): HTMLInputElement
-function getControlByLabel(labelText: 'Group'): HTMLButtonElement
+function getControlByLabel(
+  labelText: 'Badge Name' | 'Badge Quantity'
+): HTMLInputElement
+function getControlByLabel(labelText: 'Join a Team'): HTMLButtonElement
 function getControlByLabel(labelText: 'Auto group order'): HTMLElement
 function getControlByLabel(labelText: string): HTMLElement {
   const label = [...document.querySelectorAll<HTMLLabelElement>('label')].find(
@@ -209,7 +211,7 @@ describe('API keys mutate drawer Auto group integration', () => {
     installApiFixtures(createdPayloads)
     await renderCreateDrawer()
 
-    const groupTrigger = getControlByLabel('Group')
+    const groupTrigger = getControlByLabel('Join a Team')
     expect(groupTrigger.textContent?.includes('auto')).toBe(true)
     expect(
       document.body.textContent?.includes(
@@ -223,9 +225,9 @@ describe('API keys mutate drawer Auto group integration', () => {
     ).toEqual(['vip', 'default'])
     expect(findButton('Restore global Auto', true).disabled).toBe(true)
 
-    changeInput(getControlByLabel('Name'), 'batch')
-    changeInput(getControlByLabel('Quantity'), '2')
-    fireEvent.click(findButton('Save changes', true))
+    changeInput(getControlByLabel('Badge Name'), 'batch')
+    changeInput(getControlByLabel('Badge Quantity'), '2')
+    fireEvent.click(findButton('Claim Badge', true))
     await waitFor(() => expect(createdPayloads).toHaveLength(2))
 
     expect(createdPayloads.length).toBe(2)
@@ -259,7 +261,7 @@ describe('API keys mutate drawer Auto group integration', () => {
     )
     expect(findButton('Restore global Auto', true).disabled).toBe(false)
 
-    const groupTrigger = getControlByLabel('Group')
+    const groupTrigger = getControlByLabel('Join a Team')
     selectComboboxOption(groupTrigger, 'Standard access')
     expect(document.querySelector('button[aria-label="Remove vip"]')).toBe(null)
     selectComboboxOption(groupTrigger, 'Automatic routing')
@@ -272,8 +274,8 @@ describe('API keys mutate drawer Auto group integration', () => {
     )
     expect(findButton('Restore global Auto', true).disabled).toBe(false)
 
-    changeInput(getControlByLabel('Name'), 'custom')
-    fireEvent.click(findButton('Save changes', true))
+    changeInput(getControlByLabel('Badge Name'), 'custom')
+    fireEvent.click(findButton('Claim Badge', true))
     await waitFor(() => expect(createdPayloads).toHaveLength(1))
     expect(createdPayloads[0]?.auto_groups).toEqual(['vip'])
   })

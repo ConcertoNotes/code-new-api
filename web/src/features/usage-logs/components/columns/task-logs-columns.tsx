@@ -119,7 +119,7 @@ export function useTaskLogsColumns(
       createChannelColumn<TaskLog>({ headerLabel: t('Channel') }),
       {
         id: 'user',
-        header: t('User'),
+        header: t('Capybara Friend'),
         accessorFn: (row) => row.username || row.user_id,
         cell: function UserCell({ row }) {
           const { sensitiveVisible, setSelectedUserId, setUserInfoDialogOpen } =
@@ -227,7 +227,7 @@ export function useTaskLogsColumns(
     }),
     {
       accessorKey: 'status',
-      header: t('Status'),
+      header: t('Journey Status'),
       cell: ({ row }) => {
         const status = row.getValue('status') as string
         return (

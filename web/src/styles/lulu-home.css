@@ -1,0 +1,1072 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/* Lulu landing theme is deliberately scoped; console and custom pages retain their theme. */
+.lulu-home {
+  --background: #031817;
+  --foreground: #f5f3e8;
+  --muted: #123832;
+  --muted-foreground: #b1c9be;
+  --primary: #9de7c4;
+  --primary-foreground: #06352a;
+  --border: rgb(157 231 196 / 18%);
+  --accent: #16483d;
+  --accent-foreground: #f5f3e8;
+  --ring: #9de7c4;
+  background: var(--background);
+  color: var(--foreground);
+  font-family:
+    'Public Sans Variable', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+.lulu-home a,
+.lulu-home button {
+  -webkit-tap-highlight-color: transparent;
+}
+.lulu-home :is(a, button, pre):focus-visible {
+  outline: 2px solid #9de7c4;
+  outline-offset: 5px;
+}
+.lulu-home .lulu-container {
+  width: min(100% - 80px, 1360px);
+  margin-inline: auto;
+}
+.lulu-main {
+  overflow: clip;
+}
+.lulu-header {
+  color: #f5f3e8;
+  transition:
+    background 0.3s,
+    border-color 0.3s;
+  border-bottom: 1px solid transparent;
+}
+.lulu-header[data-scrolled='true'] {
+  background: rgb(3 24 23 / 88%);
+  backdrop-filter: blur(20px);
+  border-color: rgb(157 231 196 / 12%);
+}
+.lulu-header .lulu-header-inner {
+  max-width: 1480px;
+  padding: 0 40px;
+}
+.lulu-header .lulu-nav {
+  height: 76px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  --tw-ring-shadow: 0 0 #0000;
+  backdrop-filter: none;
+  gap: 22px;
+}
+.lulu-header .lulu-brand > div {
+  width: 38px;
+  height: 38px;
+}
+.lulu-avatar {
+  clip-path: polygon(
+    11% 56%,
+    18% 43%,
+    28% 33%,
+    29% 27%,
+    34% 25%,
+    42% 29%,
+    50% 27%,
+    55% 25%,
+    55% 20%,
+    53% 14%,
+    55% 11%,
+    61% 12%,
+    66% 17%,
+    73% 17%,
+    80% 18%,
+    80% 23%,
+    73% 27%,
+    72% 30%,
+    77% 32%,
+    83% 38%,
+    87% 47%,
+    86% 57%,
+    87% 64%,
+    86% 76%,
+    79% 84%,
+    65% 89%,
+    49% 90%,
+    30% 87%,
+    17% 80%,
+    11% 70%
+  );
+}
+.lulu-header .lulu-brand > span {
+  font-family: var(--lulu-rounded);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lulu-header .lulu-desktop-nav {
+  margin-left: auto;
+}
+.lulu-desktop-nav > a {
+  position: relative;
+  font-size: 13px;
+  padding-inline: 12px;
+  white-space: nowrap;
+}
+.lulu-desktop-nav > a[aria-current='page'] {
+  color: #b9f2d2;
+}
+.lulu-desktop-nav > a[aria-current='page']::after {
+  content: '';
+  position: absolute;
+  height: 2px;
+  bottom: -7px;
+  left: 12px;
+  right: 12px;
+  background: #9de7c4;
+}
+.lulu-header .lulu-nav-start {
+  background: #baf1ce;
+  color: #07382d;
+  padding: 10px 20px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.lulu-header .lulu-desktop-nav [data-slot='button'] {
+  color: #e0eddf;
+  background: transparent;
+}
+.lulu-header .lulu-mobile-actions {
+  display: none;
+}
+.lulu-home .lulu-mobile-menu {
+  background: #031d1b;
+}
+.lulu-hero {
+  position: relative;
+  isolation: isolate;
+  min-height: max(760px, 100svh);
+  padding-top: 76px;
+  display: flex;
+  flex-direction: column;
+}
+.lulu-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -3;
+  background: url('../../public/lulu/hero/hero-bg.webp') center 42% / cover
+    no-repeat;
+  opacity: 0.75;
+}
+.lulu-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      #031817 0%,
+      rgb(3 24 23 / 94%) 22%,
+      rgb(3 24 23 / 55%) 48%,
+      rgb(3 24 23 / 10%) 82%
+    ),
+    linear-gradient(
+      0deg,
+      #031817 0%,
+      transparent 32%,
+      transparent 85%,
+      #031817 100%
+    );
+}
+.lulu-moon-glow {
+  position: absolute;
+  z-index: -2;
+  width: 48%;
+  aspect-ratio: 1;
+  top: 5%;
+  right: 6%;
+  background: radial-gradient(ellipse, rgb(245 198 106 / 12%), transparent 65%);
+  pointer-events: none;
+}
+.lulu-hero-grid {
+  display: grid;
+  grid-template-columns: 42fr 58fr;
+  align-items: center;
+  flex: 1;
+  gap: 20px;
+  padding-block: 30px 45px;
+}
+.lulu-hero-copy {
+  position: relative;
+  z-index: 5;
+  padding-bottom: 35px;
+}
+.lulu-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #9de7c4;
+  font-size: 14px;
+  margin-bottom: 26px;
+}
+.lulu-eyebrow > span {
+  height: 1px;
+  width: 24px;
+  background: currentColor;
+}
+.lulu-hero h1 {
+  font-family: var(--lulu-rounded);
+  font-size: clamp(38px, 3.5vw, 56px);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: 0.025em;
+  margin: 0;
+}
+.lulu-hero h1 > span {
+  display: block;
+}
+.lulu-mint {
+  color: #a8ecc8;
+}
+.lulu-intro {
+  max-width: 440px;
+  font-size: 17px;
+  line-height: 1.9;
+  color: #d0ded4;
+  margin-top: 28px;
+}
+.lulu-subtitle {
+  color: #99b7a9;
+  font-size: 14px;
+  margin-top: 8px;
+}
+.lulu-hero-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 34px;
+}
+.lulu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 56px;
+  padding: 0 30px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 600;
+  transition:
+    transform 0.25s,
+    box-shadow 0.25s,
+    background 0.25s;
+  text-decoration: none;
+}
+.lulu-button-primary {
+  background: linear-gradient(135deg, #d8f8ca, #7fe4ba);
+  color: #083a2d;
+  box-shadow: 0 6px 35px rgb(127 228 186 / 10%);
+}
+.lulu-button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgb(127 228 186 / 24%);
+}
+.lulu-button-glass {
+  border: 1px solid rgb(157 231 196 / 28%);
+  background: rgb(24 64 51 / 40%);
+  color: #e7f2e5;
+  backdrop-filter: blur(12px);
+}
+.lulu-button-glass:hover {
+  background: rgb(42 90 71 / 60%);
+}
+.lulu-hero-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  color: #a7c2b3;
+  font-size: 11px;
+}
+.lulu-status-dot,
+.lulu-code-footnote > span:first-child {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #9de7c4;
+  box-shadow: 0 0 10px rgb(157 231 196 / 40%);
+  flex-shrink: 0;
+}
+.lulu-note-divider {
+  height: 10px;
+  width: 1px;
+  background: #406353;
+  margin: 0 3px;
+}
+.lulu-stage {
+  display: grid;
+  grid-template-columns: 1fr;
+  position: relative;
+  min-width: 0;
+  padding-top: 8px;
+}
+.lulu-mascot-wrap {
+  position: relative;
+  width: min(500px, 82%);
+  justify-self: start;
+  z-index: 3;
+  margin-left: -8%;
+}
+.lulu-mascot {
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 22px 20px rgb(0 15 11 / 35%));
+  animation: lulu-float 5s ease-in-out infinite;
+}
+.lulu-handwritten {
+  position: absolute;
+  top: 32%;
+  right: -21%;
+  transform: rotate(-10deg);
+  color: #f0eac5;
+  font-family: 'Lora Variable', cursive;
+  font-style: italic;
+  font-size: 20px;
+  letter-spacing: 0.02em;
+}
+.lulu-handwritten span {
+  display: block;
+  text-align: center;
+  font-size: 34px;
+}
+.lulu-lantern {
+  position: absolute;
+  width: 95px;
+  height: auto;
+  right: 0;
+  top: 1%;
+  clip-path: polygon(
+    45% 15%,
+    53% 15%,
+    61% 20%,
+    69% 25%,
+    75% 38%,
+    70% 80%,
+    73% 92%,
+    28% 92%,
+    28% 82%,
+    26% 74%,
+    30% 37%,
+    36% 24%,
+    43% 20%
+  );
+  animation: lulu-lantern-glow 5s ease-in-out infinite;
+  transform-origin: 50% 15%;
+}
+.lulu-stage-code {
+  width: min(470px, 82%);
+  justify-self: end;
+  margin-top: -140px;
+  z-index: 4;
+  position: relative;
+}
+.lulu-code-window {
+  background: rgb(3 27 26 / 94%);
+  border: 1px solid rgb(157 231 196 / 28%);
+  border-radius: 22px;
+  box-shadow: 0 24px 70px rgb(0 14 10 / 45%);
+  overflow: hidden;
+  backdrop-filter: blur(22px);
+  transition: transform 0.3s;
+  color: #f5f3e8;
+}
+.lulu-code-window:hover {
+  transform: translateY(-3px);
+}
+.lulu-code-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px 10px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.lulu-code-heading svg {
+  color: #9de7c4;
+}
+.lulu-copy {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #aec9b9;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 5px;
+}
+.lulu-copy:hover {
+  color: #d1ffe4;
+}
+.lulu-code-window .lulu-code-tabs {
+  margin-left: 16px;
+  gap: 15px;
+}
+.lulu-code-tabs [role='tab'] {
+  font-size: 11px;
+  padding: 4px;
+  color: #9eb8ac;
+}
+.lulu-code-tabs [role='tab'][data-active] {
+  color: #bdf6d5;
+}
+.lulu-code-tabs [role='tab']::after {
+  background: #9de7c4;
+  height: 1px;
+}
+.lulu-code-content {
+  min-width: 0;
+}
+.lulu-code-content pre {
+  padding: 13px 20px 10px;
+  margin: 0;
+  height: 259px;
+  overflow: auto;
+  color: #b9ddc3;
+  font-size: 10px;
+  line-height: 1.75;
+  tab-size: 2;
+  scrollbar-width: thin;
+  scrollbar-color: #426b59 transparent;
+}
+.lulu-copy-status {
+  padding-inline: 20px;
+  font-size: 10px;
+  color: #c9eecf;
+}
+.lulu-copy-status:empty {
+  display: none;
+}
+.lulu-code-response {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid rgb(157 231 196 / 12%);
+  padding: 12px 18px;
+  background: rgb(104 173 129 / 5%);
+}
+.lulu-code-response img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+.lulu-code-response > div {
+  flex: 1;
+}
+.lulu-response-label {
+  color: #a3c2af;
+  font-size: 9px;
+}
+.lulu-code-response p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #e0efdf;
+  margin-top: 3px;
+}
+.lulu-code-response > svg {
+  color: #9de7c4;
+  flex-shrink: 0;
+}
+.lulu-code-footnote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  font-size: 8px;
+  color: #a0bbaa;
+  border-top: 1px solid rgb(157 231 196 / 8%);
+}
+.lulu-scroll-note {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  color: #88a696;
+  font-size: 10px;
+  padding: 8px 20px 30px;
+  letter-spacing: 0.04em;
+}
+.lulu-scroll-note > span {
+  height: 25px;
+  width: 1px;
+  background: linear-gradient(#9de7c4, transparent);
+}
+.lulu-fireflies {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: hidden;
+  pointer-events: none;
+}
+.lulu-fireflies i {
+  position: absolute;
+  left: 48%;
+  top: 36%;
+  width: 5px;
+  height: 5px;
+  border-radius: 100%;
+  background: #f5c66a;
+  box-shadow:
+    0 0 7px 2px #ffe8aacc,
+    0 0 22px 6px #e9cf6540;
+  animation: lulu-firefly 9s ease-in-out infinite;
+}
+.lulu-fireflies i:nth-child(2) {
+  top: 19%;
+  left: 85%;
+  animation-delay: -2s;
+}
+.lulu-fireflies i:nth-child(3) {
+  top: 71%;
+  left: 96%;
+  animation-delay: -4s;
+}
+.lulu-fireflies i:nth-child(4) {
+  top: 58%;
+  left: 39%;
+  animation-delay: -3s;
+}
+.lulu-fireflies i:nth-child(5) {
+  top: 89%;
+  left: 68%;
+  animation-delay: -1s;
+}
+.lulu-fireflies i:nth-child(6) {
+  left: 9%;
+  top: 23%;
+  animation-delay: -5s;
+}
+.lulu-fireflies i:nth-child(7) {
+  left: 22%;
+  top: 85%;
+  animation-delay: -7s;
+}
+.lulu-fireflies i:nth-child(8) {
+  left: 62%;
+  top: 16%;
+  animation-delay: -4s;
+}
+.lulu-fireflies i:nth-child(9) {
+  left: 76%;
+  top: 45%;
+  animation-delay: -6s;
+}
+.lulu-fireflies i:nth-child(10) {
+  left: 48%;
+  top: 79%;
+  animation-delay: -2s;
+}
+.lulu-fireflies i:nth-child(11) {
+  left: 15%;
+  top: 61%;
+  animation-delay: -8s;
+}
+.lulu-fireflies i:nth-child(12) {
+  left: 89%;
+  top: 83%;
+  animation-delay: -3s;
+}
+.lulu-fireflies i:nth-child(13) {
+  left: 37%;
+  top: 15%;
+  animation-delay: -1s;
+}
+.lulu-fireflies i:nth-child(14) {
+  left: 57%;
+  top: 51%;
+  animation-delay: -5s;
+}
+.lulu-fireflies i:nth-child(15) {
+  left: 4%;
+  top: 91%;
+  animation-delay: -7s;
+}
+.lulu-fireflies i:nth-child(16) {
+  left: 71%;
+  top: 92%;
+  animation-delay: -4s;
+}
+.lulu-fireflies i:nth-child(17) {
+  left: 93%;
+  top: 34%;
+  animation-delay: -6s;
+}
+.lulu-fireflies i:nth-child(18) {
+  left: 32%;
+  top: 70%;
+  animation-delay: -8s;
+}
+.lulu-fireflies i:nth-child(3n) {
+  width: 3px;
+  height: 3px;
+  animation-duration: 13s;
+}
+.lulu-floating-leaves {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  overflow: hidden;
+}
+.lulu-floating-leaves svg {
+  position: absolute;
+  width: 19px;
+  height: 19px;
+  color: #b7d27b;
+  fill: #8cac6540;
+  stroke-width: 1;
+  animation: lulu-leaf-drift 14s ease-in-out infinite;
+  opacity: 0.65;
+}
+.lulu-floating-leaves svg:nth-child(1) {
+  left: 7%;
+  top: 38%;
+  animation-delay: -3s;
+}
+.lulu-floating-leaves svg:nth-child(2) {
+  left: 83%;
+  top: 25%;
+  animation-delay: -8s;
+}
+.lulu-floating-leaves svg:nth-child(3) {
+  left: 42%;
+  top: 73%;
+  animation-delay: -6s;
+}
+.lulu-floating-leaves svg:nth-child(4) {
+  left: 92%;
+  top: 74%;
+  animation-delay: -11s;
+}
+@keyframes lulu-leaf-drift {
+  0%,
+  100% {
+    transform: translate(0, -20px) rotate(-25deg);
+  }
+  50% {
+    transform: translate(35px, 30px) rotate(30deg);
+  }
+}
+.lulu-features {
+  padding-block: 42px 50px;
+  scroll-margin-top: 100px;
+}
+.lulu-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+.lulu-section-heading > svg {
+  color: #a6dcb7;
+}
+.lulu-kicker {
+  color: #9ac4af;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  margin-bottom: 12px;
+}
+.lulu-home h2 {
+  font-size: clamp(24px, 2.2vw, 32px);
+  line-height: 1.5;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+.lulu-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+.lulu-feature-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px;
+  border: 1px solid rgb(157 231 196 / 16%);
+  background: linear-gradient(135deg, rgb(20 61 48 / 65%), rgb(6 39 36 / 72%));
+  padding: 28px;
+  transition:
+    transform 0.25s,
+    border-color 0.25s,
+    background 0.25s;
+}
+.lulu-feature-card:hover {
+  transform: translateY(-4px);
+  border-color: rgb(157 231 196 / 40%);
+  background: #0d322a;
+}
+.lulu-feature-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+.lulu-feature-icon {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border: 1px solid rgb(157 231 196 / 15%);
+  border-radius: 50%;
+  color: #a6e9c2;
+  background: rgb(157 231 196 / 6%);
+}
+.lulu-feature-number {
+  color: #759787;
+  font-family: monospace;
+  font-size: 11px;
+}
+.lulu-feature-card h3 {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+.lulu-feature-card p {
+  color: #b1c9ba;
+  font-size: 13px;
+  line-height: 1.9;
+  max-width: 330px;
+}
+.lulu-feature-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 28px;
+  margin-top: auto;
+  color: #95c3a9;
+  font-size: 10px;
+}
+.lulu-models {
+  margin-top: 28px;
+  border: 1px solid rgb(157 231 196 / 16%);
+  border-radius: 22px;
+  background: rgb(5 38 35 / 78%);
+  padding: 24px 32px;
+}
+.lulu-models > p {
+  text-align: center;
+  color: #abc5b6;
+  font-size: 11px;
+  margin-bottom: 24px;
+}
+.lulu-model-list {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.lulu-model-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #d3e4d5;
+  font-size: 19px;
+  font-weight: 500;
+}
+.lulu-model-name svg {
+  color: #b0d8bd;
+}
+.lulu-text-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #b7e8c9;
+  font-size: 12px;
+}
+.lulu-text-link:hover {
+  color: #e2ffec;
+}
+.lulu-next {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  align-items: center;
+  gap: 34px;
+  padding-block: 35px 70px;
+}
+.lulu-next-art img {
+  width: 140px;
+  height: auto;
+}
+.lulu-next > div > p:last-child {
+  color: #a8c1b2;
+  font-size: 13px;
+  line-height: 1.9;
+  margin-top: 10px;
+}
+.lulu-next-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.lulu-footer {
+  background: #031513;
+  color: #c8dacd;
+  border-color: rgb(157 231 196 / 12%);
+}
+.lulu-footer > div {
+  max-width: 1440px;
+}
+.lulu-footer :is(p, span, a, div)[class*='text-muted-foreground'] {
+  color: #9ab8a8;
+}
+@keyframes lulu-float {
+  50% {
+    transform: translateY(-16px) rotate(1deg);
+  }
+}
+@keyframes lulu-lantern-glow {
+  0%,
+  100% {
+    transform: rotate(-5deg);
+  }
+  50% {
+    filter: brightness(1.18);
+    transform: rotate(5deg) translateY(3px);
+  }
+}
+@keyframes lulu-firefly {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: translate(0, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(32px, -48px);
+  }
+}
+@media (min-width: 1600px) {
+  .lulu-mascot-wrap {
+    width: 550px;
+  }
+  .lulu-stage-code {
+    margin-top: -165px;
+  }
+}
+@media (max-width: 1199px) {
+  .lulu-header .lulu-desktop-nav,
+  .lulu-header .lulu-nav-start {
+    display: none;
+  }
+  .lulu-header .lulu-mobile-actions {
+    display: flex;
+  }
+  .lulu-home .lulu-mobile-menu {
+    display: block;
+  }
+  .lulu-home .lulu-mobile-menu:not([inert]) {
+    pointer-events: auto;
+  }
+  .lulu-home .lulu-mobile-menu > div {
+    overflow-y: auto;
+    padding-top: 95px;
+  }
+  .lulu-hero-grid {
+    grid-template-columns: 44fr 56fr;
+    gap: 0;
+  }
+  .lulu-hero h1 {
+    font-size: 44px;
+  }
+  .lulu-mascot-wrap {
+    width: 95%;
+  }
+  .lulu-stage-code {
+    width: 95%;
+    margin-top: -95px;
+  }
+  .lulu-lantern {
+    width: 65px;
+  }
+  .lulu-handwritten {
+    right: -5%;
+    font-size: 16px;
+  }
+  .lulu-hero-actions {
+    gap: 10px;
+  }
+  .lulu-button {
+    padding-inline: 23px;
+  }
+  .lulu-next {
+    grid-template-columns: 1fr auto;
+  }
+  .lulu-next-art {
+    display: none;
+  }
+}
+@media (max-width: 800px) {
+  .lulu-home .lulu-container {
+    width: calc(100% - 40px);
+  }
+  .lulu-header .lulu-header-inner {
+    padding-inline: 20px;
+  }
+  .lulu-hero {
+    min-height: auto;
+  }
+  .lulu-hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 50px;
+    padding-bottom: 12px;
+  }
+  .lulu-hero-copy {
+    padding-bottom: 0;
+    max-width: 580px;
+  }
+  .lulu-hero h1 {
+    font-size: 38px;
+    line-height: 1.2;
+  }
+  .lulu-eyebrow {
+    font-size: 12px;
+    margin-bottom: 22px;
+  }
+  .lulu-intro {
+    font-size: 15px;
+    margin-top: 22px;
+    max-width: 370px;
+  }
+  .lulu-subtitle {
+    font-size: 12px;
+  }
+  .lulu-hero-actions {
+    margin-top: 25px;
+  }
+  .lulu-button {
+    height: 51px;
+    padding-inline: 24px;
+    font-size: 14px;
+  }
+  .lulu-hero-note {
+    line-height: 1.8;
+    margin-top: 20px;
+    font-size: 10px;
+    gap: 7px;
+  }
+  .lulu-stage {
+    padding-top: 20px;
+  }
+  .lulu-mascot-wrap {
+    width: min(80vw, 420px);
+    margin-left: 0;
+    justify-self: center;
+  }
+  .lulu-stage-code {
+    width: 100%;
+    max-width: 520px;
+    justify-self: center;
+    margin-top: 0;
+  }
+  .lulu-handwritten,
+  .lulu-lantern {
+    display: none;
+  }
+  .lulu-scene {
+    background: radial-gradient(ellipse at 65% 44%, #204535, #031817 66%);
+    opacity: 1;
+  }
+  .lulu-scene::after {
+    display: none;
+  }
+  .lulu-code-content pre {
+    font-size: 10px;
+    height: 255px;
+  }
+  .lulu-code-footnote {
+    flex-wrap: wrap;
+    font-size: 8px;
+  }
+  .lulu-scroll-note {
+    padding-top: 28px;
+  }
+  .lulu-features {
+    padding-top: 25px;
+  }
+  .lulu-feature-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .lulu-feature-card {
+    padding: 25px;
+  }
+  .lulu-feature-top {
+    margin-bottom: 20px;
+  }
+  .lulu-feature-card p {
+    max-width: none;
+  }
+  .lulu-model-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 25px 16px;
+  }
+  .lulu-models {
+    padding: 24px;
+  }
+  .lulu-model-name {
+    font-size: 16px;
+    gap: 8px;
+  }
+  .lulu-model-list .lulu-text-link {
+    justify-content: start;
+  }
+  .lulu-next {
+    grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+    padding-block: 15px 55px;
+    gap: 24px;
+  }
+  .lulu-next .lulu-kicker {
+    font-size: 9px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lulu-home *,
+  .lulu-home *::before,
+  .lulu-home *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .lulu-home .lulu-code-window:hover,
+  .lulu-home .lulu-feature-card:hover,
+  .lulu-home .lulu-button:hover {
+    transform: none;
+  }
+}

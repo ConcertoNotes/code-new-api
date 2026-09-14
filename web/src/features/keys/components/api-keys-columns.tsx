@@ -106,7 +106,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     },
     {
       accessorKey: 'name',
-      header: t('Name'),
+      header: t('Badge Name'),
       cell: ({ row }) => (
         <span className='font-medium'>{row.getValue('name')}</span>
       ),
@@ -115,7 +115,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     },
     {
       accessorKey: 'status',
-      header: t('Status'),
+      header: t('Badge Status'),
       cell: ({ row }) => {
         const statusConfig = API_KEY_STATUSES[row.getValue('status') as number]
         if (!statusConfig) return null
@@ -135,7 +135,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     {
       id: 'key',
       accessorKey: 'key',
-      header: t('API Key'),
+      header: t('Access Key'),
       cell: ({ row }) => <ApiKeyCell apiKey={row.original} />,
       enableSorting: false,
       size: 260,
@@ -143,7 +143,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     {
       id: 'quota',
       accessorKey: 'remain_quota',
-      header: t('Quota'),
+      header: t('Available Yuzu'),
       cell: ({ row }) => {
         const apiKey = row.original
         if (apiKey.unlimited_quota) {
@@ -192,7 +192,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     },
     {
       accessorKey: 'group',
-      header: t('Group'),
+      header: t('Assigned Team'),
       cell: ({ row }) => {
         const apiKey = row.original
         const group = row.getValue('group') as string
@@ -211,7 +211,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     {
       id: 'model_limits',
       accessorKey: 'model_limits',
-      header: t('Models'),
+      header: t('Available Companions'),
       cell: ({ row }) => <ModelLimitsCell apiKey={row.original} />,
       enableSorting: false,
       size: 160,
@@ -228,7 +228,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     },
     {
       accessorKey: 'created_time',
-      header: t('Created'),
+      header: t('Claimed At'),
       cell: ({ row }) => (
         <ApiKeyTimestampCell
           timestamp={row.getValue('created_time')}
@@ -264,7 +264,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
     },
     {
       accessorKey: 'expired_time',
-      header: t('Expires'),
+      header: t('Valid Until'),
       cell: ({ row }) => {
         const expiredTime = row.getValue('expired_time') as number
         if (expiredTime === -1) {

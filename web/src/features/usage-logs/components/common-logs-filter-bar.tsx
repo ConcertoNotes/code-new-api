@@ -33,15 +33,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from '@/components/ui/toggle-group'
 import { getApiKeys } from '@/features/keys/api'
 import { cn } from '@/lib/utils'
 
@@ -65,7 +62,7 @@ const logTypeValueSet = new Set<string>(
   LOG_TYPE_FILTERS.map((type) => type.value)
 )
 
-type ModelMatchValue = CommonLogFilters['modelMatch']
+type ModelMatchValue = NonNullable<CommonLogFilters['modelMatch']>
 const MODEL_MATCH_DEFAULT: ModelMatchValue = 'fuzzy'
 
 function getModelMatchValue(value: unknown): ModelMatchValue {
@@ -92,7 +89,10 @@ function useSelfTokenNames() {
         })
         if (!res.success || !res.data) break
         names.push(...res.data.items.map((item) => item.name))
-        if (page * TOKEN_OPTIONS_PAGE_SIZE >= (res.data.total ?? names.length)) {
+        if (
+          page * TOKEN_OPTIONS_PAGE_SIZE >=
+          (res.data.total ?? names.length)
+        ) {
           break
         }
       }

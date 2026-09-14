@@ -16,19 +16,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Copy01Icon, Tick02Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
-import { useState } from 'react'
+import { Check, Code2, Copy, Leaf } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 
-const PYTHON_EXAMPLE = `from openai import OpenAI
+const EXAMPLES = {
+  Python: `from openai import OpenAI
 
 client = OpenAI(
     base_url="https://your-domain.com/v1",
@@ -38,117 +34,133 @@ client = OpenAI(
 response = client.chat.completions.create(
     model="your-model",
     messages=[
-        {"role": "user", "content": "Hello!"}
+        {"role": "user", "content": "Hello, Lulu!"}
     ],
 )
+print(response.choices[0].message.content)`,
+  Curl: `curl https://your-domain.com/v1/chat/completions \\
+  -H "Authorization: Bearer sk-your-api-key" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "model": "your-model",
+    "messages": [
+      {"role": "user", "content": "Hello, Lulu!"}
+    ]
+  }'`,
+  JavaScript: `import OpenAI from "openai";
 
-print(response.choices[0].message.content)`
+const client = new OpenAI({
+  baseURL: "https://your-domain.com/v1",
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const response = await client.chat.completions.create({
+  model: "your-model",
+  messages: [
+    { role: "user", content: "Hello, Lulu!" }
+  ],
+});
+console.log(response.choices[0].message.content);`,
+} as const
+
+type Language = keyof typeof EXAMPLES
 
 export function CodePreview() {
   const { t } = useTranslation()
-  const [copied, setCopied] = useState(false)
+  const [language, setLanguage] = useState<Language>('Python')
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
+    'idle'
+  )
+  const copyGeneration = useRef(0)
+
+  useEffect(
+    () => () => {
+      copyGeneration.current += 1
+    },
+    []
+  )
 
   const handleCopy = async () => {
-    const didCopy = await copyToClipboard(PYTHON_EXAMPLE)
-    if (!didCopy) return
-
-    setCopied(true)
-    window.setTimeout(() => setCopied(false), 1600)
+    const generation = ++copyGeneration.current
+    const didCopy = await copyToClipboard(EXAMPLES[language])
+    if (copyGeneration.current === generation) {
+      setCopyState(didCopy ? 'copied' : 'failed')
+    }
   }
 
   return (
-    <div className='home-code-window w-full overflow-hidden rounded-lg border border-border bg-[#07080d]/95 shadow-[0_20px_50px_-20px_rgba(15,23,42,0.3)] backdrop-blur-xl dark:border-white/10 dark:shadow-[0_28px_80px_rgba(0,0,0,0.45)]'>
-      <div className='flex h-10 items-center border-b border-white/8 px-4'>
-        <div className='flex items-center gap-1.5' aria-hidden='true'>
-          <span className='size-2 rounded-full bg-[#ff5f57]' />
-          <span className='size-2 rounded-full bg-[#febc2e]' />
-          <span className='size-2 rounded-full bg-[#28c840]' />
-        </div>
-        <span className='mx-auto font-mono text-[11px] text-white/45'>
-          quickstart.py
+    <div className='lulu-code-window'>
+      <div className='lulu-code-heading'>
+        <span className='flex items-center gap-2'>
+          <Code2 size={16} aria-hidden='true' />
+          {t('Quick start')}
         </span>
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <button
-                type='button'
-                onClick={handleCopy}
-                className='flex size-7 items-center justify-center rounded-md text-white/45 transition-colors hover:bg-white/8 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400'
-                aria-label={copied ? t('Copied') : t('Copy')}
-              />
-            }
-          >
-            <HugeiconsIcon icon={copied ? Tick02Icon : Copy01Icon} size={15} />
-          </TooltipTrigger>
-          <TooltipContent>{copied ? t('Copied') : t('Copy')}</TooltipContent>
-        </Tooltip>
+        <button
+          type='button'
+          onClick={handleCopy}
+          className='lulu-copy lulu-control lulu-control-ghost'
+          aria-label={t('Copy code')}
+        >
+          {copyState === 'copied' ? (
+            <Check size={14} aria-hidden='true' />
+          ) : (
+            <Copy size={14} aria-hidden='true' />
+          )}
+          {copyState === 'copied' ? t('Copied') : t('Copy code')}
+        </button>
       </div>
-
-      <div className='overflow-x-auto p-4'>
-        <pre className='min-w-[31rem] font-mono text-[11px] leading-5 sm:text-xs'>
-          <code>
-            <span className='text-[#c792ea]'>from</span>{' '}
-            <span className='text-[#82aaff]'>openai</span>{' '}
-            <span className='text-[#c792ea]'>import</span>{' '}
-            <span className='text-[#ffcb6b]'>OpenAI</span>
-            {'\n\n'}
-            <span className='text-[#f8f8f2]'>client</span>{' '}
-            <span className='text-[#89ddff]'>=</span>{' '}
-            <span className='text-[#ffcb6b]'>OpenAI</span>
-            <span className='text-white/75'>(</span>
-            {'\n    '}
-            <span className='text-[#f78c6c]'>base_url</span>
-            <span className='text-white/65'>=</span>
-            <span className='text-[#c3e88d]'>"https://your-domain.com/v1"</span>
-            <span className='text-white/65'>,</span>
-            {'\n    '}
-            <span className='text-[#f78c6c]'>api_key</span>
-            <span className='text-white/65'>=</span>
-            <span className='text-[#c3e88d]'>"sk-your-api-key"</span>
-            <span className='text-white/65'>,</span>
-            {'\n'}
-            <span className='text-white/75'>)</span>
-            {'\n\n'}
-            <span className='text-[#f8f8f2]'>response</span>{' '}
-            <span className='text-[#89ddff]'>=</span>{' '}
-            <span className='text-[#82aaff]'>
-              client.chat.completions.create
-            </span>
-            <span className='text-white/75'>(</span>
-            {'\n    '}
-            <span className='text-[#f78c6c]'>model</span>
-            <span className='text-white/65'>=</span>
-            <span className='text-[#c3e88d]'>"your-model"</span>
-            <span className='text-white/65'>,</span>
-            {'\n    '}
-            <span className='text-[#f78c6c]'>messages</span>
-            <span className='text-white/65'>=[</span>
-            {'\n        '}
-            <span className='text-white/65'>{'{'}</span>
-            <span className='text-[#c3e88d]'>"role"</span>
-            <span className='text-white/65'>: </span>
-            <span className='text-[#c3e88d]'>"user"</span>
-            <span className='text-white/65'>, </span>
-            <span className='text-[#c3e88d]'>"content"</span>
-            <span className='text-white/65'>: </span>
-            <span className='text-[#c3e88d]'>"Hello!"</span>
-            <span className='text-white/65'>{'}'}</span>
-            {'\n    '}
-            <span className='text-white/65'>],</span>
-            {'\n'}
-            <span className='text-white/75'>)</span>
-            {'\n\n'}
-            <span className='text-[#82aaff]'>print</span>
-            <span className='text-white/75'>
-              (response.choices[0].message.content)
-            </span>
-          </code>
-        </pre>
+      <Tabs
+        value={language}
+        onValueChange={(value) => {
+          copyGeneration.current += 1
+          setLanguage(value as Language)
+          setCopyState('idle')
+        }}
+      >
+        <TabsList
+          variant='line'
+          className='lulu-code-tabs'
+          aria-label={t('Code language')}
+        >
+          {(Object.keys(EXAMPLES) as Language[]).map((name) => (
+            <TabsTrigger key={name} value={name}>
+              {name}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+        {(Object.keys(EXAMPLES) as Language[]).map((name) => (
+          <TabsContent key={name} value={name} className='lulu-code-content'>
+            <pre tabIndex={0} aria-label={t('Code example')}>
+              <code>{EXAMPLES[name]}</code>
+            </pre>
+          </TabsContent>
+        ))}
+      </Tabs>
+      <div className='lulu-copy-status' role='status' aria-live='polite'>
+        {copyState === 'copied' && t('Copied')}
+        {copyState === 'failed' &&
+          t('Copy failed. Please select and copy the code.')}
       </div>
-
-      <div className='flex items-center gap-2 border-t border-white/8 bg-white/[0.025] px-4 py-2.5 font-mono text-[10px] text-white/35'>
-        <span className='size-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]' />
+      <div className='lulu-code-response'>
+        <img
+          src='/lulu/logo/lulu-logo.png'
+          className='lulu-avatar'
+          alt=''
+          width={42}
+          height={42}
+        />
+        <div>
+          <span className='lulu-response-label'>{t('Example response')}</span>
+          <p>{t('Hi! I am Lulu. What can I help you with?')}</p>
+        </div>
+        <Leaf size={17} aria-hidden='true' />
+      </div>
+      <div className='lulu-code-footnote'>
+        <span aria-hidden='true' />
         {t('OpenAI SDK compatible')}
+        <span className='ml-auto'>
+          {t('Replace the endpoint, key and model to get started.')}
+        </span>
       </div>
     </div>
   )

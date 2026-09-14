@@ -54,7 +54,7 @@ export function useSidebarData(): SidebarData {
     navGroups: [
       {
         id: 'chat',
-        title: t('Chat'),
+        title: t('Play Time'),
         items: [
           {
             title: t('Playground'),
@@ -76,10 +76,10 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'general',
-        title: t('General'),
+        title: t('Daily Life'),
         items: [
           {
-            title: t('Overview'),
+            title: t('Lulu Today'),
             url: '/dashboard/overview',
             icon: Activity,
           },
@@ -109,7 +109,7 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'personal',
-        title: t('Personal'),
+        title: t('My Island'),
         items: [
           {
             title: t('Wallet'),
@@ -125,7 +125,7 @@ export function useSidebarData(): SidebarData {
       },
       {
         id: 'admin',
-        title: t('Admin'),
+        title: t('Estate Management'),
         items: [
           {
             title: t('Channels'),
@@ -133,12 +133,12 @@ export function useSidebarData(): SidebarData {
             icon: Radio,
           },
           {
-            title: t('Models'),
+            title: t('Companion Catalog'),
             url: '/models/metadata',
             icon: Box,
           },
           {
-            title: t('Users'),
+            title: t('Capybara Friends'),
             url: '/users',
             icon: Users,
           },

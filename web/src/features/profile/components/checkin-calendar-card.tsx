@@ -446,7 +446,7 @@ export function CheckinCalendarCard({
                           <TooltipContent>
                             <div className='text-xs'>
                               <div className='font-medium'>
-                                {t('Checked in')}
+                                {t('Bath Completed')}
                               </div>
                               <div className='text-muted-foreground mt-0.5'>
                                 +{formatQuotaWithCurrency(quotaAwarded)}

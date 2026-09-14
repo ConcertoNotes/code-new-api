@@ -20,6 +20,11 @@ For commercial licensing, please contact support@quantumnous.com
 // These cover dynamic labels (e.g. constants, configs) that are passed into t at runtime.
 export const STATIC_I18N_KEYS = [
   // Header navigation
+  'Lulu Cottage',
+  'Preparing to Depart',
+  'On an Adventure',
+  'Adventure Complete',
+  'Adventure Encountered a Problem',
   'Home',
   'Console',
   'Model Square',

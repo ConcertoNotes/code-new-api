@@ -31,9 +31,10 @@ import { toast } from 'sonner'
 import { getStatus } from '@/lib/api'
 import { installBuildMetadata } from '@/lib/build-metadata'
 import { applyFaviconToDom } from '@/lib/dom-utils'
-import '@/lib/dayjs'
 import { initializeFrontendCache } from '@/lib/frontend-cache'
+import '@/lib/dayjs'
 import { handleServerError } from '@/lib/handle-server-error'
+import { SITE_BRAND } from '@/lib/site-brand'
 
 import { DirectionProvider } from './context/direction-provider'
 import { FontProvider } from './context/font-provider'
@@ -124,13 +125,15 @@ if (!rootElement) {
       ) as HTMLMetaElement | null
       if (metaTitle) metaTitle.setAttribute('content', name)
     }
+    apply(SITE_BRAND.systemName)
+    applyFaviconToDom(SITE_BRAND.logo)
     // Cache-first
     try {
       const saved = localStorage.getItem('status')
       if (saved) {
         const s = JSON.parse(saved)
-        if (s?.system_name) apply(s.system_name)
-        if (s?.logo) applyFaviconToDom(s.logo)
+        if (s?.system_name) apply(SITE_BRAND.systemName)
+        if (s?.logo) applyFaviconToDom(SITE_BRAND.logo)
       }
     } catch {
       /* empty */
@@ -139,14 +142,14 @@ if (!rootElement) {
     getStatus()
       .then((s) => {
         if (s?.system_name) {
-          apply(s.system_name as string)
+          apply(SITE_BRAND.systemName)
           try {
             localStorage.setItem('status', JSON.stringify(s))
           } catch {
             /* empty */
           }
         }
-        if (s?.logo) applyFaviconToDom(s.logo as string)
+        if (s?.logo) applyFaviconToDom(SITE_BRAND.logo)
       })
       .catch(() => {
         /* empty */

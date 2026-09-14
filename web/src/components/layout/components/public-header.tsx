@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
@@ -45,6 +45,7 @@ type AuthPromptTarget = {
 }
 
 export interface PublicHeaderProps {
+  variant?: 'default' | 'lulu'
   navLinks?: TopNavLink[]
   mobileLinks?: TopNavLink[]
   navContent?: React.ReactNode
@@ -74,9 +75,11 @@ export function PublicHeader(props: PublicHeaderProps) {
   } = props
 
   const { t } = useTranslation()
+  const isLulu = props.variant === 'lulu'
   const navigate = useNavigate()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const mobileButtonRef = useRef<HTMLButtonElement>(null)
   const [authPromptTarget, setAuthPromptTarget] =
     useState<AuthPromptTarget | null>(null)
   const [authPromptSecondsLeft, setAuthPromptSecondsLeft] =
@@ -111,6 +114,35 @@ export function PublicHeader(props: PublicHeaderProps) {
       document.body.style.overflow = ''
     }
   }, [mobileOpen])
+
+  useEffect(() => {
+    if (!isLulu || !mobileOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setMobileOpen(false)
+        mobileButtonRef.current?.focus()
+      }
+    }
+    const closeOnDesktop = () => {
+      if (window.innerWidth >= 1200) setMobileOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    window.addEventListener('resize', closeOnDesktop)
+    const content = [
+      ...document.querySelectorAll<HTMLElement>('.lulu-main, .lulu-footer'),
+    ]
+    const previousInert = content.map((element) => element.inert)
+    content.forEach((element) => {
+      element.inert = true
+    })
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      window.removeEventListener('resize', closeOnDesktop)
+      content.forEach((element, index) => {
+        element.inert = previousInert[index] ?? false
+      })
+    }
+  }, [isLulu, mobileOpen])
 
   useEffect(() => {
     if (!authPromptTarget) return
@@ -173,13 +205,57 @@ export function PublicHeader(props: PublicHeaderProps) {
     [t]
   )
 
+  let brandLogo = customLogo || (
+    <HeaderLogo
+      src={systemLogo}
+      loading={loading}
+      logoLoaded={logoLoaded}
+      className='size-full rounded-lg object-contain'
+    />
+  )
+  if (loading) brandLogo = <Skeleton className='size-full rounded-lg' />
+  if (isLulu) {
+    brandLogo = (
+      <img
+        src={systemLogo}
+        alt=''
+        width={38}
+        height={38}
+        className='lulu-brand-mascot'
+      />
+    )
+  }
+
+  let authAction = (
+    <Button
+      size='sm'
+      className='h-8 rounded-lg px-3.5 text-xs font-medium'
+      nativeButton={false}
+      render={<Link to='/sign-in' />}
+    >
+      {t('Sign in')}
+    </Button>
+  )
+  if (isAuthenticated) authAction = <ProfileDropdown />
+  if (loading) authAction = <Skeleton className='h-8 w-20 rounded-lg' />
+
   return (
     <>
-      <header className='pointer-events-none fixed inset-x-0 top-0 z-50'>
+      <header
+        className={cn(
+          'pointer-events-none fixed inset-x-0 top-0 z-50',
+          isLulu && 'lulu-header',
+          props.className
+        )}
+        data-scrolled={scrolled}
+      >
         <div
           className={cn(
             'pointer-events-auto mx-auto transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
-            scrolled ? 'max-w-[52rem] px-3 pt-3' : 'max-w-7xl px-4 pt-0 md:px-6'
+            scrolled
+              ? 'max-w-[52rem] px-3 pt-3'
+              : 'max-w-7xl px-4 pt-0 md:px-6',
+            isLulu && 'lulu-header-inner'
           )}
         >
           <nav
@@ -187,27 +263,20 @@ export function PublicHeader(props: PublicHeaderProps) {
               'flex items-center justify-between transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]',
               scrolled
                 ? 'bg-background/60 ring-border/50 h-12 rounded-2xl pr-1.5 pl-4 shadow-[0_2px_16px_-6px_rgba(0,0,0,0.08),0_0_0_0.5px_rgba(0,0,0,0.02)] ring-[0.5px] backdrop-blur-2xl dark:shadow-[0_2px_16px_-6px_rgba(0,0,0,0.4)]'
-                : 'h-16 px-2'
+                : 'h-16 px-2',
+              isLulu && 'lulu-nav'
             )}
           >
             {/* Logo */}
             <Link
               to={homeUrl}
-              className='group flex shrink-0 items-center gap-2.5'
+              className={cn(
+                'group flex shrink-0 items-center gap-2.5',
+                isLulu && 'lulu-brand'
+              )}
             >
               <div className='flex size-7 shrink-0 items-center justify-center transition-all duration-300 group-hover:scale-105'>
-                {loading ? (
-                  <Skeleton className='size-full rounded-lg' />
-                ) : customLogo ? (
-                  customLogo
-                ) : (
-                  <HeaderLogo
-                    src={systemLogo}
-                    loading={loading}
-                    logoLoaded={logoLoaded}
-                    className='size-full rounded-lg object-contain'
-                  />
-                )}
+                {brandLogo}
               </div>
               <span className='text-sm font-semibold tracking-tight'>
                 {loading ? <Skeleton className='h-4 w-16' /> : displaySiteName}
@@ -215,13 +284,18 @@ export function PublicHeader(props: PublicHeaderProps) {
             </Link>
 
             {/* Desktop nav */}
-            <div className='hidden items-center gap-0.5 sm:flex'>
-              {links.map((link, i) => {
+            <div
+              className={cn(
+                'hidden items-center gap-0.5 sm:flex',
+                isLulu && 'lulu-desktop-nav'
+              )}
+            >
+              {links.map((link) => {
                 const isActive = pathname === link.href
                 if (link.external) {
                   return (
                     <a
-                      key={i}
+                      key={link.href}
                       href={link.href}
                       target='_blank'
                       rel='noopener noreferrer'
@@ -239,8 +313,9 @@ export function PublicHeader(props: PublicHeaderProps) {
                 }
                 return (
                   <Link
-                    key={i}
+                    key={link.href}
                     to={link.href}
+                    aria-current={isActive ? 'page' : undefined}
                     disabled={link.disabled}
                     onClick={(event) => handleNavLinkClick(event, link)}
                     className={cn(
@@ -262,6 +337,26 @@ export function PublicHeader(props: PublicHeaderProps) {
                 <div className='bg-border/40 mx-2 h-4 w-px' />
               )}
 
+              {isLulu && (
+                <Link
+                  to='/pricing'
+                  className='lulu-nav-search'
+                  aria-label={t('Search models')}
+                >
+                  <svg
+                    width='17'
+                    height='17'
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='1.5'
+                    aria-hidden='true'
+                  >
+                    <circle cx='10.5' cy='10.5' r='6.5' />
+                    <path d='m16 16 5 5' />
+                  </svg>
+                </Link>
+              )}
               {showLanguageSwitcher && <LanguageSwitcher />}
               {showThemeSwitch && <ThemeSwitch />}
               {showNotifications && (
@@ -280,36 +375,38 @@ export function PublicHeader(props: PublicHeaderProps) {
               {showAuthButtons && (
                 <>
                   <div className='bg-border/40 mx-1 h-4 w-px' />
-                  {loading ? (
-                    <Skeleton className='h-8 w-20 rounded-lg' />
-                  ) : isAuthenticated ? (
-                    <ProfileDropdown />
-                  ) : (
-                    <Button
-                      size='sm'
-                      className='h-8 rounded-lg px-3.5 text-xs font-medium'
-                      render={<Link to='/sign-in' />}
-                    >
-                      {t('Sign in')}
-                    </Button>
-                  )}
+                  {authAction}
                 </>
               )}
             </div>
 
+            {isLulu && showAuthButtons && !loading && !isAuthenticated && (
+              <Link to='/sign-up' className='lulu-nav-start lulu-header-cta'>
+                {t('Start now')} <span aria-hidden='true'>↗</span>
+              </Link>
+            )}
+
             {/* Mobile: compact actions + hamburger */}
-            <div className='flex items-center gap-2 sm:hidden'>
+            <div
+              className={cn(
+                'flex items-center gap-2 sm:hidden',
+                isLulu && 'lulu-mobile-actions'
+              )}
+            >
               {showThemeSwitch && <ThemeSwitch />}
               {showAuthButtons && !loading && isAuthenticated && (
                 <ProfileDropdown />
               )}
               <Button
                 type='button'
+                ref={mobileButtonRef}
                 variant='ghost'
                 size='icon'
                 className='size-9'
                 onClick={() => setMobileOpen((v) => !v)}
                 aria-label={t('Toggle navigation menu')}
+                aria-expanded={mobileOpen}
+                aria-controls='public-mobile-navigation'
               >
                 <div className='relative size-4'>
                   <span
@@ -339,11 +436,14 @@ export function PublicHeader(props: PublicHeaderProps) {
 
       {/* Mobile full-screen overlay */}
       <div
+        id='public-mobile-navigation'
+        inert={!mobileOpen}
         className={cn(
           'bg-background/98 fixed inset-0 z-40 backdrop-blur-2xl transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] sm:pointer-events-none sm:hidden',
           mobileOpen
             ? 'pointer-events-auto opacity-100'
-            : 'pointer-events-none opacity-0'
+            : 'pointer-events-none opacity-0',
+          isLulu && 'lulu-mobile-menu'
         )}
       >
         <div className='flex h-full flex-col justify-between px-8 pt-20 pb-10'>
@@ -364,7 +464,7 @@ export function PublicHeader(props: PublicHeaderProps) {
               if (link.external) {
                 return (
                   <a
-                    key={i}
+                    key={link.href}
                     href={link.href}
                     target='_blank'
                     rel='noopener noreferrer'
@@ -380,7 +480,7 @@ export function PublicHeader(props: PublicHeaderProps) {
               }
               return (
                 <Link
-                  key={i}
+                  key={link.href}
                   to={link.href}
                   disabled={link.disabled}
                   onClick={(event) => handleNavLinkClick(event, link, true)}
@@ -402,6 +502,15 @@ export function PublicHeader(props: PublicHeaderProps) {
             )}
             style={{ transitionDelay: mobileOpen ? '250ms' : '0ms' }}
           >
+            {isLulu && showAuthButtons && !isAuthenticated && (
+              <Link
+                to='/sign-up'
+                onClick={() => setMobileOpen(false)}
+                className='lulu-button lulu-button-primary'
+              >
+                {t('Start now')}
+              </Link>
+            )}
             {showAuthButtons && (
               <Link
                 to={isAuthenticated ? '/dashboard' : '/sign-in'}

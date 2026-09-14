@@ -33,7 +33,7 @@ type SearchProps = {
 export function Search({ className = '', placeholder }: SearchProps) {
   const { t } = useTranslation()
   const { setOpen } = useSearch()
-  const resolvedPlaceholder = placeholder ?? t('Search')
+  const resolvedPlaceholder = placeholder ?? t('Find Something')
   return (
     <Button
       variant='outline'

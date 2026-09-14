@@ -84,7 +84,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     },
     {
       accessorKey: 'username',
-      header: t('Username'),
+      header: t('Friend Nickname'),
       cell: ({ row }) => {
         const username = row.getValue('username') as string
         const displayName = row.original.display_name
@@ -123,7 +123,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     },
     {
       accessorKey: 'status',
-      header: t('Status'),
+      header: t('Island Status'),
       cell: ({ row }) => {
         const user = row.original
         const requestCount = user.request_count
@@ -163,7 +163,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     {
       id: 'quota',
       accessorKey: 'quota',
-      header: t('Quota'),
+      header: t('Yuzu Stock'),
       cell: ({ row }) => {
         const user = row.original
         return <UserQuotaCell used={user.used_quota} remaining={user.quota} />
@@ -174,7 +174,7 @@ export function useUsersColumns(): ColumnDef<User>[] {
     },
     {
       accessorKey: 'group',
-      header: t('Group'),
+      header: t('Assigned Team'),
       cell: ({ row }) => {
         const group = row.getValue('group') as string
         return (

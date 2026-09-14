@@ -98,8 +98,8 @@ export function PlaygroundInputControls({
         variant='default'
       >
         <SendIcon size={16} />
-        <span className='hidden sm:inline'>{t('Send')}</span>
-        <span className='sr-only sm:hidden'>{t('Send')}</span>
+        <span className='hidden sm:inline'>{t('Tell Lulu')}</span>
+        <span className='sr-only sm:hidden'>{t('Tell Lulu')}</span>
       </PromptInputButton>
     )
 

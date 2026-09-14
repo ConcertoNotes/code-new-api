@@ -25,6 +25,11 @@ For commercial licensing, please contact support@quantumnous.com
 
 export const THEME_PRESETS = [
   {
+    value: 'lulu',
+    name: '噜噜岛',
+    swatches: ['#082b26', '#afe9c8'],
+  },
+  {
     value: 'aurora',
     name: 'Default',
     swatches: ['oklch(0.64 0.2 255)', 'oklch(0.72 0.15 175)'],
@@ -120,7 +125,7 @@ export type ThemeCustomization = {
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
-  preset: 'aurora',
+  preset: 'lulu',
   font: 'default',
   radius: 'default',
   scale: 'default',
@@ -159,7 +164,7 @@ export const CONTENT_LAYOUT_VALUES: ReadonlySet<ContentLayout> = new Set([
 ])
 
 export const THEME_COOKIE_KEYS = {
-  preset: 'theme_preset',
+  preset: 'lulu_theme_preset',
   font: 'theme_font',
   radius: 'theme_radius',
   scale: 'theme_scale',

@@ -16,13 +16,18 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { ArrowRight01Icon } from '@hugeicons/core-free-icons'
-import { HugeiconsIcon } from '@hugeicons/react'
 import { Link } from '@tanstack/react-router'
-import { ArrowUpRight } from 'lucide-react'
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  Leaf,
+  Play,
+  Zap,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
-import { Button } from '@/components/ui/button'
+import { LuluToolbar } from '@/components/lulu-toolbar'
 import { VARIABLE_SWITCH_URL } from '@/hooks/top-nav-link-data'
 
 import { CodePreview } from './code-preview'
@@ -32,87 +37,228 @@ interface ModernLandingProps {
   isAuthenticated: boolean
 }
 
-const PAIN_POINTS = [
-  'One integration for every model',
-  'Predictable routing and failover',
-  'Every request tracked for billing',
-] as const
-
 export function ModernLanding(props: ModernLandingProps) {
   const { t } = useTranslation()
   const actionUrl = props.isAuthenticated ? '/dashboard' : '/sign-up'
-  const actionLabel = props.isAuthenticated ? 'Go to Dashboard' : 'Get Started'
+  const actionLabel = props.isAuthenticated ? 'Go to Dashboard' : 'Start now'
+  const features = [
+    {
+      icon: Leaf,
+      title: t('Multi-model collaboration'),
+      description: t(
+        'Access OpenAI, Claude, GLM, DeepSeek and more with one integration.'
+      ),
+      detail: t('One API, more possibilities'),
+      href: '/pricing',
+    },
+    {
+      icon: Zap,
+      title: t('Stable and fast'),
+      description: t(
+        'Intelligent routing and failover keep your requests running smoothly.'
+      ),
+      detail: t('Built for your next idea'),
+      href: '/docs',
+    },
+    {
+      icon: BarChart3,
+      title: t('Clear and transparent'),
+      description: t(
+        'Understand your usage, costs and model calls at a glance.'
+      ),
+      detail: t('Every request, in focus'),
+      href: '/usage-logs',
+    },
+  ]
 
   return (
-    <main className='home-modern relative isolate flex min-h-svh flex-col overflow-hidden bg-background text-foreground lg:h-svh'>
-      <div className='home-fluid-background pointer-events-none absolute inset-0 -z-20' />
-      <div className='home-grid-background pointer-events-none absolute inset-0 -z-10' />
-
-      <section className='flex min-h-0 flex-1 items-center px-5 pt-20 pb-4 sm:px-6 sm:pt-24 sm:pb-5 lg:pt-20 lg:pb-2'>
-        <div className='mx-auto grid w-full max-w-6xl items-center gap-7 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10'>
-          <div className='max-w-2xl'>
-            <div className='home-reveal mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1.5 font-mono text-[10px] text-muted-foreground uppercase backdrop-blur-md'>
-              <span className='bg-primary size-1.5 rounded-full' />
-              {t('Built for production AI traffic')}
-            </div>
-
-            <h1 className='home-reveal home-reveal-delay-1 text-[clamp(2.5rem,5vw,4.25rem)] leading-[0.98] font-semibold text-balance'>
-              {t('One API. Every model. Zero friction.')}
+    <main className='lulu-main bg-background text-foreground'>
+      <section className='lulu-hero' aria-labelledby='lulu-headline'>
+        <div className='lulu-scene' aria-hidden='true' />
+        <div className='lulu-moon-glow' aria-hidden='true' />
+        <div className='lulu-fireflies' aria-hidden='true'>
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+          <i />
+        </div>
+        <div className='lulu-floating-leaves' aria-hidden='true'>
+          <Leaf />
+          <Leaf />
+          <Leaf />
+          <Leaf />
+        </div>
+        <div className='lulu-container lulu-hero-grid'>
+          <div className='lulu-hero-copy'>
+            <p className='lulu-eyebrow'>
+              <span />
+              {t('A little cuter. A lot more productive.')}
+              <Leaf size={16} aria-hidden='true' />
+            </p>
+            <h1 id='lulu-headline'>
+              <span>{t('One gateway,')}</span>
+              <span>{t('a world of AI.')}</span>
+              <span className='lulu-mint'>{t('Meet the softer side.')}</span>
             </h1>
-            <p className='home-reveal home-reveal-delay-2 text-muted-foreground mt-4 max-w-xl text-base leading-7 sm:text-lg sm:leading-8'>
+            <p className='lulu-intro'>
               {t(
-                'Connect your application to leading AI models through one fast, OpenAI-compatible gateway.'
+                'A lighter, friendlier way to connect your AI workflows, models and knowledge.'
               )}
             </p>
-
-            <div className='home-reveal home-reveal-delay-3 mt-5 flex flex-wrap items-center gap-3'>
-              <Button size='lg' className='h-11 px-4' render={<Link to={actionUrl} />}>
+            <p className='lulu-subtitle'>
+              {t('One integration. All your favorite models.')}
+            </p>
+            <LuluToolbar className='lulu-hero-actions'>
+              <Link to={actionUrl} className='lulu-button lulu-button-primary'>
                 {t(actionLabel)}
-                <HugeiconsIcon icon={ArrowRight01Icon} data-icon='inline-end' />
-              </Button>
-              <Button
-                size='lg'
-                variant='outline'
-                className='h-11 px-4'
-                render={
-                  <a
-                    href={VARIABLE_SWITCH_URL}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                  />
-                }
+                <ArrowRight size={18} aria-hidden='true' />
+              </Link>
+              <a
+                href='#lulu-features'
+                className='lulu-button lulu-button-glass'
               >
-                {t('Variable Switch')}
-                <ArrowUpRight aria-hidden='true' data-icon='inline-end' />
-              </Button>
-            </div>
-
-            <div className='home-reveal home-reveal-delay-4 mt-6 grid gap-3 sm:grid-cols-3'>
-              {PAIN_POINTS.map((point, index) => (
-                <div
-                  key={point}
-                  className='text-muted-foreground flex items-start gap-2 text-xs leading-5'
-                >
-                  <span className='bg-primary mt-2 size-1 shrink-0 rounded-full' />
-                  <span>
-                    <span className='text-foreground/25 mr-1 font-mono'>
-                      0{index + 1}
-                    </span>
-                    {t(point)}
-                  </span>
-                </div>
-              ))}
+                {t('Explore capabilities')}
+                <Play size={14} aria-hidden='true' />
+              </a>
+            </LuluToolbar>
+            <div className='lulu-hero-note'>
+              <span className='lulu-status-dot' />
+              {t('OpenAI SDK compatible')}
+              <span className='lulu-note-divider' />
+              {t('Made for developers, with a little warmth.')}
             </div>
           </div>
-
-          <div className='home-reveal home-reveal-delay-3 relative'>
-            <div className='pointer-events-none absolute -inset-px -z-10 bg-linear-to-r from-violet-500/20 via-transparent to-cyan-400/15 blur-2xl' />
-            <CodePreview />
+          <div className='lulu-stage'>
+            <div className='lulu-mascot-wrap'>
+              <img
+                className='lulu-mascot'
+                src='/lulu/hero/lulu-main.webp'
+                alt={t('Lulu the capybara with a laptop')}
+                width={1024}
+                height={1024}
+                fetchPriority='high'
+              />
+              <span className='lulu-handwritten' aria-hidden='true'>
+                Hello, world <span>↗</span>
+              </span>
+            </div>
+            <img
+              className='lulu-lantern'
+              src='/lulu/hero/lantern.webp'
+              alt=''
+              width={180}
+              height={250}
+            />
+            <div className='lulu-stage-code'>
+              <CodePreview />
+            </div>
           </div>
+        </div>
+        <div className='lulu-scroll-note' aria-hidden='true'>
+          <span />
+          {t('Great ideas start with a simple connection')}
         </div>
       </section>
 
-      <ModelMarquee />
+      <section
+        id='lulu-features'
+        className='lulu-container lulu-features'
+        aria-labelledby='lulu-features-title'
+      >
+        <div className='lulu-section-heading'>
+          <div>
+            <p className='lulu-kicker'>{t('LESS FRICTION. MORE CREATION.')}</p>
+            <h2 id='lulu-features-title'>
+              {t('Powerful underneath. Effortless on the surface.')}
+            </h2>
+          </div>
+          <Leaf aria-hidden='true' size={25} />
+        </div>
+        <div className='lulu-feature-grid'>
+          {features.map((feature, index) => (
+            <Link
+              key={feature.title}
+              to={feature.href}
+              className='lulu-feature-card'
+            >
+              <div className='lulu-feature-top'>
+                <span className='lulu-feature-icon'>
+                  <feature.icon
+                    size={24}
+                    strokeWidth={1.5}
+                    aria-hidden='true'
+                  />
+                </span>
+                <span className='lulu-feature-number'>0{index + 1}</span>
+              </div>
+              <h3>{feature.title}</h3>
+              <p>{feature.description}</p>
+              <div className='lulu-feature-bottom'>
+                <span>{feature.detail}</span>
+                <ArrowUpRight size={20} aria-hidden='true' />
+              </div>
+            </Link>
+          ))}
+        </div>
+        <ModelMarquee />
+      </section>
+
+      <section
+        className='lulu-container lulu-next'
+        aria-labelledby='lulu-next-title'
+      >
+        <div className='lulu-next-art' aria-hidden='true'>
+          <img
+            src='/lulu/hero/lulu-main.webp'
+            alt=''
+            width={210}
+            height={210}
+            loading='lazy'
+          />
+        </div>
+        <div>
+          <p className='lulu-kicker'>
+            {t('FROM YOUR FIRST CALL TO YOUR NEXT BIG IDEA')}
+          </p>
+          <h2 id='lulu-next-title'>
+            {t('Let your next idea grow with Lulu.')}
+          </h2>
+          <p>
+            {t(
+              'Choose a model, connect your tools, and leave room for what you do best.'
+            )}
+          </p>
+        </div>
+        <div className='lulu-next-actions'>
+          <Link to={actionUrl} className='lulu-button lulu-button-primary'>
+            {t(actionLabel)}
+            <ArrowRight size={18} aria-hidden='true' />
+          </Link>
+          <a
+            href={VARIABLE_SWITCH_URL}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='lulu-text-link'
+          >
+            {t('Variable Switch')}
+            <ArrowUpRight size={14} aria-hidden='true' />
+          </a>
+        </div>
+      </section>
     </main>
   )
 }

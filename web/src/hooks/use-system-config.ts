@@ -20,6 +20,7 @@ import { useEffect, useCallback } from 'react'
 
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
 import { applyFaviconToDom } from '@/lib/dom-utils'
+import { SITE_BRAND } from '@/lib/site-brand'
 import {
   useSystemConfigStore,
   type CurrencyConfig,
@@ -172,7 +173,7 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
 
   // Preload logo image when URL changes
   useEffect(() => {
-    const { logo } = config
+    const { logo } = SITE_BRAND
 
     // Skip if logo is already loaded
     if (!logo || logo === loadedLogoUrl) return
@@ -185,20 +186,18 @@ export function useSystemConfig(options: UseSystemConfigOptions = {}) {
         applyFaviconToDom(logo)
       },
       () => {
-        if (logo !== DEFAULT_LOGO) {
-          // eslint-disable-next-line no-console
-          console.error('Failed to load logo:', logo)
-        }
+        // eslint-disable-next-line no-console
+        console.error('Failed to load logo:', logo)
         // Mark as loaded even on error to prevent infinite retry
         setLoadedLogoUrl(logo)
       }
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.logo, loadedLogoUrl, setLoadedLogoUrl])
+  }, [loadedLogoUrl, setLoadedLogoUrl])
 
   return {
     ...config,
+    ...SITE_BRAND,
     loading,
-    logoLoaded: config.logo === loadedLogoUrl && !!loadedLogoUrl,
+    logoLoaded: SITE_BRAND.logo === loadedLogoUrl,
   }
 }

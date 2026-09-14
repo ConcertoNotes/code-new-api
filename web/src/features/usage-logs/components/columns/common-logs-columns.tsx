@@ -299,7 +299,7 @@ export function useCommonLogsColumns(
   const columns: ColumnDef<UsageLog>[] = [
     {
       accessorKey: 'created_at',
-      header: t('Time'),
+      header: t('Departure Time'),
       cell: ({ row }) => {
         const log = row.original
         const timestamp = row.getValue('created_at') as number
@@ -491,7 +491,7 @@ export function useCommonLogsColumns(
       },
       {
         id: 'user',
-        header: t('User'),
+        header: t('Capybara Friend'),
         accessorFn: (row) => row.username,
         cell: function UserCell({ row }) {
           const { sensitiveVisible, setSelectedUserId, setUserInfoDialogOpen } =
@@ -548,7 +548,7 @@ export function useCommonLogsColumns(
 
   columns.push({
     accessorKey: 'token_name',
-    header: t('Token'),
+    header: t('API Keys'),
     cell: function TokenNameCell({ row }) {
       const { sensitiveVisible } = useUsageLogsContext()
       const log = row.original
@@ -611,7 +611,7 @@ export function useCommonLogsColumns(
   columns.push(
     {
       accessorKey: 'model_name',
-      header: t('Model'),
+      header: t('Travel Companion'),
       cell: function ModelCell({ row }) {
         const log = row.original
         if (!isDisplayableLogType(log.type)) return null
@@ -656,7 +656,7 @@ export function useCommonLogsColumns(
     },
     {
       accessorKey: 'prompt_tokens',
-      header: 'Tokens',
+      header: t('Feeding Amount (Tokens)'),
       cell: ({ row }) => {
         const log = row.original
         if (!isDisplayableLogType(log.type)) return null
@@ -716,7 +716,7 @@ export function useCommonLogsColumns(
 
     {
       accessorKey: 'use_time',
-      header: t('Timing'),
+      header: t('Journey Duration'),
       cell: ({ row }) => {
         const log = row.original
         if (!isTimingLogType(log.type)) return null

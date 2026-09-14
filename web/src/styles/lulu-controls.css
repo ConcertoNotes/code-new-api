@@ -1,0 +1,151 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+
+/* Decorative PNGs cover shared and native controls, including portal content.
+ * Keep positioning in the base layer so absolute password/close controls win.
+ * Empty pseudo content leaves accessible names, refs and Base UI composition intact. */
+@layer base {
+  body[data-theme-preset='lulu']
+    :where(button, .lulu-control, .lulu-button, .lulu-header-cta) {
+    position: relative;
+  }
+}
+
+body[data-theme-preset='lulu']
+  :where(button, .lulu-control, .lulu-button, .lulu-header-cta):not(
+    [role='checkbox'],
+    [role='switch'],
+    [role='radio'],
+    [role^='menuitem'],
+    [role='option'],
+    [data-day],
+    [data-sidebar],
+    [data-slot='input-otp-slot'],
+    [data-lulu='off']
+  )::before {
+  content: '';
+  position: absolute;
+  display: block;
+  z-index: 10;
+  width: var(--lulu-peek-width, 32px);
+  height: auto;
+  aspect-ratio: 1402 / 1122;
+  right: 0;
+  bottom: calc(100% - var(--lulu-peek-overlap, 6px));
+  background: url('../../public/lulu/lulu-peek.png') center / contain no-repeat;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 3px 4px #00171340);
+  transform-origin: 55% 90%;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body[data-theme-preset='lulu']
+  :where(.lulu-control-primary, .lulu-button, .lulu-header-cta) {
+  --lulu-peek-width: 44px;
+  --lulu-peek-overlap: 7px;
+}
+
+/* Dense controls get a small perch that stays inside their own horizontal bounds. */
+body[data-theme-preset='lulu']
+  :where(
+    .lulu-control-icon,
+    [data-size='xs'],
+    [data-size='sm'],
+    [role='tab'],
+    [role='combobox'],
+    [data-slot='toggle'],
+    [data-slot='table'] button,
+    [data-slot='table'] .lulu-control,
+    header button,
+    header .lulu-control,
+    header .lulu-header-cta,
+    button.absolute,
+    [data-slot='dialog-close'],
+    [data-slot='sheet-close']
+  ) {
+  --lulu-peek-width: 20px;
+  --lulu-peek-overlap: 5px;
+}
+
+/* A dedicated group decoration takes precedence over its child decorations. */
+body[data-theme-preset='lulu'] .lulu-page-heading .lulu-control {
+  --lulu-peek-width: 36px;
+  --lulu-peek-overlap: 7px;
+}
+body[data-theme-preset='lulu'] .lulu-page-heading .lulu-control-primary {
+  --lulu-peek-width: 44px;
+}
+body[data-theme-preset='lulu'] .lulu-page-heading .lulu-control-icon {
+  --lulu-peek-width: 20px;
+  --lulu-peek-overlap: 5px;
+}
+body[data-theme-preset='lulu']
+  header
+  :where(button, .lulu-control, .lulu-header-cta) {
+  --lulu-peek-width: 16px;
+  --lulu-peek-overlap: 7px;
+}
+
+body[data-theme-preset='lulu']
+  .lulu-toolbar-wrapper
+  :where(button, .lulu-control, .lulu-button)::before {
+  content: none;
+}
+
+body[data-theme-preset='lulu']
+  [class~='@container/pagination']
+  :where(button, .lulu-control) {
+  --lulu-peek-width: 20px;
+  --lulu-peek-overlap: 5px;
+}
+/* Inline truncated data values keep their clipping; the adjacent copy action is decorated. */
+body[data-theme-preset='lulu']
+  :where(button, .lulu-control):is(.truncate, .overflow-hidden)::before {
+  content: none;
+}
+
+@media (hover: hover) {
+  body[data-theme-preset='lulu']
+    :where(button, .lulu-control, .lulu-button, .lulu-header-cta):not(
+      :disabled
+    ):not([aria-disabled='true']):hover::before {
+    transform: translateY(-2px) rotate(2deg);
+  }
+}
+
+@media (max-width: 640px) {
+  body[data-theme-preset='lulu'] :where(.lulu-control-primary, .lulu-button) {
+    --lulu-peek-width: 32px;
+    --lulu-peek-overlap: 6px;
+  }
+  body[data-theme-preset='lulu']
+    :where(.lulu-control-icon, [data-size='xs'], [data-size='sm']) {
+    --lulu-peek-width: 20px;
+    --lulu-peek-overlap: 5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body[data-theme-preset='lulu']
+    :where(button, .lulu-control, .lulu-button, .lulu-header-cta)::before {
+    transition: none !important;
+    transform: none !important;
+  }
+}

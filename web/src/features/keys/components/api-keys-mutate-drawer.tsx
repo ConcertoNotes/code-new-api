@@ -374,6 +374,8 @@ export function ApiKeysMutateDrawer({
   )
   const autoGroupsMode = form.watch('auto_groups_mode')
   const unlimitedQuota = form.watch('unlimited_quota')
+  let submitLabel = isUpdate ? t('Save changes') : t('Claim Badge')
+  if (isSubmitting) submitLabel = t('Saving...')
 
   return (
     <Sheet
@@ -390,7 +392,7 @@ export function ApiKeysMutateDrawer({
       >
         <SheetHeader className={sideDrawerHeaderClassName()}>
           <SheetTitle>
-            {isUpdate ? t('Update API Key') : t('Create API Key')}
+            {isUpdate ? t('Update API Key') : t('Claim a New Access Badge')}
           </SheetTitle>
           <SheetDescription>
             {isUpdate
@@ -418,7 +420,7 @@ export function ApiKeysMutateDrawer({
                 name='name'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('Name')}</FormLabel>
+                    <FormLabel>{t('Badge Name')}</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder={t('Enter a name')} />
                     </FormControl>
@@ -432,7 +434,7 @@ export function ApiKeysMutateDrawer({
                 name='group'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('Group')}</FormLabel>
+                    <FormLabel>{t('Join a Team')}</FormLabel>
                     <FormControl>
                       <ApiKeyGroupCombobox
                         options={groups}
@@ -473,7 +475,7 @@ export function ApiKeysMutateDrawer({
                   name='fallback_groups'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('Fallback groups')}</FormLabel>
+                      <FormLabel>{t('Backup Teams')}</FormLabel>
                       <FormControl>
                         <MultiSelect
                           options={fallbackGroupOptions}
@@ -567,7 +569,7 @@ export function ApiKeysMutateDrawer({
                 name='expired_time'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('Expiration Time')}</FormLabel>
+                    <FormLabel>{t('Valid Until')}</FormLabel>
                     <div className='grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center'>
                       <FormControl>
                         <DateTimePicker
@@ -627,7 +629,7 @@ export function ApiKeysMutateDrawer({
                   name='tokenCount'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t('Quantity')}</FormLabel>
+                      <FormLabel>{t('Badge Quantity')}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -655,7 +657,7 @@ export function ApiKeysMutateDrawer({
 
             <SideDrawerSection>
               <SideDrawerSectionHeader
-                title={t('Quota Settings')}
+                title={t('Yuzu Quota')}
                 description={t('Set quota amount and limits')}
                 icon={<WalletCards className='size-4' />}
                 iconTone='success'
@@ -700,7 +702,7 @@ export function ApiKeysMutateDrawer({
                   <FormItem className={sideDrawerSwitchItemClassName()}>
                     <div className='flex flex-col gap-0.5'>
                       <FormLabel className='text-sm'>
-                        {t('Unlimited Quota')}
+                        {t('Unlimited Yuzu')}
                       </FormLabel>
                       <FormDescription className='text-xs'>
                         {t('Enable unlimited quota for this API key')}
@@ -729,7 +731,7 @@ export function ApiKeysMutateDrawer({
                 >
                   <SideDrawerSectionHeader
                     className='flex-1'
-                    title={t('Advanced Settings')}
+                    title={t('More Settings')}
                     description={t('Set API key access restrictions')}
                     icon={<Settings2 className='size-4' />}
                   />
@@ -814,7 +816,7 @@ export function ApiKeysMutateDrawer({
             disabled={!isFormInitialized || isSubmitting}
             className='w-full sm:w-auto'
           >
-            {isSubmitting ? t('Saving...') : t('Save changes')}
+            {submitLabel}
           </Button>
         </SheetFooter>
       </SheetContent>
