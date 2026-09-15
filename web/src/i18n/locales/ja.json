@@ -5705,6 +5705,11 @@
     "Zero retention": "データ保持なし",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
-    "Zoom": "ズーム"
+    "Zoom": "ズーム",
+    "Lulu Grand Ceremony": "Lulu大典",
+    "Lulu is preparing a pomelo for you": "Luluがあなたのためにザボンを用意しています",
+    "Not started yet": "まだ開始していません",
+    "Lulu popped out a pomelo! You won {{reward}} quota.": "Luluがザボンを出しました！{{reward}}クォータを獲得しました。",
+    "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "Luluの賞品：0.5、1、5、10クォータ。期間中の個人抽選回数に上限はありません。"
   }
 }

@@ -5705,6 +5705,11 @@
     "Zero retention": "Không lưu dữ liệu",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Lulu Grand Ceremony": "Đại lễ Lulu",
+    "Lulu is preparing a pomelo for you": "Lulu đang chuẩn bị một quả bưởi cho bạn",
+    "Not started yet": "Chưa bắt đầu",
+    "Lulu popped out a pomelo! You won {{reward}} quota.": "Lulu đã đưa ra một quả bưởi! Bạn nhận được {{reward}} hạn ngạch.",
+    "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "Giải Lulu: 0.5, 1, 5 hoặc 10 hạn ngạch. Không giới hạn lượt rút cá nhân."
   }
 }

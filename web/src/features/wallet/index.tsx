@@ -32,6 +32,7 @@ import { TransferDialog } from './components/dialogs/transfer-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
 import { WalletStatsCard } from './components/wallet-stats-card'
+import { LotteryCard } from './components/lottery-card'
 import { DEFAULT_DISCOUNT_RATE, PAYMENT_TYPES } from './constants'
 import {
   useTopupInfo,
@@ -47,6 +48,7 @@ import {
   getMinTopupAmount,
   dispatchSelectedPayment,
 } from './lib'
+import { getLotteryStatus, type LotteryStatus } from './lottery-api'
 import type {
   UserWalletData,
   PaymentMethod,
@@ -63,6 +65,7 @@ export function Wallet(props: WalletProps) {
   const { t } = useTranslation()
   const [user, setUser] = useState<UserWalletData | null>(null)
   const [userLoading, setUserLoading] = useState(true)
+  const [lotteryStatus, setLotteryStatus] = useState<LotteryStatus | null>(null)
   const [topupAmount, setTopupAmount] = useState(0)
   const [selectedPreset, setSelectedPreset] = useState<number | null>(null)
   const [selectedPaymentMethod, setSelectedPaymentMethod] =
@@ -127,6 +130,7 @@ export function Wallet(props: WalletProps) {
 
   useEffect(() => {
     fetchUser()
+    getLotteryStatus().then(setLotteryStatus).catch(() => setLotteryStatus(null))
   }, [fetchUser])
 
   useEffect(() => {
@@ -289,6 +293,7 @@ export function Wallet(props: WalletProps) {
         <SectionPageLayout.Content>
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
             <WalletStatsCard user={user} loading={userLoading} />
+            <LotteryCard status={lotteryStatus} onDrawn={() => getLotteryStatus().then(setLotteryStatus)} />
 
             <div
               className={

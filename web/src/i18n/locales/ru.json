@@ -5705,6 +5705,11 @@
     "Zero retention": "Без хранения данных",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Lulu Grand Ceremony": "Церемония Lulu",
+    "Lulu is preparing a pomelo for you": "Lulu готовит для вас помело",
+    "Not started yet": "Еще не началось",
+    "Lulu popped out a pomelo! You won {{reward}} quota.": "Lulu достал помело! Вы выиграли квоту {{reward}}.",
+    "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "Призы Lulu: 0.5, 1, 5 или 10 квот. Личного лимита попыток нет."
   }
 }

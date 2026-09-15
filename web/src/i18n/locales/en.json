@@ -2211,7 +2211,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Related Projects",
     "footer.defaultCopyright": "All rights reserved.",
-    "footer.new\u0061pi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
+    "footer.newapi.projectAttributionSuffix": "All rights reserved. Designed and developed by the project contributors.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment",
     "For private deployments, format: https://fastgpt.run/api/openapi": "For private deployments, format: https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.",
@@ -5705,6 +5705,19 @@
     "Zero retention": "Zero retention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Lulu Grand Ceremony": "Lulu Grand Ceremony",
+    "Lulu is preparing a pomelo for you": "Lulu is preparing a pomelo for you",
+    "Not started yet": "Not started yet",
+    "Lulu popped out a pomelo! You won {{reward}} quota.": "Lulu popped out a pomelo! You won {{reward}} quota.",
+    "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.",
+    "Recharge to draw instantly, every draw wins": "Recharge to draw instantly, every draw wins",
+    "draws available": "draws available",
+    "Recharge {{amount}} more for another draw": "Recharge {{amount}} more for another draw",
+    "Draw now": "Draw now",
+    "Lottery reward credited": "Lottery reward credited",
+    "Lottery draw failed": "Lottery draw failed",
+    "Congratulations! You won {{reward}} quota, credited instantly.": "Congratulations! You won {{reward}} quota, credited instantly.",
+    "Prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "Prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event."
   }
 }

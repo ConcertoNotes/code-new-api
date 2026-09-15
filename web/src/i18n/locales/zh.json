@@ -2211,7 +2211,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相关项目",
     "footer.defaultCopyright": "版权所有。",
-    "footer.new\u0061pi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
+    "footer.newapi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "对于 2025 年 5 月 10 日之后添加的渠道，在部署时无需从模型名称中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "对于私有部署，格式为：https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "出于安全考虑，现有访问令牌无法再次显示。仅在需要新令牌时重新生成。",
@@ -5705,6 +5705,19 @@
     "Zero retention": "零数据保留",
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
-    "Zoom": "缩放"
+    "Zoom": "缩放",
+    "Lulu Grand Ceremony": "噜噜大典",
+    "Lulu is preparing a pomelo for you": "噜噜正在为你准备柚子",
+    "Not started yet": "未到时间",
+    "Lulu popped out a pomelo! You won {{reward}} quota.": "噜噜吐出了一个柚子！恭喜你获得 {{reward}} 额度。",
+    "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "噜噜奖品：0.5、1、5 或 10 额度。活动期间个人抽奖次数不限。",
+    "Recharge to draw instantly, every draw wins": "充值即抽奖，每次都有奖",
+    "draws available": "次可抽奖",
+    "Recharge {{amount}} more for another draw": "再充值 {{amount}} 元可再抽一次",
+    "Draw now": "立即抽奖",
+    "Lottery reward credited": "抽奖奖励已到账",
+    "Lottery draw failed": "抽奖失败，请稍后重试",
+    "Congratulations! You won {{reward}} quota, credited instantly.": "恭喜获得 {{reward}} 额度，奖励已即时到账。",
+    "Prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "奖项：0.5、1、5 或 10 额度。活动期间个人抽奖次数不限。"
   }
 }

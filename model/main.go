@@ -343,6 +343,8 @@ func migrateDB() error {
 		&Log{},
 		&Midjourney{},
 		&TopUp{},
+		&LotteryPrize{},
+		&LotteryDraw{},
 		&QuotaData{},
 		&Task{},
 		&TaskPlugin{},

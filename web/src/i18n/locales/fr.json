@@ -5705,6 +5705,11 @@
     "Zero retention": "Aucune rétention",
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
-    "Zoom": "Zoom"
+    "Zoom": "Zoom",
+    "Lulu Grand Ceremony": "Cérémonie Lulu",
+    "Lulu is preparing a pomelo for you": "Lulu prépare un pomélo pour vous",
+    "Not started yet": "Pas encore commencé",
+    "Lulu popped out a pomelo! You won {{reward}} quota.": "Lulu a fait apparaître un pomélo ! Vous avez gagné {{reward}} crédits.",
+    "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "Prix Lulu : 0,5, 1, 5 ou 10 crédits. Aucun plafond de tirage personnel."
   }
 }

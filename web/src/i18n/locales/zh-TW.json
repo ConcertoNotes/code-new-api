@@ -5705,6 +5705,11 @@
     "Zero retention": "零數據保留",
     "Zhipu": "智譜",
     "Zhipu V4": "智譜 V4",
-    "Zoom": "縮放"
+    "Zoom": "縮放",
+    "Lulu Grand Ceremony": "噜噜大典",
+    "Lulu is preparing a pomelo for you": "噜噜正在為你準備柚子",
+    "Not started yet": "尚未開始",
+    "Lulu popped out a pomelo! You won {{reward}} quota.": "噜噜吐出了一個柚子！恭喜你獲得 {{reward}} 額度。",
+    "Lulu prizes: 0.5, 1, 5 or 10 quota. No personal draw limit during the event.": "噜噜獎品：0.5、1、5 或 10 額度。活動期間個人抽獎次數不限。"
   }
 }
