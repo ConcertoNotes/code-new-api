@@ -278,6 +278,7 @@ export const SUCCESS_MESSAGES = {
   DELETED: 'Channel deleted successfully',
   ENABLED: 'Channel enabled successfully',
   DISABLED: 'Channel disabled successfully',
+  BREAKER_RESET: 'Channel cooldown cleared',
   TESTED: 'Channel test completed',
   BALANCE_QUERIED: 'Balance queried successfully',
   MODELS_FETCHED: 'Models fetched successfully',

@@ -34,6 +34,18 @@ export const channelInfoSchema = z.object({
 
 export type ChannelInfo = z.infer<typeof channelInfoSchema>
 
+// 渠道熔断（自动冷却）状态，仅列表查询时由后端填充
+export const channelBreakerSchema = z.object({
+  channel_id: z.number(),
+  state: z.enum(['closed', 'open', 'half_open']),
+  failures: z.number().default(0),
+  trips: z.number().default(0),
+  open_until: z.number().optional(),
+  probe_until: z.number().optional(),
+})
+
+export type ChannelBreaker = z.infer<typeof channelBreakerSchema>
+
 export const channelSchema = z.object({
   id: z.number(),
   type: z.number(),
@@ -58,6 +70,7 @@ export const channelSchema = z.object({
   priority: z.number().nullish(),
   auto_ban: z.number().nullish(),
   other_info: z.string().default(''),
+  breaker: channelBreakerSchema.nullish(),
   tag: z.string().nullish(),
   setting: z.string().nullish(),
   param_override: z.string().nullish(),

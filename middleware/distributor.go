@@ -127,7 +127,8 @@ func Distribute() func(c *gin.Context) {
 					affinityUsable := false
 					preferred, err := model.CacheGetChannel(preferredChannelID)
 					affinitySatisfied := false
-					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled {
+					// 亲和渠道处于熔断冷却中时不再粘住它，让请求走备用渠道
+					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled && !service.IsChannelBreakerSkipping(preferred.Id) {
 						affinitySatisfied, _ = model.ChannelSatisfiesFilters(preferred, modelRequest.Model, constraints.Filters)
 					}
 					if affinitySatisfied {

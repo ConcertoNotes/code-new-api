@@ -165,6 +165,20 @@ export async function updateChannelStatus(
 }
 
 /**
+ * 手动解除渠道的熔断冷却，使其立即重新参与选路。
+ */
+export async function resetChannelBreaker(
+  id: number
+): Promise<{ success: boolean; message?: string }> {
+  const res = await api.post(
+    `/api/channel/${id}/breaker/reset`,
+    {},
+    channelActionConfig()
+  )
+  return res.data
+}
+
+/**
  * Batch update channel enabled/disabled status.
  */
 export async function batchUpdateChannelStatus(

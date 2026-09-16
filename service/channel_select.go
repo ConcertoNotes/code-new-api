@@ -121,6 +121,10 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 	if len(excluded) > 0 {
 		filters = append(filters, dto.ChannelFilter{Kind: dto.FilterExcludedChannels, ExcludedChannelIDs: excluded})
 	}
+	// 熔断冷却中的渠道优先避开，让请求直接落到下一优先级；全部冷却时由过滤器自行兜底放行
+	if breakerFilter := ChannelBreakerFilter(); breakerFilter != nil {
+		filters = append(filters, *breakerFilter)
+	}
 	var autoGroups []string
 	crossGroupRetry := false
 
@@ -213,6 +217,10 @@ func CacheGetRandomSatisfiedChannel(param *RetryParam) (*model.Channel, string, 
 		if err != nil {
 			return nil, param.TokenGroup, err
 		}
+	}
+	if channel != nil {
+		// 半开状态的渠道被选中即视为探测请求，占用探测名额
+		MarkChannelBreakerProbe(channel.Id)
 	}
 	return channel, selectGroup, nil
 }

@@ -11,6 +11,7 @@ var filterEvalOrder = []dto.ChannelFilterKind{
 	dto.FilterRequestPath,
 	dto.FilterTaskPluginIdentity,
 	dto.FilterExcludedChannels,
+	dto.FilterChannelBreaker,
 }
 
 // ChannelSatisfiesFilters reports whether ch passes every filter.
@@ -55,6 +56,10 @@ func filterCandidateIDs(ids []int, modelName string, filters []dto.ChannelFilter
 			}
 		}
 		if len(kept) > 0 && len(next) == 0 {
+			// 熔断过滤只是“优先避开”，若所有候选都在冷却中则放行，保证服务不中断
+			if kind == dto.FilterChannelBreaker {
+				continue
+			}
 			return next, kind
 		}
 		kept = next
@@ -89,7 +94,7 @@ func candidatePassesKindFilters(ch *Channel, exists bool, modelName string, kind
 
 func channelMatchesFilter(ch *Channel, modelName string, filter dto.ChannelFilter) bool {
 	switch filter.Kind {
-	case dto.FilterExcludedChannels:
+	case dto.FilterExcludedChannels, dto.FilterChannelBreaker:
 		_, excluded := filter.ExcludedChannelIDs[ch.Id]
 		return !excluded
 	case dto.FilterRequestPath:

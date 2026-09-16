@@ -11,6 +11,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
+	apidto "github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
@@ -57,6 +58,9 @@ type Channel struct {
 
 	// cache info
 	Keys []string `json:"-" gorm:"-"`
+
+	// 熔断冷却状态，仅在管理端列表查询时填充，不落库
+	Breaker *apidto.ChannelBreakerSnapshot `json:"breaker,omitempty" gorm:"-"`
 }
 
 type ChannelInfo struct {

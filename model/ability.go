@@ -201,6 +201,26 @@ func filterAbilitiesByConstraints(abilities []Ability, modelName string, filters
 			filtered = append(filtered, ability)
 		}
 	}
+	if len(filtered) > 0 {
+		return filtered
+	}
+
+	// 与内存缓存路径保持一致：熔断过滤清空了全部候选时放行（兜底），只应用其他过滤器
+	withoutBreaker := make([]dto.ChannelFilter, 0, len(filters))
+	for _, filter := range filters {
+		if filter.Kind != dto.FilterChannelBreaker {
+			withoutBreaker = append(withoutBreaker, filter)
+		}
+	}
+	if len(withoutBreaker) == len(filters) {
+		return filtered
+	}
+	for _, ability := range abilities {
+		channel := channelsByID[ability.ChannelId]
+		if ok, _ := ChannelSatisfiesFilters(channel, modelName, withoutBreaker); ok {
+			filtered = append(filtered, ability)
+		}
+	}
 	return filtered
 }
 

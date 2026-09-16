@@ -951,6 +951,50 @@ export function useChannelsColumns(
               ? `${t(config.label)} (${enabledCount}/${keySize})`
               : t(config.label)
 
+          // 熔断冷却中 / 探测中：在启用状态下额外提示，便于管理员理解流量为何绕开了该渠道
+          const breaker = channel.breaker
+          if (status === 1 && breaker && breaker.state !== 'closed') {
+            const isProbing = breaker.state === 'half_open'
+            const untilTime = breaker.open_until
+              ? formatTimestampToDate(breaker.open_until)
+              : ''
+            return (
+              <TooltipProvider delay={100}>
+                <Tooltip>
+                  <TooltipTrigger render={<span />}>
+                    <StatusBadge
+                      label={isProbing ? t('Probing') : t('Cooling down')}
+                      variant='warning'
+                      size='sm'
+                      copyable={false}
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side='top' className='max-w-xs'>
+                    <div className='space-y-1 text-xs'>
+                      <div>
+                        {isProbing
+                          ? t(
+                              'Cooldown finished; a probe request is being routed to this channel to confirm recovery.'
+                            )
+                          : t(
+                              'This channel failed repeatedly and is temporarily skipped during routing; requests fall through to lower priorities.'
+                            )}
+                      </div>
+                      {untilTime && !isProbing && (
+                        <div>
+                          {t('Cooldown until:')} {untilTime}
+                        </div>
+                      )}
+                      <div>
+                        {t('Trips:')} {breaker.trips}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )
+          }
+
           // Auto-disabled: show reason and time tooltip
           if (status === 3) {
             let statusReason = ''

@@ -99,8 +99,51 @@ const createRoutingReliabilitySchema = (
           ),
         channel_test_mode: z.enum(channelTestModes),
       }),
+      channel_breaker_setting: z.object({
+        enabled: z.boolean(),
+        failure_threshold: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(1, t('Enter a positive integer')),
+        failure_window_seconds: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(1, t('Enter a positive integer')),
+        cooldown_seconds: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(1, t('Enter a positive integer')),
+        max_cooldown_seconds: z.coerce
+          .number()
+          .int(t('Enter a positive integer'))
+          .min(1, t('Enter a positive integer')),
+        status_codes: z.string(),
+      }),
     })
     .superRefine((values, ctx) => {
+      const breakerParsed = parseHttpStatusCodeRules(
+        values.channel_breaker_setting.status_codes
+      )
+      if (!breakerParsed.ok) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['channel_breaker_setting', 'status_codes'],
+          message: t('Invalid status code rules: {{tokens}}', {
+            tokens: breakerParsed.invalidTokens.join(', '),
+          }),
+        })
+      }
+      if (
+        values.channel_breaker_setting.max_cooldown_seconds <
+        values.channel_breaker_setting.cooldown_seconds
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['channel_breaker_setting', 'max_cooldown_seconds'],
+          message: t('Max cooldown must be at least the initial cooldown'),
+        })
+      }
+
       const disableParsed = parseHttpStatusCodeRules(
         values.AutomaticDisableStatusCodes
       )
@@ -147,6 +190,12 @@ type RoutingReliabilitySectionProps = {
     'monitor_setting.auto_test_channel_minutes': number
     'monitor_setting.channel_test_concurrency': number
     'monitor_setting.channel_test_mode': ChannelTestMode
+    'channel_breaker_setting.enabled': boolean
+    'channel_breaker_setting.failure_threshold': number
+    'channel_breaker_setting.failure_window_seconds': number
+    'channel_breaker_setting.cooldown_seconds': number
+    'channel_breaker_setting.max_cooldown_seconds': number
+    'channel_breaker_setting.status_codes': string
   }
 }
 
@@ -166,6 +215,12 @@ type NormalizedRoutingReliabilityValues = {
   'monitor_setting.auto_test_channel_minutes': number
   'monitor_setting.channel_test_concurrency': number
   'monitor_setting.channel_test_mode': ChannelTestMode
+  'channel_breaker_setting.enabled': boolean
+  'channel_breaker_setting.failure_threshold': number
+  'channel_breaker_setting.failure_window_seconds': number
+  'channel_breaker_setting.cooldown_seconds': number
+  'channel_breaker_setting.max_cooldown_seconds': number
+  'channel_breaker_setting.status_codes': string
 }
 
 function normalizeChannelTestMode(value?: string): ChannelTestMode {
@@ -198,6 +253,18 @@ const buildFormDefaults = (
       defaults['monitor_setting.channel_test_mode']
     ),
   },
+  channel_breaker_setting: {
+    enabled: defaults['channel_breaker_setting.enabled'] ?? true,
+    failure_threshold:
+      defaults['channel_breaker_setting.failure_threshold'] ?? 3,
+    failure_window_seconds:
+      defaults['channel_breaker_setting.failure_window_seconds'] ?? 60,
+    cooldown_seconds:
+      defaults['channel_breaker_setting.cooldown_seconds'] ?? 30,
+    max_cooldown_seconds:
+      defaults['channel_breaker_setting.max_cooldown_seconds'] ?? 600,
+    status_codes: defaults['channel_breaker_setting.status_codes'] ?? '',
+  },
 })
 
 const normalizeDefaults = (
@@ -225,6 +292,19 @@ const normalizeDefaults = (
   'monitor_setting.channel_test_mode': normalizeChannelTestMode(
     defaults['monitor_setting.channel_test_mode']
   ),
+  'channel_breaker_setting.enabled':
+    defaults['channel_breaker_setting.enabled'] ?? true,
+  'channel_breaker_setting.failure_threshold':
+    defaults['channel_breaker_setting.failure_threshold'] ?? 3,
+  'channel_breaker_setting.failure_window_seconds':
+    defaults['channel_breaker_setting.failure_window_seconds'] ?? 60,
+  'channel_breaker_setting.cooldown_seconds':
+    defaults['channel_breaker_setting.cooldown_seconds'] ?? 30,
+  'channel_breaker_setting.max_cooldown_seconds':
+    defaults['channel_breaker_setting.max_cooldown_seconds'] ?? 600,
+  'channel_breaker_setting.status_codes': parseHttpStatusCodeRules(
+    defaults['channel_breaker_setting.status_codes'] ?? ''
+  ).normalized,
 })
 
 const normalizeFormValues = (
@@ -250,6 +330,18 @@ const normalizeFormValues = (
   'monitor_setting.channel_test_concurrency':
     values.monitor_setting.channel_test_concurrency,
   'monitor_setting.channel_test_mode': values.monitor_setting.channel_test_mode,
+  'channel_breaker_setting.enabled': values.channel_breaker_setting.enabled,
+  'channel_breaker_setting.failure_threshold':
+    values.channel_breaker_setting.failure_threshold,
+  'channel_breaker_setting.failure_window_seconds':
+    values.channel_breaker_setting.failure_window_seconds,
+  'channel_breaker_setting.cooldown_seconds':
+    values.channel_breaker_setting.cooldown_seconds,
+  'channel_breaker_setting.max_cooldown_seconds':
+    values.channel_breaker_setting.max_cooldown_seconds,
+  'channel_breaker_setting.status_codes': parseHttpStatusCodeRules(
+    values.channel_breaker_setting.status_codes
+  ).normalized,
 })
 
 export function RoutingReliabilitySection({
@@ -305,6 +397,12 @@ export function RoutingReliabilitySection({
   const autoRetryParsed = useMemo(
     () => parseHttpStatusCodeRules(autoRetryStatusCodes),
     [autoRetryStatusCodes]
+  )
+  const breakerStatusCodes = form.watch('channel_breaker_setting.status_codes')
+  const breakerEnabled = form.watch('channel_breaker_setting.enabled')
+  const breakerParsed = useMemo(
+    () => parseHttpStatusCodeRules(breakerStatusCodes),
+    [breakerStatusCodes]
   )
 
   const onSubmit = async (values: RoutingReliabilityFormValues) => {
@@ -387,6 +485,174 @@ export function RoutingReliabilitySection({
                         autoRetryParsed.normalized !== field.value.trim() && (
                           <span className='text-muted-foreground'>
                             {t('Normalized:')} {autoRetryParsed.normalized}
+                          </span>
+                        )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className='flex min-w-0 flex-col gap-4'>
+            <div className='flex flex-col gap-1'>
+              <h4 className='text-sm font-medium'>
+                {t('Channel failover (circuit breaker)')}
+              </h4>
+              <p className='text-muted-foreground text-sm'>
+                {t(
+                  'When a channel keeps failing it is put into a temporary cooldown and skipped during routing, so requests go straight to the next priority. After the cooldown one probe request is let through: success restores the channel immediately, failure extends the cooldown exponentially.'
+                )}
+              </p>
+            </div>
+            <div className='grid min-w-0 gap-6 lg:grid-cols-3'>
+              <FormField
+                control={form.control}
+                name='channel_breaker_setting.enabled'
+                render={({ field }) => (
+                  <SettingsSwitchItem>
+                    <SettingsSwitchContent>
+                      <FormLabel>{t('Enable channel cooldown')}</FormLabel>
+                      <FormDescription>
+                        {t(
+                          'Skip failing channels automatically and recover them once they are healthy again'
+                        )}
+                      </FormDescription>
+                    </SettingsSwitchContent>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </SettingsSwitchItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='channel_breaker_setting.failure_threshold'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Consecutive failures to trip')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={1}
+                        step={1}
+                        disabled={!breakerEnabled}
+                        {...safeNumberFieldProps(field)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Number of consecutive failures before a channel is put into cooldown'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='channel_breaker_setting.failure_window_seconds'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Failure window (seconds)')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={1}
+                        step={1}
+                        disabled={!breakerEnabled}
+                        {...safeNumberFieldProps(field)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Failures further apart than this window do not count as consecutive'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='channel_breaker_setting.cooldown_seconds'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Initial cooldown (seconds)')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={1}
+                        step={1}
+                        disabled={!breakerEnabled}
+                        {...safeNumberFieldProps(field)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'How long a channel is skipped after it trips for the first time; doubles on every failed probe'
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='channel_breaker_setting.max_cooldown_seconds'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Max cooldown (seconds)')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type='number'
+                        min={1}
+                        step={1}
+                        disabled={!breakerEnabled}
+                        {...safeNumberFieldProps(field)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t('Upper bound for the exponential cooldown')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='channel_breaker_setting.status_codes'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('Cooldown status codes')}</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t('e.g. 408, 429, 500-599')}
+                        disabled={!breakerEnabled}
+                        value={field.value}
+                        onChange={(event) => field.onChange(event.target.value)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {t(
+                        'Upstream status codes that count as a channel failure. Connection errors and timeouts always count.'
+                      )}{' '}
+                      {breakerParsed.ok &&
+                        breakerParsed.normalized &&
+                        breakerParsed.normalized !== field.value.trim() && (
+                          <span className='text-muted-foreground'>
+                            {t('Normalized:')} {breakerParsed.normalized}
                           </span>
                         )}
                     </FormDescription>

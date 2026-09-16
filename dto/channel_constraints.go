@@ -39,6 +39,8 @@ const (
 	FilterRequestPath        ChannelFilterKind = "request_path"
 	FilterTaskPluginIdentity ChannelFilterKind = "task_plugin_identity"
 	FilterExcludedChannels   ChannelFilterKind = "excluded_channels"
+	// FilterChannelBreaker 跳过处于熔断冷却中的渠道；当它会清空全部候选时自动失效（兜底放行）
+	FilterChannelBreaker ChannelFilterKind = "channel_breaker"
 )
 
 type ChannelFilter struct {

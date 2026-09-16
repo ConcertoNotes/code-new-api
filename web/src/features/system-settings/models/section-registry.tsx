@@ -87,6 +87,18 @@ const MODELS_SECTIONS = [
             settings['monitor_setting.channel_test_concurrency'],
           'monitor_setting.channel_test_mode':
             settings['monitor_setting.channel_test_mode'],
+          'channel_breaker_setting.enabled':
+            settings['channel_breaker_setting.enabled'],
+          'channel_breaker_setting.failure_threshold':
+            settings['channel_breaker_setting.failure_threshold'],
+          'channel_breaker_setting.failure_window_seconds':
+            settings['channel_breaker_setting.failure_window_seconds'],
+          'channel_breaker_setting.cooldown_seconds':
+            settings['channel_breaker_setting.cooldown_seconds'],
+          'channel_breaker_setting.max_cooldown_seconds':
+            settings['channel_breaker_setting.max_cooldown_seconds'],
+          'channel_breaker_setting.status_codes':
+            settings['channel_breaker_setting.status_codes'],
         }}
       />
     ),

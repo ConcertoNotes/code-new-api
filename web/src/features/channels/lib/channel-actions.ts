@@ -26,6 +26,7 @@ import {
   testChannel,
   updateChannel,
   updateChannelStatus,
+  resetChannelBreaker,
   batchUpdateChannelStatus,
   batchDeleteChannels,
   batchSetChannelTag,
@@ -123,6 +124,28 @@ export async function handleEnableChannel(
     const response = await updateChannelStatus(id, CHANNEL_STATUS.ENABLED)
     if (response.success) {
       toast.success(i18next.t(SUCCESS_MESSAGES.ENABLED))
+      queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      onSuccess?.()
+    } else {
+      toast.error(response.message || i18next.t(ERROR_MESSAGES.UPDATE_FAILED))
+    }
+  } catch {
+    toast.error(i18next.t(ERROR_MESSAGES.UPDATE_FAILED))
+  }
+}
+
+/**
+ * 解除渠道熔断冷却
+ */
+export async function handleResetChannelBreaker(
+  id: number,
+  queryClient?: QueryClient,
+  onSuccess?: () => void
+): Promise<void> {
+  try {
+    const response = await resetChannelBreaker(id)
+    if (response.success) {
+      toast.success(i18next.t(SUCCESS_MESSAGES.BREAKER_RESET))
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
       onSuccess?.()
     } else {

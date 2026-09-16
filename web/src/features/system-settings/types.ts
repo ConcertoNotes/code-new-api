@@ -250,6 +250,12 @@ export type ModelSettings = {
     | 'scheduled_all'
     | 'auto_ban_only'
     | 'passive_recovery'
+  'channel_breaker_setting.enabled': boolean
+  'channel_breaker_setting.failure_threshold': number
+  'channel_breaker_setting.failure_window_seconds': number
+  'channel_breaker_setting.cooldown_seconds': number
+  'channel_breaker_setting.max_cooldown_seconds': number
+  'channel_breaker_setting.status_codes': string
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
   'channel_affinity_setting.keep_on_channel_disabled': boolean

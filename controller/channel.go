@@ -168,6 +168,7 @@ func GetAllChannels(c *gin.Context) {
 
 	for _, datum := range channelData {
 		clearChannelInfo(datum)
+		datum.Breaker = service.GetChannelBreakerSnapshot(datum.Id)
 	}
 
 	countQuery := buildChannelListQuery(groupFilter, statusFilter, -1)
@@ -381,6 +382,7 @@ func SearchChannels(c *gin.Context) {
 
 	for _, datum := range pagedData {
 		clearChannelInfo(datum)
+		datum.Breaker = service.GetChannelBreakerSnapshot(datum.Id)
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -408,6 +410,7 @@ func GetChannel(c *gin.Context) {
 	}
 	if channel != nil {
 		clearChannelInfo(channel)
+		channel.Breaker = service.GetChannelBreakerSnapshot(channel.Id)
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
@@ -1132,6 +1135,8 @@ func UpdateChannel(c *gin.Context) {
 		return
 	}
 	model.InitChannelCache()
+	// 管理员编辑渠道后视为已处理故障，清除熔断冷却让其立即参与选路
+	service.ResetChannelBreaker(channel.Id)
 	if proxyChanged {
 		service.InvalidateProxyClient(originProxy)
 	}
@@ -1182,6 +1187,7 @@ func UpdateChannelStatus(c *gin.Context) {
 	if changed {
 		model.InitChannelCache()
 	}
+	service.ResetChannelBreaker(id)
 	recordManageAudit(c, "channel.status_update", map[string]interface{}{
 		"id":      id,
 		"status":  req.Status,
@@ -1205,6 +1211,7 @@ func BatchUpdateChannelStatus(c *gin.Context) {
 		if model.UpdateChannelStatus(id, "", req.Status, "manual batch operation") {
 			changedCount++
 		}
+		service.ResetChannelBreaker(id)
 	}
 	if changedCount > 0 {
 		model.InitChannelCache()

@@ -945,6 +945,8 @@ func testChannelForHealthCheck(ctx context.Context, channel *model.Channel, test
 
 	if newAPIError == nil {
 		summary.Succeeded++
+		// 健康检查通过即可解除该渠道的熔断冷却，无需等待下一次探测请求
+		service.ReportChannelBreakerResult(channel.Id, channel.Name, nil)
 	} else {
 		summary.Failed++
 	}

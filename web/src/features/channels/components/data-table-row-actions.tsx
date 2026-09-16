@@ -63,6 +63,7 @@ import { MODEL_FETCHABLE_TYPES } from '../constants'
 import {
   channelsQueryKeys,
   handleDeleteChannel,
+  handleResetChannelBreaker,
   handleTestChannel,
   handleToggleChannelStatus,
   isChannelEnabled,
@@ -121,6 +122,11 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   const handleQueryBalance = () => {
     setCurrentRow(channel)
     setOpen('balance-query')
+  }
+
+  const isCoolingDown = !!channel.breaker && channel.breaker.state !== 'closed'
+  const handleResetBreaker = () => {
+    void handleResetChannelBreaker(channel.id, queryClient)
   }
 
   const handleFetchModels = () => {
@@ -280,6 +286,16 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               <PlugZap size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
+
+          {/* Clear cooldown (only shown while the breaker is tripped) */}
+          {isCoolingDown && (
+            <DropdownMenuItem onClick={handleResetBreaker}>
+              {t('Clear cooldown')}
+              <DropdownMenuShortcut>
+                <RefreshCw size={16} />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          )}
 
           {/* Query Balance */}
           <DropdownMenuItem onClick={handleQueryBalance}>

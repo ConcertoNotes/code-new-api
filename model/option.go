@@ -243,6 +243,16 @@ func validateOptionValue(key string, value string) error {
 	if key == operation_setting.ChannelTestConcurrencyOptionKey {
 		return operation_setting.ValidateChannelTestConcurrency(value)
 	}
+	if key == operation_setting.ChannelBreakerStatusCodesOptionKey {
+		return operation_setting.ValidateChannelBreakerStatusCodes(value)
+	}
+	switch key {
+	case "channel_breaker_setting.failure_threshold",
+		"channel_breaker_setting.failure_window_seconds",
+		"channel_breaker_setting.cooldown_seconds",
+		"channel_breaker_setting.max_cooldown_seconds":
+		return operation_setting.ValidateChannelBreakerPositiveInt(key, value)
+	}
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
 	}
