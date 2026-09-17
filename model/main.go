@@ -345,6 +345,7 @@ func migrateDB() error {
 		&TopUp{},
 		&LotteryPrize{},
 		&LotteryDraw{},
+		&LotteryAccount{},
 		&QuotaData{},
 		&Task{},
 		&TaskPlugin{},

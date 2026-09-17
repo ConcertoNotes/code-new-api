@@ -293,7 +293,13 @@ export function Wallet(props: WalletProps) {
         <SectionPageLayout.Content>
           <div className='mx-auto flex w-full max-w-7xl flex-col gap-4 sm:gap-5'>
             <WalletStatsCard user={user} loading={userLoading} />
-            <LotteryCard status={lotteryStatus} onDrawn={() => getLotteryStatus().then(setLotteryStatus)} />
+            <LotteryCard
+              status={lotteryStatus}
+              onDrawn={() => {
+                fetchUser()
+                getLotteryStatus().then(setLotteryStatus).catch(() => undefined)
+              }}
+            />
 
             <div
               className={

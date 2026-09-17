@@ -1,71 +1,101 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/gin-gonic/gin"
 )
 
-func GetLotteryStatus(c *gin.Context) {
-	now := time.Now()
-	start := time.Date(2026, 9, 25, 0, 0, 0, 0, now.Location())
-	end := time.Date(2026, 10, 8, 0, 0, 0, 0, now.Location())
-	if now.Before(start) || !now.Before(end) {
-		c.JSON(http.StatusOK, gin.H{"enabled": false, "before_start": now.Before(start), "draw_count": 0, "pool_remaining": map[string]int{}, "next_threshold": 0, "activity_end": end.Format(time.RFC3339)})
-		return
-	}
-	id := c.GetInt("id")
-	since := time.Now().AddDate(0, 0, -30).Unix()
-	recharge, err := model.LotteryTotalRecharge(id, since)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load lottery"})
-		return
-	}
-	drawn, err := model.LotteryDrawCount(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load lottery"})
-		return
-	}
-	prizes, err := model.LotteryPrizeSnapshot()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load lottery"})
-		return
-	}
-	pool := map[string]int{}
-	for _, p := range prizes {
-		pool[formatLotteryAmount(p.Amount)] = p.Stock
-	}
-	available := int(recharge/20) - int(drawn)
-	if available < 0 {
-		available = 0
-	}
-	next := 20 - int(recharge)%20
-	if next == 20 {
-		next = 0
-	}
-	c.JSON(http.StatusOK, gin.H{"enabled": true, "draw_count": available, "total_recharge": recharge, "total_reward": 0, "pool_remaining": pool, "next_threshold": next, "activity_end": "2026-10-07T23:59:59+08:00"})
-}
-
 func formatLotteryAmount(amount float64) string { return strconv.FormatFloat(amount, 'f', -1, 64) }
 
-func DrawLottery(c *gin.Context) {
-	result, err := model.DrawLottery(c.GetInt("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+func GetLotteryStatus(c *gin.Context) {
+	s := operation_setting.GetLotterySetting()
+	now := common.GetTimestamp()
+	// 管理员不受活动时间限制，便于上线前预览和验收；普通用户严格按窗口
+	isAdmin := c.GetInt("role") >= common.RoleAdminUser
+	base := gin.H{
+		"enabled":        s.Enabled,
+		"before_start":   !isAdmin && now < s.StartTime,
+		"ended":          !isAdmin && now >= s.EndTime,
+		"admin_preview":  isAdmin && !s.IsActive(now),
+		"activity_start": model.LotteryActivityTime(s.StartTime),
+		"activity_end":   model.LotteryActivityTime(s.EndTime),
+		"threshold":      s.EffectiveThreshold(),
+	}
+	if !s.Enabled || (!isAdmin && !s.IsActive(now)) {
+		base["draw_count"] = 0
+		base["total_recharge"] = 0
+		base["total_reward"] = 0
+		base["pool_remaining"] = map[string]int{}
+		base["pool_initial"] = map[string]int{}
+		base["next_threshold"] = 0
+		base["refilling"] = false
+		c.JSON(http.StatusOK, base)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"reward": result.Amount, "draw_count": 0, "message": "success"})
+	info, err := model.GetLotteryStatus(c.GetInt("id"))
+	if err != nil {
+		common.SysError("failed to load lottery status: " + err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load lottery"})
+		return
+	}
+	remaining := map[string]int{}
+	initial := map[string]int{}
+	for _, p := range info.Prizes {
+		remaining[formatLotteryAmount(p.Amount)] = p.Stock
+		initial[formatLotteryAmount(p.Amount)] = p.InitialStock
+	}
+	base["draw_count"] = info.DrawsAvailable
+	base["draws_used"] = info.DrawsUsed
+	base["total_recharge"] = info.Recharge
+	base["total_reward"] = info.TotalReward
+	base["pool_remaining"] = remaining
+	base["pool_initial"] = initial
+	base["next_threshold"] = info.NextThreshold
+	base["refilling"] = info.Refilling
+	c.JSON(http.StatusOK, base)
+}
+
+func DrawLottery(c *gin.Context) {
+	result, err := model.DrawLottery(c.GetInt("id"), c.GetInt("role") >= common.RoleAdminUser)
+	if err != nil {
+		status := http.StatusBadRequest
+		code := "failed"
+		switch {
+		case errors.Is(err, model.ErrLotteryInactive):
+			status, code = http.StatusForbidden, "inactive"
+		case errors.Is(err, model.ErrLotteryNoDraws):
+			code = "no_draws"
+		case errors.Is(err, model.ErrLotteryRefilling):
+			status, code = http.StatusConflict, "pool_refilling"
+		case errors.Is(err, model.ErrLotteryPoolExhausted):
+			status, code = http.StatusConflict, "pool_exhausted"
+		case errors.Is(err, model.ErrLotteryRetry):
+			status, code = http.StatusConflict, "retry"
+		default:
+			common.SysError("lottery draw failed: " + err.Error())
+			status = http.StatusInternalServerError
+		}
+		c.JSON(status, gin.H{"message": err.Error(), "code": code})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"reward": result.Amount, "quota": result.Quota, "record_id": result.Id, "message": "success"})
 }
 
 func GetLotteryRecords(c *gin.Context) {
-	var rows []model.LotteryDraw
-	err := model.DB.Where("user_id = ?", c.GetInt("id")).Order("created_at DESC").Limit(100).Find(&rows).Error
+	rows, err := model.GetLotteryRecords(c.GetInt("id"), 100)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load records"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"items": rows})
+	items := make([]gin.H, 0, len(rows))
+	for _, r := range rows {
+		items = append(items, gin.H{"id": r.Id, "reward": r.Amount, "quota": r.Quota, "created_at": r.CreatedAt})
+	}
+	c.JSON(http.StatusOK, gin.H{"items": items})
 }

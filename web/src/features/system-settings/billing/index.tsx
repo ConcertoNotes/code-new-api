@@ -110,6 +110,12 @@ const defaultBillingSettings: BillingSettings = {
   'checkin_setting.enabled': false,
   'checkin_setting.min_quota': 1000,
   'checkin_setting.max_quota': 10000,
+  'lottery_setting.enabled': true,
+  'lottery_setting.start_time': 1790265600,
+  'lottery_setting.end_time': 1791388800,
+  'lottery_setting.threshold_money': 20,
+  'lottery_setting.payout_ratio': 0.25,
+  'lottery_setting.reserve_quota': 0,
 }
 
 export function BillingSettings() {
