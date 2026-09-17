@@ -49,6 +49,7 @@ test('Chinese island navigation preserves destinations and updates when the lang
   ).toEqual([
     ['今日噜噜', '/dashboard/overview'],
     ['水豚看板', '/dashboard/models'],
+    ['柚子收支', '/profit'],
     ['通行徽章', '/keys'],
     ['足迹册', '/usage-logs/common'],
     ['冒险记录', '/usage-logs/task'],

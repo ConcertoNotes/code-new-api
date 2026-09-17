@@ -324,6 +324,8 @@ func SetApiRouter(router *gin.Engine) {
 		dataRoute.GET("/self/summary", middleware.UserAuth(), controller.GetUserUsageSummary)
 		dataRoute.GET("/flow", middleware.AdminAuth(), controller.GetAllFlowQuotaDates)
 		dataRoute.GET("/flow/self", middleware.UserAuth(), controller.GetUserFlowQuotaDates)
+		dataRoute.GET("/profit", middleware.AdminAuth(), controller.GetChannelProfitStats)
+		dataRoute.PUT("/profit/upstream_ratio", middleware.AdminAuth(), controller.UpdateChannelUpstreamRatio)
 
 		logRoute.Use(middleware.CORS(), middleware.CriticalRateLimit())
 		{

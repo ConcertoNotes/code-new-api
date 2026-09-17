@@ -13,6 +13,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/config"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/performance_setting"
+	"github.com/QuantumNous/new-api/setting/profit_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"gorm.io/gorm"
@@ -233,6 +234,9 @@ func validateOptionValue(key string, value string) error {
 	}
 	if key == "VideoGenerationPrice" {
 		return ratio_setting.ValidateVideoGenerationPriceJSON(value)
+	}
+	if key == profit_setting.ChannelUpstreamRatioOptionKey {
+		return profit_setting.ValidateChannelUpstreamRatioJSON(value)
 	}
 	if key == "ImageGenerationPrice" {
 		return ratio_setting.ValidateImageGenerationPriceJSON(value)

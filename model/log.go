@@ -627,6 +627,30 @@ type UserUsageSummary struct {
 	AllTime     UsageSummaryPeriod `json:"all_time"`
 }
 
+// logOfficialQuotaExpression 返回按官方价（未乘分组倍率）折算的额度 SQL 表达式。
+// 未记录 official_quota 的旧日志按记录的分组倍率反推，缺失倍率时直接使用 quota。
+func logOfficialQuotaExpression() string {
+	groupRatioExpression := "COALESCE(CASE WHEN json_valid(other) THEN CAST(json_extract(other, '$.group_ratio') AS REAL) END, 1)"
+	recordedOfficialQuotaExpression := "CASE WHEN json_valid(other) THEN CAST(json_extract(other, '$.official_quota') AS REAL) END"
+	switch common.LogDatabaseType() {
+	case common.DatabaseTypeMySQL:
+		groupRatioExpression = "COALESCE(CASE WHEN JSON_VALID(other) THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(other, '$.group_ratio')) AS DECIMAL(20, 8)) END, 1)"
+		recordedOfficialQuotaExpression = "CASE WHEN JSON_VALID(other) THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(other, '$.official_quota')) AS DECIMAL(20, 8)) END"
+	case common.DatabaseTypePostgreSQL:
+		groupRatioExpression = "COALESCE(CAST(CASE WHEN other = '' THEN NULL ELSE CAST(other AS jsonb) ->> 'group_ratio' END AS DOUBLE PRECISION), 1)"
+		recordedOfficialQuotaExpression = "CAST(CASE WHEN other = '' THEN NULL ELSE CAST(other AS jsonb) ->> 'official_quota' END AS DOUBLE PRECISION)"
+	case common.DatabaseTypeClickHouse:
+		groupRatioExpression = "if(JSONExtractFloat(other, 'group_ratio') > 0, JSONExtractFloat(other, 'group_ratio'), 1)"
+		recordedOfficialQuotaExpression = "if(JSONHas(other, 'official_quota'), JSONExtractFloat(other, 'official_quota'), NULL)"
+	}
+	return fmt.Sprintf(
+		"COALESCE(%s, CASE WHEN %s > 0 THEN quota / %s ELSE quota END)",
+		recordedOfficialQuotaExpression,
+		groupRatioExpression,
+		groupRatioExpression,
+	)
+}
+
 // GetUserUsageSummary returns site-wide data when userID is zero. Consume logs
 // written before official_quota was introduced fall back to reversing the
 // recorded group multiplier.
@@ -644,25 +668,7 @@ func GetUserUsageSummary(userID int, windowStart int64, windowEnd int64) (UserUs
 		TotalOutputTokens   int64
 	}
 
-	groupRatioExpression := "COALESCE(CASE WHEN json_valid(other) THEN CAST(json_extract(other, '$.group_ratio') AS REAL) END, 1)"
-	recordedOfficialQuotaExpression := "CASE WHEN json_valid(other) THEN CAST(json_extract(other, '$.official_quota') AS REAL) END"
-	switch common.LogDatabaseType() {
-	case common.DatabaseTypeMySQL:
-		groupRatioExpression = "COALESCE(CASE WHEN JSON_VALID(other) THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(other, '$.group_ratio')) AS DECIMAL(20, 8)) END, 1)"
-		recordedOfficialQuotaExpression = "CASE WHEN JSON_VALID(other) THEN CAST(JSON_UNQUOTE(JSON_EXTRACT(other, '$.official_quota')) AS DECIMAL(20, 8)) END"
-	case common.DatabaseTypePostgreSQL:
-		groupRatioExpression = "COALESCE(CAST(CASE WHEN other = '' THEN NULL ELSE CAST(other AS jsonb) ->> 'group_ratio' END AS DOUBLE PRECISION), 1)"
-		recordedOfficialQuotaExpression = "CAST(CASE WHEN other = '' THEN NULL ELSE CAST(other AS jsonb) ->> 'official_quota' END AS DOUBLE PRECISION)"
-	case common.DatabaseTypeClickHouse:
-		groupRatioExpression = "if(JSONExtractFloat(other, 'group_ratio') > 0, JSONExtractFloat(other, 'group_ratio'), 1)"
-		recordedOfficialQuotaExpression = "if(JSONHas(other, 'official_quota'), JSONExtractFloat(other, 'official_quota'), NULL)"
-	}
-	officialQuotaExpression := fmt.Sprintf(
-		"COALESCE(%s, CASE WHEN %s > 0 THEN quota / %s ELSE quota END)",
-		recordedOfficialQuotaExpression,
-		groupRatioExpression,
-		groupRatioExpression,
-	)
+	officialQuotaExpression := logOfficialQuotaExpression()
 	selectExpression := fmt.Sprintf(`
 			COALESCE(SUM(CASE WHEN created_at >= ? THEN quota ELSE 0 END), 0) AS recent_quota,
 			COALESCE(SUM(CASE WHEN created_at >= ? THEN %s ELSE 0 END), 0) AS recent_official_quota,

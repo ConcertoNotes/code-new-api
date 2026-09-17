@@ -22,6 +22,7 @@ import {
   CreditCard,
   FileText,
   FlaskConical,
+  HandCoins,
   Key,
   LayoutDashboard,
   ListTodo,
@@ -87,6 +88,12 @@ export function useSidebarData(): SidebarData {
             title: t('Dashboard'),
             url: '/dashboard/models',
             icon: LayoutDashboard,
+          },
+          {
+            title: t('Profit & Expense'),
+            url: '/profit',
+            icon: HandCoins,
+            requiredRole: ROLE.ADMIN,
           },
           {
             title: t('API Keys'),
