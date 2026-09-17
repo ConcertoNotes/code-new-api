@@ -107,9 +107,10 @@ func TestChannelProfitUsageStats(t *testing.T) {
 			daily, err := GetChannelDailyUsageStats(base, base+2*day-1, 0)
 			require.NoError(t, err)
 			require.Len(t, daily, 3)
-			assert.Equal(t, ChannelDailyUsageStat{Bucket: base, ChannelId: 1, Quota: 4500, OfficialQuota: 3000}, daily[0])
+			assert.Equal(t, ChannelDailyUsageStat{Bucket: base, ChannelId: 1, UseGroup: "default", Quota: 4500, OfficialQuota: 3000}, daily[0])
 			assert.Equal(t, base+day, daily[1].Bucket)
 			assert.Equal(t, base+day, daily[2].Bucket)
+			assert.ElementsMatch(t, []string{"vip", "default"}, []string{daily[1].UseGroup, daily[2].UseGroup})
 
 			// 东八区：第 0 天 base+100 落在本地当天，桶起点仍是本地零点对应的 UTC 时间戳
 			shifted, err := GetChannelDailyUsageStats(base, base+2*day-1, 8*3600)

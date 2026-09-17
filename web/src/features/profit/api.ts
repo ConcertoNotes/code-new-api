@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
 
-import type { ChannelProfitStats } from './types'
+import type { ChannelProfitStats, ProfitSettingsPayload } from './types'
 
 /** 获取各渠道 × 分组的实时收支统计（仅管理员） */
 export async function getChannelProfitStats(params: {
@@ -41,6 +41,15 @@ export async function updateChannelUpstreamRatio(payload: {
 }) {
   const res = await api.put<{ success: boolean; message?: string }>(
     '/api/data/profit/upstream_ratio',
+    payload
+  )
+  return res.data
+}
+
+/** 更新统计起点 / 行顺序 / 被移除的行 */
+export async function updateProfitSettings(payload: ProfitSettingsPayload) {
+  const res = await api.put<{ success: boolean; message?: string }>(
+    '/api/data/profit/settings',
     payload
   )
   return res.data

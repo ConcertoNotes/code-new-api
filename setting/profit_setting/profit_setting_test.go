@@ -67,3 +67,49 @@ func TestOptionReloadReplacesUpstreamRatios(t *testing.T) {
 	assert.Equal(t, 0.7, GetChannelUpstreamRatio(1))
 	assert.Equal(t, DefaultUpstreamRatio, GetChannelUpstreamRatio(9))
 }
+
+func TestNormalizeRowKeys(t *testing.T) {
+	keys, err := NormalizeRowKeys([]string{" 1|default ", "2|vip", "1|default", ""})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"1|default", "2|vip"}, keys)
+
+	_, err = NormalizeRowKeys([]string{"default"})
+	assert.Error(t, err)
+	_, err = NormalizeRowKeys([]string{"0|default"})
+	assert.Error(t, err)
+	_, err = NormalizeRowKeys([]string{"abc|default"})
+	assert.Error(t, err)
+}
+
+func TestRowKeysOptionRoundTrip(t *testing.T) {
+	previousOrder, previousHidden := profitSetting.RowOrder, profitSetting.HiddenRows
+	t.Cleanup(func() {
+		profitSetting.RowOrder, profitSetting.HiddenRows = previousOrder, previousHidden
+	})
+
+	jsonStr, err := BuildRowKeysJSON([]string{"3|vip", "1|default"})
+	require.NoError(t, err)
+	assert.JSONEq(t, `["3|vip","1|default"]`, jsonStr)
+	assert.NoError(t, ValidateRowKeysJSON(jsonStr))
+	assert.NoError(t, ValidateRowKeysJSON(""))
+	assert.Error(t, ValidateRowKeysJSON(`["bad"]`))
+
+	cfg := config.GlobalConfig.Get("profit_setting")
+	require.NoError(t, config.UpdateConfigFromMap(cfg, map[string]string{
+		"row_order":   jsonStr,
+		"hidden_rows": `["2|default"]`,
+	}))
+	assert.Equal(t, []string{"3|vip", "1|default"}, GetRowOrder())
+	assert.Equal(t, []string{"2|default"}, GetHiddenRows())
+
+	// 非法 JSON 不应导致崩溃，按空列表处理
+	profitSetting.HiddenRows = "not json"
+	assert.Nil(t, GetHiddenRows())
+}
+
+func TestValidateStatsStartAt(t *testing.T) {
+	assert.NoError(t, ValidateStatsStartAt("0"))
+	assert.NoError(t, ValidateStatsStartAt("1700000000"))
+	assert.Error(t, ValidateStatsStartAt("-1"))
+	assert.Error(t, ValidateStatsStartAt("abc"))
+}

@@ -238,6 +238,12 @@ func validateOptionValue(key string, value string) error {
 	if key == profit_setting.ChannelUpstreamRatioOptionKey {
 		return profit_setting.ValidateChannelUpstreamRatioJSON(value)
 	}
+	if key == profit_setting.StatsStartAtOptionKey {
+		return profit_setting.ValidateStatsStartAt(value)
+	}
+	if key == profit_setting.RowOrderOptionKey || key == profit_setting.HiddenRowsOptionKey {
+		return profit_setting.ValidateRowKeysJSON(value)
+	}
 	if key == "ImageGenerationPrice" {
 		return ratio_setting.ValidateImageGenerationPriceJSON(value)
 	}

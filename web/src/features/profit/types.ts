@@ -18,11 +18,15 @@ For commercial licensing, please contact support@quantumnous.com
 */
 /** 单个渠道在单个分组下的收支明细 */
 export type ChannelProfitRow = {
+  /** 行键：`渠道ID|分组`，用于排序与移除 */
+  key: string
   channel_id: number
   channel_name: string
   channel_type: number
   channel_status: number
   channel_exists: boolean
+  /** 已被管理员从收支页移除 */
+  hidden: boolean
   group: string
   sell_ratio: number
   upstream_ratio: number
@@ -56,6 +60,10 @@ export type ChannelProfitSummary = {
 export type ChannelProfitStats = {
   start_timestamp: number
   end_timestamp: number
+  /** 统计起点（Unix 秒），之前的日志不计入 */
+  stats_start_at: number
+  row_order: string[]
+  hidden_rows: string[]
   group_ratio: Record<string, number>
   channel_upstream_ratio: Record<string, number>
   summary: ChannelProfitSummary
@@ -64,3 +72,10 @@ export type ChannelProfitStats = {
 }
 
 export type ProfitStatusFilter = 'all' | 'enabled' | 'disabled'
+
+/** 只更新传入的字段；stats_start_at 传 0 表示从现在重新开始统计 */
+export type ProfitSettingsPayload = {
+  stats_start_at?: number
+  row_order?: string[]
+  hidden_rows?: string[]
+}

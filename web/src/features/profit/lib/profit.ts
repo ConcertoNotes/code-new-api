@@ -149,3 +149,37 @@ export function buildProfitCsv(
   // 使用 CRLF 并加 BOM，保证 Excel 直接打开时中文不乱码
   return `﻿${lines.join('\r\n')}`
 }
+
+/** 拖拽排序：把 dragKey 移动到 targetKey 所在位置，返回新的完整顺序 */
+export function moveRowKey(
+  keys: string[],
+  dragKey: string,
+  targetKey: string
+): string[] {
+  const from = keys.indexOf(dragKey)
+  const to = keys.indexOf(targetKey)
+  if (from < 0 || to < 0 || from === to) return keys
+  const next = [...keys]
+  next.splice(from, 1)
+  next.splice(to, 0, dragKey)
+  return next
+}
+
+/** 按给定顺序排列明细行；未出现在顺序里的行保持原相对顺序排在后面 */
+export function sortRowsByOrder(
+  rows: ChannelProfitRow[],
+  order: string[]
+): ChannelProfitRow[] {
+  const index = new Map(order.map((key, position) => [key, position] as const))
+  return rows
+    .map((row, position) => ({ row, position }))
+    .sort((a, b) => {
+      const left = index.get(a.row.key)
+      const right = index.get(b.row.key)
+      if (left !== undefined && right !== undefined) return left - right
+      if (left !== undefined) return -1
+      if (right !== undefined) return 1
+      return a.position - b.position
+    })
+    .map((item) => item.row)
+}

@@ -28,16 +28,22 @@ import {
   filterProfitRows,
   formatRatio,
   getTimezoneOffsetSeconds,
+  moveRowKey,
+  sortRowsByOrder,
 } from '../profit'
 
 function makeRow(overrides: Partial<ChannelProfitRow>): ChannelProfitRow {
+  const channelId = overrides.channel_id ?? 1
+  const group = overrides.group ?? 'default'
   return {
-    channel_id: 1,
+    key: `${channelId}|${group}`,
+    channel_id: channelId,
     channel_name: 'OpenAI',
     channel_type: 1,
     channel_status: 1,
     channel_exists: true,
-    group: 'default',
+    hidden: false,
+    group,
     sell_ratio: 1.5,
     upstream_ratio: 1,
     requests: 10,
@@ -209,5 +215,51 @@ describe('buildProfitCsv', () => {
       '1,"Open, AI",default,1,1.5,10,$1500,$1000,$500,33.3%,T1700000000'
     )
     expect(lines[2]).toBe('2,OpenAI,default,1,1.5,10,$0,$1000,$0,-,-')
+  })
+})
+
+describe('moveRowKey', () => {
+  test('moving an item down places it after the target', () => {
+    expect(moveRowKey(['a', 'b', 'c', 'd'], 'a', 'c')).toEqual([
+      'b',
+      'c',
+      'a',
+      'd',
+    ])
+  })
+
+  test('moving an item up places it before the target', () => {
+    expect(moveRowKey(['a', 'b', 'c', 'd'], 'd', 'b')).toEqual([
+      'a',
+      'd',
+      'b',
+      'c',
+    ])
+  })
+
+  test('returns the same array when keys are unknown or identical', () => {
+    const keys = ['a', 'b']
+    expect(moveRowKey(keys, 'a', 'a')).toBe(keys)
+    expect(moveRowKey(keys, 'x', 'b')).toBe(keys)
+  })
+})
+
+describe('sortRowsByOrder', () => {
+  test('ordered keys come first in the given order, the rest keep their relative order', () => {
+    const rows = [
+      makeRow({ channel_id: 1 }),
+      makeRow({ channel_id: 2 }),
+      makeRow({ channel_id: 3 }),
+      makeRow({ channel_id: 4 }),
+    ]
+    const sorted = sortRowsByOrder(rows, ['3|default', '1|default'])
+    expect(sorted.map((row) => row.channel_id)).toEqual([3, 1, 2, 4])
+  })
+
+  test('empty order keeps the original order', () => {
+    const rows = [makeRow({ channel_id: 2 }), makeRow({ channel_id: 1 })]
+    expect(sortRowsByOrder(rows, []).map((row) => row.channel_id)).toEqual([
+      2, 1,
+    ])
   })
 })

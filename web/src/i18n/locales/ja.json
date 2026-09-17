@@ -5783,6 +5783,23 @@
     "Upstream ratio updated": "Upstream ratio updated",
     "{{count}} channels in total": "{{count}} channels in total",
     "{{count}} requests billed": "{{count}} requests billed",
-    "Deleted channel": "Deleted channel"
+    "Deleted channel": "Deleted channel",
+    "Drag to reorder {{name}}": "Drag to reorder {{name}}",
+    "Drag to reorder": "Drag to reorder",
+    "Restore {{name}} to the ledger": "Restore {{name}} to the ledger",
+    "Restore": "Restore",
+    "Remove {{name}} from the ledger": "Remove {{name}} from the ledger",
+    "Failed to update ledger settings": "Failed to update ledger settings",
+    "Removed from the ledger": "Removed from the ledger",
+    "Restored to the ledger": "Restored to the ledger",
+    "Ledger now starts from this moment": "Ledger now starts from this moment",
+    "Hide removed rows": "Hide removed rows",
+    "Show removed rows ({{count}})": "Show removed rows ({{count}})",
+    "Counting since {{time}}; earlier usage is ignored.": "Counting since {{time}}; earlier usage is ignored.",
+    "Restart from now": "Restart from now",
+    "Remove from the ledger?": "Remove from the ledger?",
+    "Channel {{name}} ({{group}}) will be hidden from this page and excluded from the totals. The channel itself is not deleted and you can restore the row at any time.": "Channel {{name}} ({{group}}) will be hidden from this page and excluded from the totals. The channel itself is not deleted and you can restore the row at any time.",
+    "Restart the ledger from now?": "Restart the ledger from now?",
+    "Usage recorded before this moment will no longer be counted on this page. Logs are kept and this only changes the statistics start time.": "Usage recorded before this moment will no longer be counted on this page. Logs are kept and this only changes the statistics start time."
   }
 }

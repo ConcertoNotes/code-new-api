@@ -5783,6 +5783,23 @@
     "Upstream ratio updated": "上游倍率已更新",
     "{{count}} channels in total": "共 {{count}} 个渠道",
     "{{count}} requests billed": "共计费 {{count}} 次请求",
-    "Deleted channel": "已删除渠道"
+    "Deleted channel": "已删除渠道",
+    "Drag to reorder {{name}}": "拖拽调整 {{name}} 的顺序",
+    "Drag to reorder": "拖拽排序",
+    "Restore {{name}} to the ledger": "把 {{name}} 恢复到收支页",
+    "Restore": "恢复",
+    "Remove {{name}} from the ledger": "从收支页移除 {{name}}",
+    "Failed to update ledger settings": "更新收支设置失败",
+    "Removed from the ledger": "已从收支页移除",
+    "Restored to the ledger": "已恢复到收支页",
+    "Ledger now starts from this moment": "已从现在开始重新统计",
+    "Hide removed rows": "收起已移除的行",
+    "Show removed rows ({{count}})": "显示已移除的行（{{count}}）",
+    "Counting since {{time}}; earlier usage is ignored.": "自 {{time}} 起统计，之前的使用记录不计入。",
+    "Restart from now": "从现在重新统计",
+    "Remove from the ledger?": "从收支页移除？",
+    "Channel {{name}} ({{group}}) will be hidden from this page and excluded from the totals. The channel itself is not deleted and you can restore the row at any time.": "渠道 {{name}}（{{group}}）将从本页隐藏并不再计入汇总。渠道本身不会被删除，之后可以随时恢复该行。",
+    "Restart the ledger from now?": "从现在重新开始统计？",
+    "Usage recorded before this moment will no longer be counted on this page. Logs are kept and this only changes the statistics start time.": "此刻之前的使用记录将不再计入本页统计。日志本身会保留，只是改变统计起点。"
   }
 }

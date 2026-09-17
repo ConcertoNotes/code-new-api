@@ -20,11 +20,13 @@ const maxProfitRangeSeconds int64 = 366 * 24 * 3600
 
 // ChannelProfitRow 单个渠道在单个分组下的收支明细
 type ChannelProfitRow struct {
+	Key           string  `json:"key"`
 	ChannelId     int     `json:"channel_id"`
 	ChannelName   string  `json:"channel_name"`
 	ChannelType   int     `json:"channel_type"`
 	ChannelStatus int     `json:"channel_status"`
 	ChannelExists bool    `json:"channel_exists"`
+	Hidden        bool    `json:"hidden"`
 	Group         string  `json:"group"`
 	SellRatio     float64 `json:"sell_ratio"`
 	UpstreamRatio float64 `json:"upstream_ratio"`
@@ -44,7 +46,7 @@ type ChannelProfitTrendPoint struct {
 	ProfitQuota float64 `json:"profit_quota"`
 }
 
-// ChannelProfitSummary 时间范围内的收支汇总
+// ChannelProfitSummary 时间范围内的收支汇总（不含被移除的行）
 type ChannelProfitSummary struct {
 	Quota          int64   `json:"quota"`
 	OfficialQuota  float64 `json:"official_quota"`
@@ -67,8 +69,25 @@ func parseProfitTimeRange(c *gin.Context) (int64, int64, bool) {
 	return startTimestamp, endTimestamp, true
 }
 
-func channelProfitRowKey(channelId int, group string) string {
-	return strconv.Itoa(channelId) + "|" + group
+// ensureProfitStatsStartAt 返回统计起点；首次访问时把“现在”记为起点，之前的日志不再计入
+func ensureProfitStatsStartAt() (int64, error) {
+	startAt := profit_setting.GetStatsStartAt()
+	if startAt > 0 {
+		return startAt, nil
+	}
+	startAt = common.GetTimestamp()
+	if err := model.UpdateOption(profit_setting.StatsStartAtOptionKey, strconv.FormatInt(startAt, 10)); err != nil {
+		return 0, err
+	}
+	return startAt, nil
+}
+
+func toKeySet(keys []string) map[string]struct{} {
+	set := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		set[key] = struct{}{}
+	}
+	return set
 }
 
 // GetChannelProfitStats 返回各渠道 × 分组的实时收支统计
@@ -79,20 +98,34 @@ func GetChannelProfitStats(c *gin.Context) {
 	}
 	timezoneOffset, _ := strconv.ParseInt(c.DefaultQuery("tz_offset", "0"), 10, 64)
 
+	statsStartAt, err := ensureProfitStatsStartAt()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	// 统计起点之前的日志不计入
+	if startTimestamp < statsStartAt {
+		startTimestamp = statsStartAt
+	}
+
 	channels, err := model.GetProfitChannelBriefs()
 	if err != nil {
 		common.ApiError(c, err)
 		return
 	}
-	usageStats, err := model.GetChannelGroupUsageStats(startTimestamp, endTimestamp)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	dailyStats, err := model.GetChannelDailyUsageStats(startTimestamp, endTimestamp, timezoneOffset)
-	if err != nil {
-		common.ApiError(c, err)
-		return
+	var usageStats []model.ChannelGroupUsageStat
+	var dailyStats []model.ChannelDailyUsageStat
+	if endTimestamp >= startTimestamp {
+		usageStats, err = model.GetChannelGroupUsageStats(startTimestamp, endTimestamp)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		dailyStats, err = model.GetChannelDailyUsageStats(startTimestamp, endTimestamp, timezoneOffset)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
 	}
 
 	groupRatios := ratio_setting.GetGroupRatioCopy()
@@ -102,6 +135,8 @@ func GetChannelProfitStats(c *gin.Context) {
 		}
 		return 1
 	}
+	hiddenRows := profit_setting.GetHiddenRows()
+	hiddenSet := toKeySet(hiddenRows)
 
 	channelById := make(map[int]model.ProfitChannelBrief, len(channels))
 	rows := make(map[string]*ChannelProfitRow)
@@ -113,11 +148,12 @@ func GetChannelProfitStats(c *gin.Context) {
 			if group == "" {
 				continue
 			}
-			key := channelProfitRowKey(channel.Id, group)
+			key := profit_setting.RowKey(channel.Id, group)
 			if _, exists := rows[key]; exists {
 				continue
 			}
 			rows[key] = &ChannelProfitRow{
+				Key:           key,
 				ChannelId:     channel.Id,
 				ChannelName:   channel.Name,
 				ChannelType:   channel.Type,
@@ -131,10 +167,11 @@ func GetChannelProfitStats(c *gin.Context) {
 	}
 	// 再把使用记录里出现的 (渠道, 分组) 组合合并进来，包含已删除渠道或已移出的分组
 	for _, stat := range usageStats {
-		key := channelProfitRowKey(stat.ChannelId, stat.UseGroup)
+		key := profit_setting.RowKey(stat.ChannelId, stat.UseGroup)
 		row, exists := rows[key]
 		if !exists {
 			row = &ChannelProfitRow{
+				Key:           key,
 				ChannelId:     stat.ChannelId,
 				ChannelName:   fmt.Sprintf("#%d", stat.ChannelId),
 				Group:         stat.UseGroup,
@@ -161,6 +198,11 @@ func GetChannelProfitStats(c *gin.Context) {
 	for _, row := range rows {
 		row.CostQuota = row.OfficialQuota * row.UpstreamRatio
 		row.ProfitQuota = float64(row.Quota) - row.CostQuota
+		_, row.Hidden = hiddenSet[row.Key]
+		rowList = append(rowList, row)
+		if row.Hidden {
+			continue
+		}
 		summary.Quota += row.Quota
 		summary.OfficialQuota += row.OfficialQuota
 		summary.CostQuota += row.CostQuota
@@ -169,10 +211,24 @@ func GetChannelProfitStats(c *gin.Context) {
 		if row.Requests > 0 {
 			activeChannels[row.ChannelId] = struct{}{}
 		}
-		rowList = append(rowList, row)
 	}
 	summary.ActiveChannels = len(activeChannels)
+
+	// 用户拖拽过的行按保存的顺序排在前面，其余按收入降序
+	rowOrder := profit_setting.GetRowOrder()
+	orderIndex := make(map[string]int, len(rowOrder))
+	for index, key := range rowOrder {
+		orderIndex[key] = index
+	}
 	sort.Slice(rowList, func(i, j int) bool {
+		left, leftOrdered := orderIndex[rowList[i].Key]
+		right, rightOrdered := orderIndex[rowList[j].Key]
+		if leftOrdered != rightOrdered {
+			return leftOrdered
+		}
+		if leftOrdered {
+			return left < right
+		}
 		if rowList[i].Quota != rowList[j].Quota {
 			return rowList[i].Quota > rowList[j].Quota
 		}
@@ -184,6 +240,9 @@ func GetChannelProfitStats(c *gin.Context) {
 
 	trendByDate := make(map[int64]*ChannelProfitTrendPoint)
 	for _, stat := range dailyStats {
+		if _, hidden := hiddenSet[profit_setting.RowKey(stat.ChannelId, stat.UseGroup)]; hidden {
+			continue
+		}
 		point, exists := trendByDate[stat.Bucket]
 		if !exists {
 			point = &ChannelProfitTrendPoint{Date: stat.Bucket}
@@ -206,8 +265,11 @@ func GetChannelProfitStats(c *gin.Context) {
 		"data": gin.H{
 			"start_timestamp":        startTimestamp,
 			"end_timestamp":          endTimestamp,
+			"stats_start_at":         statsStartAt,
 			"group_ratio":            groupRatios,
 			"channel_upstream_ratio": profit_setting.GetChannelUpstreamRatioCopy(),
+			"row_order":              rowOrder,
+			"hidden_rows":            hiddenRows,
 			"summary":                summary,
 			"rows":                   rowList,
 			"trend":                  trend,
@@ -246,6 +308,67 @@ func UpdateChannelUpstreamRatio(c *gin.Context) {
 		"data": gin.H{
 			"channel_id": req.ChannelId,
 			"ratio":      req.Ratio,
+		},
+	})
+}
+
+// updateProfitSettingsRequest 只更新传入的字段；stats_start_at 为 0 表示“从现在开始重新统计”
+type updateProfitSettingsRequest struct {
+	StatsStartAt *int64    `json:"stats_start_at"`
+	RowOrder     *[]string `json:"row_order"`
+	HiddenRows   *[]string `json:"hidden_rows"`
+}
+
+// UpdateProfitSettings 更新统计起点、明细行顺序与被移除的行
+func UpdateProfitSettings(c *gin.Context) {
+	var req updateProfitSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "无效的参数")
+		return
+	}
+	values := make(map[string]string, 3)
+	if req.StatsStartAt != nil {
+		startAt := *req.StatsStartAt
+		if startAt < 0 || startAt > common.GetTimestamp() {
+			common.ApiErrorMsg(c, "统计起点不能晚于当前时间")
+			return
+		}
+		if startAt == 0 {
+			startAt = common.GetTimestamp()
+		}
+		values[profit_setting.StatsStartAtOptionKey] = strconv.FormatInt(startAt, 10)
+	}
+	if req.RowOrder != nil {
+		jsonStr, err := profit_setting.BuildRowKeysJSON(*req.RowOrder)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		values[profit_setting.RowOrderOptionKey] = jsonStr
+	}
+	if req.HiddenRows != nil {
+		jsonStr, err := profit_setting.BuildRowKeysJSON(*req.HiddenRows)
+		if err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		values[profit_setting.HiddenRowsOptionKey] = jsonStr
+	}
+	if len(values) == 0 {
+		common.ApiErrorMsg(c, "没有需要更新的设置")
+		return
+	}
+	if err := model.UpdateOptionsBulk(values); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data": gin.H{
+			"stats_start_at": profit_setting.GetStatsStartAt(),
+			"row_order":      profit_setting.GetRowOrder(),
+			"hidden_rows":    profit_setting.GetHiddenRows(),
 		},
 	})
 }

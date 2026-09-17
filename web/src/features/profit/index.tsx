@@ -17,11 +17,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, Lock, RefreshCw, Search } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import {
+  Download,
+  Eye,
+  EyeOff,
+  Lock,
+  RefreshCw,
+  Search,
+  TimerReset,
+} from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { SectionPageLayout } from '@/components/layout'
 import { FadeIn } from '@/components/page-transition'
 import { Badge } from '@/components/ui/badge'
@@ -36,7 +45,11 @@ import { handleServerError } from '@/lib/handle-server-error'
 import { formatDateTimeObject } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
-import { getChannelProfitStats, updateChannelUpstreamRatio } from './api'
+import {
+  getChannelProfitStats,
+  updateChannelUpstreamRatio,
+  updateProfitSettings,
+} from './api'
 import { ProfitChannelChart, ProfitTrendChart } from './components/profit-charts'
 import { ProfitFormulaPanel } from './components/profit-formula-panel'
 import { ProfitSummaryCards } from './components/profit-summary-cards'
@@ -47,8 +60,14 @@ import {
   collectProfitGroups,
   filterProfitRows,
   getTimezoneOffsetSeconds,
+  moveRowKey,
+  sortRowsByOrder,
 } from './lib/profit'
-import type { ProfitStatusFilter } from './types'
+import type {
+  ChannelProfitRow,
+  ProfitSettingsPayload,
+  ProfitStatusFilter,
+} from './types'
 
 // 收支数据每 30 秒自动刷新一次，保证“实时”
 const PROFIT_REFRESH_INTERVAL_MS = 30_000
@@ -70,6 +89,15 @@ export function ProfitDashboard() {
   const [status, setStatus] = useState<ProfitStatusFilter>('all')
   const [group, setGroup] = useState(ALL_GROUPS_FILTER)
   const [savingChannelId, setSavingChannelId] = useState<number | null>(null)
+  const [showHidden, setShowHidden] = useState(false)
+  // 关闭确认框时保留待移除的行，避免退场动画期间文案变空
+  const [pendingHideRow, setPendingHideRow] = useState<ChannelProfitRow | null>(
+    null
+  )
+  const [hideConfirmOpen, setHideConfirmOpen] = useState(false)
+  const [restartConfirmOpen, setRestartConfirmOpen] = useState(false)
+  // 拖拽后的本地顺序，用于在服务端刷新前立即呈现新顺序
+  const [localOrder, setLocalOrder] = useState<string[] | null>(null)
 
   const params = useMemo(
     () => ({
@@ -109,15 +137,93 @@ export function ProfitDashboard() {
     onSettled: () => setSavingChannelId(null),
   })
 
-  const rows = useMemo(() => statsQuery.data?.rows ?? [], [statsQuery.data])
-  const groups = useMemo(() => collectProfitGroups(rows), [rows])
+  const settingsMutation = useMutation({
+    mutationFn: async (payload: ProfitSettingsPayload) => {
+      const res = await updateProfitSettings(payload)
+      if (!res.success) {
+        throw new Error(res.message || t('Failed to update ledger settings'))
+      }
+      return payload
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['profit', 'stats'] })
+    },
+    onError: (error) => handleServerError(error),
+  })
+
+  const allRows = useMemo(
+    () => statsQuery.data?.rows ?? [],
+    [statsQuery.data]
+  )
+  // 服务端数据刷新后以服务端顺序为准
+  useEffect(() => {
+    setLocalOrder(null)
+  }, [statsQuery.data])
+
+  const orderedRows = useMemo(
+    () => (localOrder ? sortRowsByOrder(allRows, localOrder) : allRows),
+    [allRows, localOrder]
+  )
+  const hiddenCount = useMemo(
+    () => allRows.filter((row) => row.hidden).length,
+    [allRows]
+  )
+  const rows = useMemo(
+    () => (showHidden ? orderedRows : orderedRows.filter((row) => !row.hidden)),
+    [orderedRows, showHidden]
+  )
+  const groups = useMemo(() => collectProfitGroups(allRows), [allRows])
   const filteredRows = useMemo(
     () => filterProfitRows(rows, { search, status, group }),
     [rows, search, status, group]
   )
+  const visibleRows = useMemo(
+    () => filteredRows.filter((row) => !row.hidden),
+    [filteredRows]
+  )
+
+  const handleReorder = (dragKey: string, targetKey: string) => {
+    const currentOrder = orderedRows.map((row) => row.key)
+    const nextOrder = moveRowKey(currentOrder, dragKey, targetKey)
+    if (nextOrder === currentOrder) return
+    setLocalOrder(nextOrder)
+    settingsMutation.mutate({ row_order: nextOrder })
+  }
+
+  const handleHide = (row: ChannelProfitRow) => {
+    const hiddenRows = statsQuery.data?.hidden_rows ?? []
+    settingsMutation.mutate(
+      { hidden_rows: [...hiddenRows, row.key] },
+      { onSuccess: () => toast.success(t('Removed from the ledger')) }
+    )
+    setHideConfirmOpen(false)
+  }
+
+  const requestHide = (row: ChannelProfitRow) => {
+    setPendingHideRow(row)
+    setHideConfirmOpen(true)
+  }
+
+  const handleRestore = (row: ChannelProfitRow) => {
+    const hiddenRows = statsQuery.data?.hidden_rows ?? []
+    settingsMutation.mutate(
+      { hidden_rows: hiddenRows.filter((key) => key !== row.key) },
+      { onSuccess: () => toast.success(t('Restored to the ledger')) }
+    )
+  }
+
+  const handleRestartStats = () => {
+    settingsMutation.mutate(
+      { stats_start_at: 0 },
+      { onSuccess: () => toast.success(t('Ledger now starts from this moment')) }
+    )
+    setRestartConfirmOpen(false)
+  }
+
+  const statsStartAt = statsQuery.data?.stats_start_at ?? 0
 
   const handleExport = () => {
-    const csv = buildProfitCsv(filteredRows, {
+    const csv = buildProfitCsv(visibleRows, {
       headers: [
         t('Channel ID'),
         t('Channel Name'),
@@ -188,6 +294,20 @@ export function ProfitDashboard() {
           </NativeSelectOption>
         ))}
       </NativeSelect>
+      {hiddenCount > 0 && (
+        <Button
+          type='button'
+          variant='ghost'
+          size='sm'
+          aria-pressed={showHidden}
+          onClick={() => setShowHidden((value) => !value)}
+        >
+          {showHidden ? <EyeOff aria-hidden='true' /> : <Eye aria-hidden='true' />}
+          {showHidden
+            ? t('Hide removed rows')
+            : t('Show removed rows ({{count}})', { count: hiddenCount })}
+        </Button>
+      )}
     </div>
   )
 
@@ -228,7 +348,7 @@ export function ProfitDashboard() {
           type='button'
           variant='outline'
           onClick={handleExport}
-          disabled={filteredRows.length === 0}
+          disabled={visibleRows.length === 0}
         >
           <Download aria-hidden='true' />
           {t('Export')}
@@ -236,11 +356,30 @@ export function ProfitDashboard() {
       </SectionPageLayout.Actions>
       <SectionPageLayout.Content>
         <div className='space-y-3 sm:space-y-4'>
-          <p className='text-muted-foreground text-xs sm:text-sm'>
-            {t(
-              'Realtime cost, sell ratio and profit of every channel, calculated from usage logs.'
+          <div className='text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm'>
+            <span>
+              {t(
+                'Realtime cost, sell ratio and profit of every channel, calculated from usage logs.'
+              )}
+            </span>
+            {statsStartAt > 0 && (
+              <span className='inline-flex items-center gap-1'>
+                <TimerReset className='size-3.5' aria-hidden='true' />
+                {t('Counting since {{time}}; earlier usage is ignored.', {
+                  time: formatDateTimeObject(new Date(statsStartAt * 1000)),
+                })}
+                <Button
+                  type='button'
+                  variant='link'
+                  size='xs'
+                  className='h-auto px-1'
+                  onClick={() => setRestartConfirmOpen(true)}
+                >
+                  {t('Restart from now')}
+                </Button>
+              </span>
             )}
-          </p>
+          </div>
           <FadeIn>
             <ProfitSummaryCards
               summary={statsQuery.data?.summary}
@@ -268,6 +407,9 @@ export function ProfitDashboard() {
                       ratio,
                     })
                   }}
+                  onReorder={handleReorder}
+                  onHide={requestHide}
+                  onRestore={handleRestore}
                 />
               </PanelWrapper>
               <ProfitFormulaPanel />
@@ -276,7 +418,7 @@ export function ProfitDashboard() {
           <FadeIn delay={0.1}>
             <div className='grid gap-3 sm:gap-4 xl:grid-cols-2'>
               <ProfitChannelChart
-                rows={filteredRows}
+                rows={visibleRows}
                 loading={statsQuery.isLoading}
               />
               <ProfitTrendChart
@@ -286,6 +428,35 @@ export function ProfitDashboard() {
             </div>
           </FadeIn>
         </div>
+        <ConfirmDialog
+          open={hideConfirmOpen}
+          onOpenChange={setHideConfirmOpen}
+          title={t('Remove from the ledger?')}
+          desc={t(
+            'Channel {{name}} ({{group}}) will be hidden from this page and excluded from the totals. The channel itself is not deleted and you can restore the row at any time.',
+            {
+              name: pendingHideRow?.channel_name ?? '',
+              group: pendingHideRow?.group ?? '',
+            }
+          )}
+          confirmText={t('Remove')}
+          destructive
+          isLoading={settingsMutation.isPending}
+          handleConfirm={() => {
+            if (pendingHideRow) handleHide(pendingHideRow)
+          }}
+        />
+        <ConfirmDialog
+          open={restartConfirmOpen}
+          onOpenChange={setRestartConfirmOpen}
+          title={t('Restart the ledger from now?')}
+          desc={t(
+            'Usage recorded before this moment will no longer be counted on this page. Logs are kept and this only changes the statistics start time.'
+          )}
+          confirmText={t('Restart from now')}
+          isLoading={settingsMutation.isPending}
+          handleConfirm={handleRestartStats}
+        />
       </SectionPageLayout.Content>
     </SectionPageLayout>
   )

@@ -16,6 +16,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { GripVertical, RotateCcw, Trash2 } from 'lucide-react'
+import { useState, type DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import {
@@ -24,6 +26,8 @@ import {
 } from '@/components/data-table'
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge } from '@/components/status-badge'
+import { Button } from '@/components/ui/button'
+import { TableCell, TableRow } from '@/components/ui/table'
 import {
   CHANNEL_STATUS,
   CHANNEL_STATUS_CONFIG,
@@ -40,6 +44,10 @@ interface ProfitTableProps {
   rows: ChannelProfitRow[]
   savingChannelId?: number | null
   onUpstreamRatioChange: (channelId: number, ratio: number) => Promise<void>
+  /** 拖拽后回调：把 dragKey 移动到 targetKey 的位置 */
+  onReorder: (dragKey: string, targetKey: string) => void
+  onHide: (row: ChannelProfitRow) => void
+  onRestore: (row: ChannelProfitRow) => void
 }
 
 function formatAmount(quota: number): string {
@@ -50,6 +58,17 @@ function profitClassName(value: number): string {
   if (value > 0) return 'text-success'
   if (value < 0) return 'text-destructive'
   return 'text-muted-foreground'
+}
+
+function resolveCellClassName(
+  column: StaticDataTableColumn<ChannelProfitRow>,
+  row: ChannelProfitRow,
+  index: number
+): string | undefined {
+  if (typeof column.cellClassName === 'function') {
+    return column.cellClassName(row, index)
+  }
+  return column.cellClassName
 }
 
 function ChannelStatusCell(props: { row: ChannelProfitRow }) {
@@ -77,12 +96,53 @@ function ChannelStatusCell(props: { row: ChannelProfitRow }) {
 }
 
 /**
- * 渠道 × 分组的收支明细表；同一渠道处于多个分组时会拆成多行分别统计
+ * 渠道 × 分组的收支明细表；同一渠道处于多个分组时会拆成多行分别统计。
+ * 左侧拖拽手柄可调整顺序，右侧可把行从收支页移除或恢复。
  */
 export function ProfitTable(props: ProfitTableProps) {
   const { t } = useTranslation()
+  const [dragKey, setDragKey] = useState<string | null>(null)
+  const [overKey, setOverKey] = useState<string | null>(null)
+
+  const finishDrag = () => {
+    setDragKey(null)
+    setOverKey(null)
+  }
+
+  const handleDrop = (event: DragEvent<HTMLTableRowElement>, target: string) => {
+    event.preventDefault()
+    const source = dragKey ?? event.dataTransfer.getData('text/plain')
+    if (source && source !== target) {
+      props.onReorder(source, target)
+    }
+    finishDrag()
+  }
 
   const columns: StaticDataTableColumn<ChannelProfitRow>[] = [
+    {
+      id: 'drag',
+      header: '',
+      className: 'w-8',
+      cellClassName: 'w-8 px-1',
+      cell: (row) => (
+        <span
+          role='button'
+          tabIndex={0}
+          draggable
+          aria-label={t('Drag to reorder {{name}}', { name: row.channel_name })}
+          title={t('Drag to reorder')}
+          className='text-muted-foreground hover:text-foreground flex cursor-grab items-center justify-center rounded p-1 active:cursor-grabbing'
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = 'move'
+            event.dataTransfer.setData('text/plain', row.key)
+            setDragKey(row.key)
+          }}
+          onDragEnd={finishDrag}
+        >
+          <GripVertical className='size-4' aria-hidden='true' />
+        </span>
+      ),
+    },
     {
       id: 'channel',
       header: t('Channel Name'),
@@ -194,14 +254,81 @@ export function ProfitTable(props: ProfitTableProps) {
       className: 'w-24',
       cell: (row) => <ChannelStatusCell row={row} />,
     },
+    {
+      id: 'actions',
+      header: '',
+      className: 'w-12',
+      cellClassName: 'px-1 text-right',
+      cell: (row) =>
+        row.hidden ? (
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon-xs'
+            aria-label={t('Restore {{name}} to the ledger', {
+              name: row.channel_name,
+            })}
+            title={t('Restore')}
+            onClick={() => props.onRestore(row)}
+          >
+            <RotateCcw />
+          </Button>
+        ) : (
+          <Button
+            type='button'
+            variant='ghost'
+            size='icon-xs'
+            className='text-muted-foreground hover:text-destructive'
+            aria-label={t('Remove {{name}} from the ledger', {
+              name: row.channel_name,
+            })}
+            title={t('Remove')}
+            onClick={() => props.onHide(row)}
+          >
+            <Trash2 />
+          </Button>
+        ),
+    },
   ]
 
   return (
     <StaticDataTable
       columns={columns}
       data={props.rows}
-      getRowKey={(row) => `${row.channel_id}-${row.group}`}
       emptyContent={t('No channel usage in the selected range')}
+      renderRow={(row, index) => (
+        <TableRow
+          key={row.key}
+          data-row-key={row.key}
+          className={cn(
+            row.hidden && 'opacity-50',
+            overKey === row.key && dragKey !== row.key && 'bg-primary/10',
+            dragKey === row.key && 'opacity-40'
+          )}
+          onDragOver={(event) => {
+            if (!dragKey) return
+            event.preventDefault()
+            event.dataTransfer.dropEffect = 'move'
+            if (overKey !== row.key) setOverKey(row.key)
+          }}
+          onDragLeave={() => {
+            if (overKey === row.key) setOverKey(null)
+          }}
+          onDrop={(event) => handleDrop(event, row.key)}
+        >
+          {columns.map((column) => (
+            <TableCell
+              key={column.id}
+              className={cn(
+                'max-w-full min-w-0 overflow-hidden',
+                resolveCellClassName(column, row, index)
+              )}
+            >
+              {column.cell?.(row, index)}
+            </TableCell>
+          ))}
+        </TableRow>
+      )}
     />
   )
 }
