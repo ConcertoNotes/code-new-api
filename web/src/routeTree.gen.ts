@@ -28,7 +28,11 @@ import { Route as errors500RouteImport } from './routes/(errors)/500'
 import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedChat2linkRouteImport } from './routes/_authenticated/chat2link'
 import { Route as AuthenticatedSystemSettingsRouteRouteImport } from './routes/_authenticated/system-settings/route'
+import { Route as DocsRouteRouteImport } from './routes/docs/route'
 import { Route as AboutIndexRouteImport } from './routes/about/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DocsGptImage2RouteImport } from './routes/docs/gpt-image-2'
+import { Route as DocsVideoGenerationRouteImport } from './routes/docs/video-generation'
 import { Route as OauthProviderRouteImport } from './routes/oauth/$provider'
 import { Route as PricingIndexRouteImport } from './routes/pricing/index'
 import { Route as RankingsIndexRouteImport } from './routes/rankings/index'
@@ -168,6 +172,29 @@ const AboutIndexRoute = AboutIndexRouteImport.update({
   id: '/about/',
   path: '/about/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRouteRoute = DocsRouteRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/docs/',
+  path: '/',
+  fullPath: '/docs/',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsGptImage2Route = DocsGptImage2RouteImport.update({
+  id: '/docs/gpt-image-2',
+  path: '/gpt-image-2',
+  fullPath: '/docs/gpt-image-2',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsVideoGenerationRoute = DocsVideoGenerationRouteImport.update({
+  id: '/docs/video-generation',
+  path: '/video-generation',
+  fullPath: '/docs/video-generation',
+  getParentRoute: () => DocsRouteRoute,
 } as any)
 const OauthProviderRoute = OauthProviderRouteImport.update({
   id: '/oauth/$provider',
@@ -421,6 +448,9 @@ export interface FileRoutesByFullPath {
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/docs/': typeof DocsIndexRoute
+  '/docs/gpt-image-2': typeof DocsGptImage2Route
+  '/docs/video-generation': typeof DocsVideoGenerationRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -480,6 +510,9 @@ export interface FileRoutesByTo {
   '/chat2link': typeof AuthenticatedChat2linkRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about': typeof AboutIndexRoute
+  '/docs': typeof DocsIndexRoute
+  '/docs/gpt-image-2': typeof DocsGptImage2Route
+  '/docs/video-generation': typeof DocsVideoGenerationRoute
   '/pricing': typeof PricingIndexRoute
   '/rankings': typeof RankingsIndexRoute
   '/setup': typeof SetupIndexRoute
@@ -543,6 +576,10 @@ export interface FileRoutesById {
   '/_authenticated/chat2link': typeof AuthenticatedChat2linkRoute
   '/oauth/$provider': typeof OauthProviderRoute
   '/about/': typeof AboutIndexRoute
+  '/docs': typeof DocsRouteRouteWithChildren
+  '/docs/': typeof DocsIndexRoute
+  '/docs/gpt-image-2': typeof DocsGptImage2Route
+  '/docs/video-generation': typeof DocsVideoGenerationRoute
   '/pricing/': typeof PricingIndexRoute
   '/rankings/': typeof RankingsIndexRoute
   '/setup/': typeof SetupIndexRoute
@@ -780,6 +817,7 @@ export interface RootRouteChildren {
   errors503Route: typeof errors503Route
   OauthProviderRoute: typeof OauthProviderRoute
   AboutIndexRoute: typeof AboutIndexRoute
+  DocsRouteRoute: typeof DocsRouteRouteWithChildren
   PricingIndexRoute: typeof PricingIndexRoute
   RankingsIndexRoute: typeof RankingsIndexRoute
   SetupIndexRoute: typeof SetupIndexRoute
@@ -1347,6 +1385,21 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface DocsRouteRouteChildren {
+  DocsIndexRoute: typeof DocsIndexRoute
+  DocsGptImage2Route: typeof DocsGptImage2Route
+  DocsVideoGenerationRoute: typeof DocsVideoGenerationRoute
+}
+
+const DocsRouteRouteChildren: DocsRouteRouteChildren = {
+  DocsIndexRoute: DocsIndexRoute,
+  DocsGptImage2Route: DocsGptImage2Route,
+  DocsVideoGenerationRoute: DocsVideoGenerationRoute,
+}
+
+const DocsRouteRouteWithChildren =
+  DocsRouteRoute._addFileChildren(DocsRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   authRouteRoute: authRouteRouteWithChildren,
@@ -1360,6 +1413,7 @@ const rootRouteChildren: RootRouteChildren = {
   errors503Route: errors503Route,
   OauthProviderRoute: OauthProviderRoute,
   AboutIndexRoute: AboutIndexRoute,
+  DocsRouteRoute: DocsRouteRouteWithChildren,
   PricingIndexRoute: PricingIndexRoute,
   RankingsIndexRoute: RankingsIndexRoute,
   SetupIndexRoute: SetupIndexRoute,
