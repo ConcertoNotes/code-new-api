@@ -2472,6 +2472,7 @@
     "Icon identifier (e.g. github, gitlab)": "Identifiant d'icône (par exemple github, gitlab)",
     "ID": "ID",
     "IDE Plugin": "Extension IDE",
+    "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.": "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.",
     "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.": "Si une erreur en amont contient l'un de ces mots-clés (insensible à la casse), le canal sera désactivé automatiquement.",
     "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.": "Si l'autorisation réussit, le JSON généré sera inséré dans le champ clé. Vous devez encore enregistrer le canal pour le conserver.",
     "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing": "Si vous vous connectez à des projets de relais One API ou New API en amont, utilisez le type OpenAI à la place sauf si vous savez ce que vous faites",
@@ -4244,6 +4245,7 @@
     "Return Error": "Retourner l'erreur",
     "Return per-token log probabilities": "Retourner les log-probabilités par jeton",
     "Return to dashboard": "Retour au tableau de bord",
+    "Return to higher priority channels": "Return to higher priority channels",
     "Return vector embeddings for inputs": "Renvoyer des embeddings vectoriels pour les entrées",
     "Reusable sets of models you can attach to channels.": "Ensembles de modèles réutilisables à attacher aux canaux.",
     "Reveal API key": "Afficher la clé API",
@@ -5812,10 +5814,7 @@
     "The event is not running right now": "L'événement n'est pas en cours",
     "All prizes have been claimed": "Tous les lots ont été distribués",
     "My recent draws": "Mes derniers tirages",
-    "Prize pool": "Cagnotte",
     "{{amount}} quota": "{{amount}} de quota",
-    "{{remaining}} / {{total}} left": "{{remaining}} / {{total}} restants",
-    "{{amount}} quota remaining": "Restant pour {{amount}} de quota",
     "Lottery Settings": "Paramètres de loterie",
     "Recharge Lottery": "Loterie de recharge",
     "Save lottery settings": "Enregistrer la loterie",
@@ -5830,7 +5829,10 @@
     "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.": "Le total des lots ne dépasse jamais les recharges × ce ratio. Gardez-le sous votre marge brute.",
     "Reserve quota": "Quota de réserve",
     "Quota held back from the prize budget, e.g. to cover server costs": "Quota retiré du budget des lots, par ex. pour les coûts serveur",
-    "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.": "Chaque {{threshold}} rechargé pendant l'événement donne un tirage. Lots : {{prizes}} de quota, crédités immédiatement. Sans limite personnelle.",
-    "Admin preview: time limit bypassed": "Aperçu admin : limite de temps ignorée"
+    "Admin preview: time limit bypassed": "Aperçu admin : limite de temps ignorée",
+    "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.": "Chaque {{threshold}} rechargé pendant l'événement donne un tirage. Chaque tirage gagne du quota, crédité immédiatement. Sans limite personnelle.",
+    "Preview draw": "Tirage d'aperçu",
+    "Preview only, nothing was credited": "Aperçu uniquement, rien n'a été crédité",
+    "Admin preview result: no quota credited, no stock used": "Résultat d'aperçu admin : aucun quota crédité, aucun stock utilisé"
   }
 }

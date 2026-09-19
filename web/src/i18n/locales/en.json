@@ -2472,6 +2472,7 @@
     "Icon identifier (e.g. github, gitlab)": "Icon identifier (e.g. github, gitlab)",
     "ID": "ID",
     "IDE Plugin": "IDE Plugin",
+    "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.": "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.",
     "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.": "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.",
     "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.": "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.",
     "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing": "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing",
@@ -4244,6 +4245,7 @@
     "Return Error": "Return Error",
     "Return per-token log probabilities": "Return per-token log probabilities",
     "Return to dashboard": "Return to dashboard",
+    "Return to higher priority channels": "Return to higher priority channels",
     "Return vector embeddings for inputs": "Return vector embeddings for inputs",
     "Reusable sets of models you can attach to channels.": "Reusable sets of models you can attach to channels.",
     "Reveal API key": "Reveal API key",
@@ -5812,10 +5814,7 @@
     "The event is not running right now": "The event is not running right now",
     "All prizes have been claimed": "All prizes have been claimed",
     "My recent draws": "My recent draws",
-    "Prize pool": "Prize pool",
     "{{amount}} quota": "{{amount}} quota",
-    "{{remaining}} / {{total}} left": "{{remaining}} / {{total}} left",
-    "{{amount}} quota remaining": "{{amount}} quota remaining",
     "Lottery Settings": "Lottery Settings",
     "Recharge Lottery": "Recharge Lottery",
     "Save lottery settings": "Save lottery settings",
@@ -5830,7 +5829,10 @@
     "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.": "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.",
     "Reserve quota": "Reserve quota",
     "Quota held back from the prize budget, e.g. to cover server costs": "Quota held back from the prize budget, e.g. to cover server costs",
-    "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.": "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.",
-    "Admin preview: time limit bypassed": "Admin preview: time limit bypassed"
+    "Admin preview: time limit bypassed": "Admin preview: time limit bypassed",
+    "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.": "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.",
+    "Preview draw": "Preview draw",
+    "Preview only, nothing was credited": "Preview only, nothing was credited",
+    "Admin preview result: no quota credited, no stock used": "Admin preview result: no quota credited, no stock used"
   }
 }

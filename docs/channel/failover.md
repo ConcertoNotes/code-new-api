@@ -24,6 +24,15 @@
 - 管理接口：`GET /api/channel/breaker` 查看所有冷却状态，`POST /api/channel/{id}/breaker/reset` 手动解除。
 - 状态保存在各节点内存中，多节点部署时每个节点各自学习，行为一致但不共享。
 
+## 会话亲和（Codex / Claude CLI 粘连）与故障切换的关系
+
+- 系统默认开启「渠道亲和」：Codex CLI（`/v1/responses` + `gpt-*`）、Claude CLI（`/v1/messages` + `claude-*`）的同一会话会粘在首次成功的渠道上（TTL 1 小时，每次成功续期），以提高 prompt cache 命中率。
+- 亲和优先于优先级：这就是为什么“故障切换后会话一直留在低优先级渠道、高优先级恢复了也不切回”。
+- 现在的行为：
+  - 粘连渠道出现渠道级故障（连接失败、5xx、429、超时）时，本次请求仍会切换到其他渠道，不再把错误原样抛给客户端；规则里的 `skip_retry_on_failure` 只拦截 401/400/404 这类业务错误。
+  - 粘连渠道被禁用或处于冷却中时，直接走正常选路，不再返回 503。
+  - 「切回更高优先级渠道」（`channel_affinity_setting.prefer_higher_priority`，默认开）：会话粘在低优先级渠道时，只要更高优先级的渠道健康，就切回去；同优先级不会来回跳。
+
 ## 3. 自动禁用 / 自动恢复（长期故障）
 
 - 自动禁用（`AutomaticDisableChannelEnabled` + 渠道 `auto_ban`）：401、连接失败或命中「失败关键词」时把渠道置为「自动禁用」，彻底移出选路。

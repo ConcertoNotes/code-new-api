@@ -13,7 +13,6 @@ import {
   type LotteryRecord,
   type LotteryStatus,
 } from '../lottery-api'
-import { LotteryPoolGrid } from './lottery-pool-grid'
 
 interface LotteryCardProps {
   status: LotteryStatus | null
@@ -25,6 +24,7 @@ export function LotteryCard(props: LotteryCardProps) {
   const { t } = useTranslation()
   const [drawing, setDrawing] = useState(false)
   const [reward, setReward] = useState<number | null>(null)
+  const [rewardIsPreview, setRewardIsPreview] = useState(false)
   const [records, setRecords] = useState<LotteryRecord[]>([])
 
   const active =
@@ -48,8 +48,12 @@ export function LotteryCard(props: LotteryCardProps) {
     return null
   }
   const status = props.status
+  // 管理员没有真实次数时走服务端预览（不入账），其他人必须有次数且奖池可发
+  const previewMode = status.preview_available === true
   const canDraw =
-    active && !drawing && status.draw_count > 0 && !status.refilling
+    active &&
+    !drawing &&
+    (previewMode || (status.draw_count > 0 && !status.refilling))
 
   const handleDraw = async () => {
     if (!canDraw) return
@@ -57,7 +61,12 @@ export function LotteryCard(props: LotteryCardProps) {
     try {
       const result = await drawLottery()
       setReward(result.reward)
-      toast.success(t('Lottery reward credited'))
+      setRewardIsPreview(result.preview === true)
+      if (result.preview) {
+        toast.info(t('Preview only, nothing was credited'))
+      } else {
+        toast.success(t('Lottery reward credited'))
+      }
       loadRecords()
       props.onDrawn?.()
     } catch (error) {
@@ -72,7 +81,8 @@ export function LotteryCard(props: LotteryCardProps) {
   }
 
   let buttonLabel = t('Draw now')
-  if (status.before_start) buttonLabel = t('Not started yet')
+  if (previewMode) buttonLabel = t('Preview draw')
+  else if (status.before_start) buttonLabel = t('Not started yet')
   else if (status.refilling) buttonLabel = t('Refilling')
 
   return (
@@ -155,7 +165,7 @@ export function LotteryCard(props: LotteryCardProps) {
         </button>
       </div>
 
-      {status.refilling && !status.before_start && (
+      {status.refilling && !status.before_start && !previewMode && (
         <p
           role='status'
           className='mt-3 rounded-md bg-amber-100/70 px-3 py-2 text-xs text-amber-800'
@@ -182,13 +192,13 @@ export function LotteryCard(props: LotteryCardProps) {
               reward: formatLotteryReward(reward),
             })}
           </p>
+          {rewardIsPreview && (
+            <p className='mt-1 text-xs text-emerald-700'>
+              {t('Admin preview result: no quota credited, no stock used')}
+            </p>
+          )}
         </div>
       )}
-
-      <LotteryPoolGrid
-        remaining={status.pool_remaining}
-        initial={status.pool_initial}
-      />
 
       {records.length > 0 && (
         <div className='mt-4'>
@@ -218,15 +228,8 @@ export function LotteryCard(props: LotteryCardProps) {
 
       <p className='text-muted-foreground mt-3 text-xs'>
         {t(
-          'Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.',
-          {
-            threshold: formatLotteryReward(status.threshold),
-            prizes: Object.keys(status.pool_initial)
-              .map(Number)
-              .sort((a, b) => a - b)
-              .map(formatLotteryReward)
-              .join(' / '),
-          }
+          'Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.',
+          { threshold: formatLotteryReward(status.threshold) }
         )}
       </p>
     </section>

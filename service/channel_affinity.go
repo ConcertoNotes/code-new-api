@@ -1016,3 +1016,12 @@ func channelAffinityUsageCacheStatsLock(key string) *sync.Mutex {
 	idx := h.Sum32() % uint32(len(channelAffinityUsageCacheStatsLocks))
 	return &channelAffinityUsageCacheStatsLocks[idx]
 }
+
+// ShouldPreferHigherPriorityOverAffinity 亲和会话是否在更高优先级渠道可用时切回去。
+func ShouldPreferHigherPriorityOverAffinity() bool {
+	setting := operation_setting.GetChannelAffinitySetting()
+	if setting == nil {
+		return false
+	}
+	return setting.PreferHigherPriority
+}

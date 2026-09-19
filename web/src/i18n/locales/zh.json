@@ -2472,6 +2472,7 @@
     "Icon identifier (e.g. github, gitlab)": "图标标识符（例如 github、gitlab）",
     "ID": "ID",
     "IDE Plugin": "IDE 插件",
+    "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.": "会话因故障切换落到低优先级渠道后，一旦更高优先级的渠道恢复健康就立即切回；已在最高优先级上的会话不会被移动。",
     "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.": "如果上游错误包含以下任何关键字（不区分大小写），渠道将自动禁用。",
     "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.": "授权成功后，生成的 JSON 将插入密钥字段。您仍需保存渠道以持久化。",
     "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing": "如果连接上游 One API 或 New API 中继项目，除非您知道自己在做什么，否则请使用 OpenAI 类型",
@@ -4244,6 +4245,7 @@
     "Return Error": "返回错误",
     "Return per-token log probabilities": "返回每个 token 的对数概率",
     "Return to dashboard": "返回仪表盘",
+    "Return to higher priority channels": "切回更高优先级渠道",
     "Return vector embeddings for inputs": "为输入返回向量嵌入",
     "Reusable sets of models you can attach to channels.": "可复用的模型集合，可附加到渠道。",
     "Reveal API key": "显示 通行徽章",
@@ -5812,10 +5814,7 @@
     "The event is not running right now": "活动当前未进行",
     "All prizes have been claimed": "奖品已全部发完",
     "My recent draws": "我的最近抽奖",
-    "Prize pool": "奖池",
     "{{amount}} quota": "{{amount}} 额度",
-    "{{remaining}} / {{total}} left": "剩余 {{remaining}} / {{total}}",
-    "{{amount}} quota remaining": "{{amount}} 额度剩余进度",
     "Lottery Settings": "抽奖设置",
     "Recharge Lottery": "充值抽奖",
     "Save lottery settings": "保存抽奖设置",
@@ -5830,7 +5829,10 @@
     "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.": "累计发放奖励不会超过活动累计充值 × 该比例。设置为低于你的毛利率即可保证不赔钱。",
     "Reserve quota": "安全储备额度",
     "Quota held back from the prize budget, e.g. to cover server costs": "从奖励预算中先扣除的额度，例如用于覆盖服务器费用",
-    "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.": "活动期间每充值 {{threshold}} 元获得 1 次抽奖。奖品：{{prizes}} 额度，中奖即时到账，个人次数不限。",
-    "Admin preview: time limit bypassed": "管理员预览：已忽略活动时间限制"
+    "Admin preview: time limit bypassed": "管理员预览：已忽略活动时间限制",
+    "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.": "活动期间每充值 {{threshold}} 元获得 1 次抽奖，每次必中额度，即时到账，个人次数不限。",
+    "Preview draw": "预览抽奖",
+    "Preview only, nothing was credited": "仅为预览，未入账",
+    "Admin preview result: no quota credited, no stock used": "管理员预览结果：未入账、不扣库存"
   }
 }

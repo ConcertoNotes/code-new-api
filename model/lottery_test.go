@@ -320,3 +320,26 @@ func TestEnsureLotteryPrizesReseedsOnlyWhenNoDrawsExist(t *testing.T) {
 	require.NoError(t, DB.Where("amount = ?", 10).First(&big).Error)
 	assert.Equal(t, 7, big.InitialStock)
 }
+
+func TestPreviewLotteryHasNoSideEffects(t *testing.T) {
+	truncateTables(t)
+	withLotteryActivity(t, 0.01, 0) // 预算几乎为 0，真实抽奖会被挡住，预览不受影响
+	admin := User{Username: "lottery-preview", Quota: 5, AffCode: "lotpre", Role: common.RoleAdminUser}
+	require.NoError(t, DB.Create(&admin).Error)
+
+	result, err := PreviewLottery(admin.Id)
+	require.NoError(t, err)
+	assert.Contains(t, []float64{1, 2, 5, 10}, result.Amount)
+	assert.Equal(t, int(result.Amount*common.QuotaPerUnit), result.Quota)
+
+	var refreshed User
+	require.NoError(t, DB.First(&refreshed, admin.Id).Error)
+	assert.Equal(t, 5, refreshed.Quota, "预览不能入账")
+	var totalStock int64
+	require.NoError(t, DB.Model(&LotteryPrize{}).Select("COALESCE(SUM(stock), 0)").Scan(&totalStock).Error)
+	assert.Equal(t, int64(135), totalStock, "预览不能扣库存")
+	var draws int64
+	require.NoError(t, DB.Model(&LotteryDraw{}).Count(&draws).Error)
+	assert.Equal(t, int64(0), draws, "预览不能写抽奖记录")
+	assert.Equal(t, int64(0), lotteryDrawsUsed(t, admin.Id))
+}

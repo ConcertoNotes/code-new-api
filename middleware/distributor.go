@@ -131,17 +131,18 @@ func Distribute() func(c *gin.Context) {
 					if err == nil && preferred != nil && preferred.Status == common.ChannelStatusEnabled && !service.IsChannelBreakerSkipping(preferred.Id) {
 						affinitySatisfied, _ = model.ChannelSatisfiesFilters(preferred, modelRequest.Model, constraints.Filters)
 					}
+					preferredGroupIndex := 0
+					var autoGroups []string
 					if affinitySatisfied {
 						if usingGroup == "auto" {
 							userGroup := common.GetContextKeyString(c, constant.ContextKeyUserGroup)
-							autoGroups := service.GetRequestAutoGroups(c, userGroup)
-							for _, g := range autoGroups {
+							autoGroups = service.GetRequestAutoGroups(c, userGroup)
+							for i, g := range autoGroups {
 								if model.IsChannelEnabledForGroupModel(g, modelRequest.Model, preferred.Id) {
 									selectGroup = g
-									common.SetContextKey(c, constant.ContextKeyAutoGroup, g)
+									preferredGroupIndex = i
 									channel = preferred
 									affinityUsable = true
-									service.MarkChannelAffinityUsed(c, g, preferred.Id)
 									break
 								}
 							}
@@ -149,18 +150,51 @@ func Distribute() func(c *gin.Context) {
 							channel = preferred
 							selectGroup = usingGroup
 							affinityUsable = true
-							service.MarkChannelAffinityUsed(c, usingGroup, preferred.Id)
 						}
 					}
-					if !affinityUsable {
-						skipRetry := service.ShouldSkipRetryAfterChannelAffinityFailure(c)
-						if !service.ShouldKeepChannelAffinityOnChannelDisabled() {
-							service.ClearCurrentChannelAffinityCache(c)
+					if affinityUsable {
+						// 亲和渠道可用，但如果它是故障切换后留下的低优先级渠道，而更高优先级的渠道已经恢复，
+						// 则切回高优先级；同优先级或更低时继续粘在原渠道，保住 prompt cache 命中率。
+						// 先按正常选路取一次“此刻应当选到的渠道”作为对照。
+						upgraded := false
+						if service.ShouldPreferHigherPriorityOverAffinity() {
+							candidate, candidateGroup, candidateErr := service.CacheGetRandomSatisfiedChannel(&service.RetryParam{
+								Ctx:         c,
+								ModelName:   modelRequest.Model,
+								TokenGroup:  usingGroup,
+								RequestPath: c.Request.URL.Path,
+								Retry:       common.GetPointer(0),
+							})
+							if candidateErr == nil && candidate != nil && candidate.Id != preferred.Id {
+								candidateGroupIndex := preferredGroupIndex
+								for i, g := range autoGroups {
+									if g == candidateGroup {
+										candidateGroupIndex = i
+										break
+									}
+								}
+								higherGroup := candidateGroupIndex < preferredGroupIndex
+								higherPriority := candidateGroupIndex == preferredGroupIndex && candidate.GetPriority() > preferred.GetPriority()
+								if higherGroup || higherPriority {
+									logger.LogInfo(c, fmt.Sprintf("亲和渠道 #%d（优先级 %d）低于当前可用的 #%d（优先级 %d），切回高优先级渠道", preferred.Id, preferred.GetPriority(), candidate.Id, candidate.GetPriority()))
+									channel = candidate
+									selectGroup = candidateGroup
+									upgraded = true
+								}
+							}
 						}
-						if skipRetry {
-							abortWithOpenAiMessage(c, http.StatusServiceUnavailable, i18n.T(c, i18n.MsgDistributorAffinityChannelDisabled))
-							return
+						if !upgraded {
+							if usingGroup == "auto" {
+								// 对照选路可能改写了 auto 分组游标，粘回亲和渠道时恢复
+								common.SetContextKey(c, constant.ContextKeyAutoGroup, selectGroup)
+								common.SetContextKey(c, constant.ContextKeyAutoGroupIndex, preferredGroupIndex)
+							}
+							service.MarkChannelAffinityUsed(c, selectGroup, preferred.Id)
 						}
+					} else if !service.ShouldKeepChannelAffinityOnChannelDisabled() {
+						// 亲和渠道已禁用或冷却中：不再向客户端报错，清除绑定后走正常选路，
+						// 成功后会重新绑定到实际服务的渠道
+						service.ClearCurrentChannelAffinityCache(c)
 					}
 				}
 

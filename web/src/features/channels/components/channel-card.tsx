@@ -83,10 +83,12 @@ function ChannelCardComponent({
   // In card view the enable/disable state is already conveyed by the inline
   // power toggle, so the plain "Enabled"/"Disabled" badge is redundant. Keep
   // only the informative states (e.g. auto-disabled, unknown) and tag rows.
+  const breakerState = row.original.breaker?.state
   const showStatusBadge =
     isTagRow ||
     (row.original.status !== CHANNEL_STATUS.ENABLED &&
-      row.original.status !== CHANNEL_STATUS.MANUAL_DISABLED)
+      row.original.status !== CHANNEL_STATUS.MANUAL_DISABLED) ||
+    (breakerState !== undefined && breakerState !== 'closed')
 
   return (
     <ChannelRowActionsLayoutContext.Provider value='card'>

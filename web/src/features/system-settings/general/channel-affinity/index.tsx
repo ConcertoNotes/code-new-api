@@ -135,6 +135,9 @@ export function ChannelAffinitySection(props: Props) {
   const [keepOnChannelDisabled, setKeepOnChannelDisabled] = useState(
     props.defaultValues['channel_affinity_setting.keep_on_channel_disabled']
   )
+  const [preferHigherPriority, setPreferHigherPriority] = useState(
+    props.defaultValues['channel_affinity_setting.prefer_higher_priority']
+  )
   const [maxEntries, setMaxEntries] = useState(
     props.defaultValues['channel_affinity_setting.max_entries']
   )
@@ -173,6 +176,9 @@ export function ChannelAffinitySection(props: Props) {
     )
     setKeepOnChannelDisabled(
       props.defaultValues['channel_affinity_setting.keep_on_channel_disabled']
+    )
+    setPreferHigherPriority(
+      props.defaultValues['channel_affinity_setting.prefer_higher_priority']
     )
     setMaxEntries(props.defaultValues['channel_affinity_setting.max_entries'])
     setDefaultTtl(
@@ -278,6 +284,15 @@ export function ChannelAffinitySection(props: Props) {
         updates.push({
           key: 'channel_affinity_setting.keep_on_channel_disabled',
           value: String(keepOnChannelDisabled),
+        })
+      }
+      if (
+        preferHigherPriority !==
+        props.defaultValues['channel_affinity_setting.prefer_higher_priority']
+      ) {
+        updates.push({
+          key: 'channel_affinity_setting.prefer_higher_priority',
+          value: String(preferHigherPriority),
         })
       }
       if (
@@ -454,6 +469,14 @@ export function ChannelAffinitySection(props: Props) {
           label={t('Keep affinity when channel is disabled')}
           description={t(
             'When enabled, keep the affinity entry even if the affinity channel is disabled or no longer usable for the current group/model. Leave it off to delete the entry and select another channel.'
+          )}
+        />
+        <SettingsSwitchField
+          checked={preferHigherPriority}
+          onCheckedChange={setPreferHigherPriority}
+          label={t('Return to higher priority channels')}
+          description={t(
+            'If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.'
           )}
         />
 

@@ -31,8 +31,6 @@ func GetLotteryStatus(c *gin.Context) {
 		base["draw_count"] = 0
 		base["total_recharge"] = 0
 		base["total_reward"] = 0
-		base["pool_remaining"] = map[string]int{}
-		base["pool_initial"] = map[string]int{}
 		base["next_threshold"] = 0
 		base["refilling"] = false
 		c.JSON(http.StatusOK, base)
@@ -44,25 +42,46 @@ func GetLotteryStatus(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to load lottery"})
 		return
 	}
-	remaining := map[string]int{}
-	initial := map[string]int{}
-	for _, p := range info.Prizes {
-		remaining[formatLotteryAmount(p.Amount)] = p.Stock
-		initial[formatLotteryAmount(p.Amount)] = p.InitialStock
-	}
 	base["draw_count"] = info.DrawsAvailable
 	base["draws_used"] = info.DrawsUsed
 	base["total_recharge"] = info.Recharge
 	base["total_reward"] = info.TotalReward
-	base["pool_remaining"] = remaining
-	base["pool_initial"] = initial
 	base["next_threshold"] = info.NextThreshold
 	base["refilling"] = info.Refilling
+	// 奖池明细只给管理员，普通用户保持神秘感
+	if isAdmin {
+		remaining := map[string]int{}
+		initial := map[string]int{}
+		for _, p := range info.Prizes {
+			remaining[formatLotteryAmount(p.Amount)] = p.Stock
+			initial[formatLotteryAmount(p.Amount)] = p.InitialStock
+		}
+		base["pool_remaining"] = remaining
+		base["pool_initial"] = initial
+		base["budget_remaining"] = info.BudgetRemaining
+		// 管理员没有真实次数或预算不足时，仍可做不入账的预览抽奖
+		base["preview_available"] = info.DrawsAvailable <= 0 || info.Refilling
+	}
 	c.JSON(http.StatusOK, base)
 }
 
 func DrawLottery(c *gin.Context) {
-	result, err := model.DrawLottery(c.GetInt("id"), c.GetInt("role") >= common.RoleAdminUser)
+	userId := c.GetInt("id")
+	isAdmin := c.GetInt("role") >= common.RoleAdminUser
+	// 管理员：有真实次数且预算够就走真实抽奖；否则做一次不入账的预览，方便随时查看效果
+	if isAdmin {
+		info, statusErr := model.GetLotteryStatus(userId)
+		if statusErr == nil && (info.DrawsAvailable <= 0 || info.Refilling) {
+			result, err := model.PreviewLottery(userId)
+			if err != nil {
+				c.JSON(http.StatusConflict, gin.H{"message": err.Error(), "code": "pool_exhausted"})
+				return
+			}
+			c.JSON(http.StatusOK, gin.H{"reward": result.Amount, "quota": result.Quota, "record_id": 0, "preview": true, "message": "preview"})
+			return
+		}
+	}
+	result, err := model.DrawLottery(userId, isAdmin)
 	if err != nil {
 		status := http.StatusBadRequest
 		code := "failed"
@@ -84,7 +103,7 @@ func DrawLottery(c *gin.Context) {
 		c.JSON(status, gin.H{"message": err.Error(), "code": code})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"reward": result.Amount, "quota": result.Quota, "record_id": result.Id, "message": "success"})
+	c.JSON(http.StatusOK, gin.H{"reward": result.Amount, "quota": result.Quota, "record_id": result.Id, "preview": false, "message": "success"})
 }
 
 func GetLotteryRecords(c *gin.Context) {

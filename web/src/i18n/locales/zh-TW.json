@@ -2472,6 +2472,7 @@
     "Icon identifier (e.g. github, gitlab)": "圖標標識符（例如 github、gitlab）",
     "ID": "ID",
     "IDE Plugin": "IDE 外掛",
+    "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.": "會話因故障切換落到低優先級渠道後，一旦更高優先級的渠道恢復健康就立即切回；已在最高優先級上的會話不會被移動。",
     "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.": "如果上游錯誤包含以下任何關鍵詞（不區分大小寫），渠道將自動停用。",
     "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.": "授權成功後，生成的 JSON 將插入金鑰欄位。您仍需儲存渠道以持久化。",
     "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing": "如果連接上游 One API 或 New API 中繼項目，除非您知道自己在做什麼，否則請使用 OpenAI 類型",
@@ -4244,6 +4245,7 @@
     "Return Error": "返回錯誤",
     "Return per-token log probabilities": "返回每個 token 的對數概率",
     "Return to dashboard": "返回儀表板",
+    "Return to higher priority channels": "切回更高優先級渠道",
     "Return vector embeddings for inputs": "為輸入返回向量嵌入",
     "Reusable sets of models you can attach to channels.": "可重複使用的模型集合，可附加到渠道。",
     "Reveal API key": "顯示 通行徽章",
@@ -5812,10 +5814,7 @@
     "The event is not running right now": "活動目前未進行",
     "All prizes have been claimed": "獎品已全部發完",
     "My recent draws": "我的最近抽獎",
-    "Prize pool": "獎池",
     "{{amount}} quota": "{{amount}} 額度",
-    "{{remaining}} / {{total}} left": "剩餘 {{remaining}} / {{total}}",
-    "{{amount}} quota remaining": "{{amount}} 額度剩餘進度",
     "Lottery Settings": "抽獎設定",
     "Recharge Lottery": "儲值抽獎",
     "Save lottery settings": "儲存抽獎設定",
@@ -5830,7 +5829,10 @@
     "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.": "累計發放獎勵不會超過活動累計儲值 × 該比例。設定為低於你的毛利率即可保證不賠錢。",
     "Reserve quota": "安全儲備額度",
     "Quota held back from the prize budget, e.g. to cover server costs": "從獎勵預算中先扣除的額度，例如用於覆蓋伺服器費用",
-    "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.": "活動期間每儲值 {{threshold}} 元獲得 1 次抽獎。獎品：{{prizes}} 額度，中獎即時到帳，個人次數不限。",
-    "Admin preview: time limit bypassed": "管理員預覽：已忽略活動時間限制"
+    "Admin preview: time limit bypassed": "管理員預覽：已忽略活動時間限制",
+    "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.": "活動期間每儲值 {{threshold}} 元獲得 1 次抽獎，每次必中額度，即時到帳，個人次數不限。",
+    "Preview draw": "預覽抽獎",
+    "Preview only, nothing was credited": "僅為預覽，未入帳",
+    "Admin preview result: no quota credited, no stock used": "管理員預覽結果：未入帳、不扣庫存"
   }
 }

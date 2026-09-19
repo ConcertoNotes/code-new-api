@@ -2472,6 +2472,7 @@
     "Icon identifier (e.g. github, gitlab)": "アイコン識別子 (例: github, gitlab)",
     "ID": "ID",
     "IDE Plugin": "IDEプラグイン",
+    "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.": "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.",
     "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.": "アップストリームエラーにこれらのキーワードのいずれかが含まれている場合 (大文字と小文字を区別しない)、チャネルは自動的に無効になります。",
     "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.": "認証が成功すると、生成されたJSONがキー欄に挿入されます。保存するにはチャネルを保存してください。",
     "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing": "上流の One API または New API リレープロジェクトに接続する場合、知っている場合を除き OpenAI タイプを使用してください",
@@ -4244,6 +4245,7 @@
     "Return Error": "エラーを返す",
     "Return per-token log probabilities": "トークンごとの対数確率を返します",
     "Return to dashboard": "ダッシュボードに戻る",
+    "Return to higher priority channels": "Return to higher priority channels",
     "Return vector embeddings for inputs": "入力に対してベクトル埋め込みを返却",
     "Reusable sets of models you can attach to channels.": "チャネルにアタッチできる再利用可能なモデルセットです。",
     "Reveal API key": "APIキーを表示",
@@ -5812,10 +5814,7 @@
     "The event is not running right now": "イベントは現在開催されていません",
     "All prizes have been claimed": "賞品はすべて配布済みです",
     "My recent draws": "最近の抽選",
-    "Prize pool": "賞品プール",
     "{{amount}} quota": "{{amount}} クォータ",
-    "{{remaining}} / {{total}} left": "残り {{remaining}} / {{total}}",
-    "{{amount}} quota remaining": "{{amount}} クォータの残り",
     "Lottery Settings": "抽選設定",
     "Recharge Lottery": "チャージ抽選",
     "Save lottery settings": "抽選設定を保存",
@@ -5830,7 +5829,10 @@
     "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.": "賞品合計はイベント中のチャージ合計 × この比率を超えません。粗利率より低く設定してください。",
     "Reserve quota": "予備クォータ",
     "Quota held back from the prize budget, e.g. to cover server costs": "賞品予算から差し引くクォータ（サーバー費用など）",
-    "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.": "イベント期間中 {{threshold}} チャージごとに抽選 1 回。賞品：{{prizes}} クォータ、即時付与、回数上限なし。",
-    "Admin preview: time limit bypassed": "管理者プレビュー：期間制限を無視"
+    "Admin preview: time limit bypassed": "管理者プレビュー：期間制限を無視",
+    "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.": "イベント期間中 {{threshold}} チャージごとに抽選 1 回。毎回クォータが当たり即時付与、回数上限なし。",
+    "Preview draw": "プレビュー抽選",
+    "Preview only, nothing was credited": "プレビューのみ、付与されていません",
+    "Admin preview result: no quota credited, no stock used": "管理者プレビュー結果：付与なし・在庫消費なし"
   }
 }

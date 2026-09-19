@@ -12,8 +12,10 @@ export interface LotteryStatus {
   draws_used?: number
   total_recharge: number
   total_reward: number
-  pool_remaining: Record<string, number>
-  pool_initial: Record<string, number>
+  pool_remaining?: Record<string, number>
+  pool_initial?: Record<string, number>
+  budget_remaining?: number
+  preview_available?: boolean
   next_threshold: number
   refilling: boolean
 }
@@ -22,6 +24,7 @@ export interface LotteryDrawResult {
   reward: number
   quota: number
   record_id: number
+  preview?: boolean
   message?: string
 }
 

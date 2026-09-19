@@ -393,7 +393,9 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 	if openaiErr == nil {
 		return false
 	}
-	if service.HandleChannelAffinityFailure(c) {
+	// 会话亲和要求“不跨渠道重试”，但渠道级故障（连接失败、5xx、429、超时）继续粘在故障渠道上只会把错误原样抛给客户端；
+	// 这类错误仍然允许切换到其他渠道，成功后由 switch_on_success 重新绑定
+	if !service.IsChannelBreakerFailure(openaiErr) && service.HandleChannelAffinityFailure(c) {
 		return false
 	}
 	if types.IsChannelError(openaiErr) {
@@ -891,7 +893,9 @@ func shouldRetryTaskRelay(c *gin.Context, channelId int, taskErr *taskdto.TaskEr
 	if taskErr == nil {
 		return false
 	}
-	if service.HandleChannelAffinityFailure(c) {
+	// 与 shouldRetry 一致：上游渠道级故障即使有会话亲和也允许切换渠道
+	upstreamFailure := !taskErr.LocalError && operation_setting.ChannelBreakerMatchesStatusCode(taskErr.StatusCode)
+	if !upstreamFailure && service.HandleChannelAffinityFailure(c) {
 		return false
 	}
 	if retryTimes <= 0 {

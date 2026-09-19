@@ -29,8 +29,6 @@ const baseStatus: LotteryStatus = {
   draw_count: 2,
   total_recharge: 40,
   total_reward: 0,
-  pool_remaining: { '0.5': 99, '1': 30, '5': 10, '10': 5 },
-  pool_initial: { '0.5': 100, '1': 30, '5': 10, '10': 5 },
   next_threshold: 20,
   refilling: false,
 }
@@ -101,11 +99,49 @@ describe('LotteryCard', () => {
     expect(screen.queryByText(/popped out a pomelo/)).not.toBeInTheDocument()
   })
 
-  it('lists every prize tier with its remaining stock', () => {
+  it('never renders prize tiers or remaining stock', () => {
     mocks.getLotteryRecords.mockResolvedValue([])
-    render(<LotteryCard status={baseStatus} />)
-    const pool = screen.getByRole('list', { name: 'Prize pool' })
-    expect(pool.querySelectorAll('li')).toHaveLength(4)
-    expect(pool).toHaveTextContent('99 / 100 left')
+    render(
+      <LotteryCard
+        status={{
+          ...baseStatus,
+          pool_remaining: { '1': 80, '10': 5 },
+          pool_initial: { '1': 80, '10': 5 },
+        }}
+      />
+    )
+    expect(
+      screen.queryByRole('list', { name: 'Prize pool' })
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/80 \/ 80/)).not.toBeInTheDocument()
+  })
+
+  it('lets an admin with no draws run a preview and marks the result as not credited', async () => {
+    mocks.getLotteryRecords.mockResolvedValue([])
+    mocks.drawLottery.mockResolvedValue({
+      reward: 10,
+      quota: 5000000,
+      record_id: 0,
+      preview: true,
+    })
+    render(
+      <LotteryCard
+        status={{
+          ...baseStatus,
+          draw_count: 0,
+          refilling: true,
+          preview_available: true,
+        }}
+      />
+    )
+    const button = screen.getByRole('button', { name: 'Preview draw' })
+    expect(button).toBeEnabled()
+
+    await userEvent.click(button)
+
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('10')
+    )
+    expect(screen.getByRole('status')).toHaveTextContent(/no quota credited/i)
   })
 })

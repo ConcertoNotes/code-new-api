@@ -2472,6 +2472,7 @@
     "Icon identifier (e.g. github, gitlab)": "Идентификатор иконки (например, github, gitlab)",
     "ID": "ID",
     "IDE Plugin": "Плагин IDE",
+    "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.": "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.",
     "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.": "Если ошибка вышестоящего уровня содержит любое из этих ключевых слов (без учета регистра), канал будет автоматически отключен.",
     "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.": "При успешной авторизации сгенерированный JSON будет вставлен в поле ключа. Сохраните канал, чтобы применить изменения.",
     "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing": "При подключении к upstream One API или проектам-ретрансляторам New API используйте тип OpenAI, если только вы точно знаете, что делаете",
@@ -4244,6 +4245,7 @@
     "Return Error": "Вернуть ошибку",
     "Return per-token log probabilities": "Возвращать логарифмические вероятности по токенам",
     "Return to dashboard": "Вернуться на панель управления",
+    "Return to higher priority channels": "Return to higher priority channels",
     "Return vector embeddings for inputs": "Возвращать векторные эмбеддинги для входных данных",
     "Reusable sets of models you can attach to channels.": "Многоразовые наборы моделей, которые можно прикреплять к каналам.",
     "Reveal API key": "Показать API ключ",
@@ -5812,10 +5814,7 @@
     "The event is not running right now": "Акция сейчас не проводится",
     "All prizes have been claimed": "Все призы разыграны",
     "My recent draws": "Мои последние попытки",
-    "Prize pool": "Призовой фонд",
     "{{amount}} quota": "{{amount}} квоты",
-    "{{remaining}} / {{total}} left": "Осталось {{remaining}} / {{total}}",
-    "{{amount}} quota remaining": "Остаток по {{amount}} квоты",
     "Lottery Settings": "Настройки лотереи",
     "Recharge Lottery": "Лотерея пополнений",
     "Save lottery settings": "Сохранить настройки лотереи",
@@ -5830,7 +5829,10 @@
     "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.": "Сумма призов не превысит пополнения × это отношение. Держите его ниже валовой маржи.",
     "Reserve quota": "Резерв квоты",
     "Quota held back from the prize budget, e.g. to cover server costs": "Квота, вычитаемая из призового бюджета, напр. на серверы",
-    "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.": "Каждые {{threshold}} пополнения во время акции дают одну попытку. Призы: {{prizes}} квоты, зачисляются сразу. Без личного лимита.",
-    "Admin preview: time limit bypassed": "Просмотр админа: ограничение по времени снято"
+    "Admin preview: time limit bypassed": "Просмотр админа: ограничение по времени снято",
+    "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.": "Каждые {{threshold}} пополнения во время акции дают одну попытку. Каждая попытка выигрывает квоту, зачисляется сразу. Без личного лимита.",
+    "Preview draw": "Пробный розыгрыш",
+    "Preview only, nothing was credited": "Только предпросмотр, ничего не зачислено",
+    "Admin preview result: no quota credited, no stock used": "Результат предпросмотра: квота не зачислена, запас не тронут"
   }
 }

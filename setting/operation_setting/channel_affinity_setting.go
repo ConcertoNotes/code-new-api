@@ -28,12 +28,15 @@ type ChannelAffinityRule struct {
 }
 
 type ChannelAffinitySetting struct {
-	Enabled               bool                  `json:"enabled"`
-	SwitchOnSuccess       bool                  `json:"switch_on_success"`
-	KeepOnChannelDisabled bool                  `json:"keep_on_channel_disabled"`
-	MaxEntries            int                   `json:"max_entries"`
-	DefaultTTLSeconds     int                   `json:"default_ttl_seconds"`
-	Rules                 []ChannelAffinityRule `json:"rules"`
+	Enabled               bool `json:"enabled"`
+	SwitchOnSuccess       bool `json:"switch_on_success"`
+	KeepOnChannelDisabled bool `json:"keep_on_channel_disabled"`
+	// PreferHigherPriority 亲和会话绑定在低优先级渠道上时，一旦有更高优先级的健康渠道可用就切回去，
+	// 避免故障切换后会话永远留在备用渠道
+	PreferHigherPriority bool                  `json:"prefer_higher_priority"`
+	MaxEntries           int                   `json:"max_entries"`
+	DefaultTTLSeconds    int                   `json:"default_ttl_seconds"`
+	Rules                []ChannelAffinityRule `json:"rules"`
 }
 
 // Keep Codex CLI passthrough aligned with upstream. Codex uses lower-case
@@ -113,6 +116,7 @@ var channelAffinitySetting = ChannelAffinitySetting{
 	Enabled:               true,
 	SwitchOnSuccess:       true,
 	KeepOnChannelDisabled: false,
+	PreferHigherPriority:  true,
 	MaxEntries:            100_000,
 	DefaultTTLSeconds:     3600,
 	Rules: []ChannelAffinityRule{

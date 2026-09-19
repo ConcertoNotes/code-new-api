@@ -2472,6 +2472,7 @@
     "Icon identifier (e.g. github, gitlab)": "Mã định danh biểu tượng (ví dụ: github, gitlab)",
     "ID": "ID",
     "IDE Plugin": "Tiện ích IDE",
+    "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.": "If a session was moved to a lower-priority channel by failover, switch it back as soon as a higher-priority channel is healthy again. Sessions on the top priority are never moved.",
     "If an upstream error contains any of these keywords (case insensitive), the channel will be disabled automatically.": "Nếu một lỗi thượng nguồn chứa bất kỳ từ khóa nào trong số này (không phân biệt chữ hoa chữ thường), kênh sẽ tự động bị vô hiệu hóa.",
     "If authorization succeeds, the generated JSON will be inserted into the key field. You still need to save the channel to persist it.": "Nếu ủy quyền thành công, JSON tạo ra sẽ được chèn vào trường khóa. Bạn vẫn cần lưu kênh để áp dụng.",
     "If connecting to upstream One API or New API relay projects, use OpenAI type instead unless you know what you are doing": "Nếu kết nối với dự án relay One API hoặc New API upstream, hãy sử dụng loại OpenAI thay thế trừ khi bạn biết mình đang làm gì",
@@ -4244,6 +4245,7 @@
     "Return Error": "Trả về lỗi",
     "Return per-token log probabilities": "Trả về log probabilities cho từng token",
     "Return to dashboard": "Quay lại bảng điều khiển",
+    "Return to higher priority channels": "Return to higher priority channels",
     "Return vector embeddings for inputs": "Trả về vector embedding cho đầu vào",
     "Reusable sets of models you can attach to channels.": "Bộ mô hình có thể tái sử dụng, có thể gắn vào kênh.",
     "Reveal API key": "Hiển thị khóa API",
@@ -5812,10 +5814,7 @@
     "The event is not running right now": "Sự kiện hiện không diễn ra",
     "All prizes have been claimed": "Tất cả giải thưởng đã được phát",
     "My recent draws": "Lượt quay gần đây của tôi",
-    "Prize pool": "Kho giải thưởng",
     "{{amount}} quota": "{{amount}} hạn mức",
-    "{{remaining}} / {{total}} left": "Còn {{remaining}} / {{total}}",
-    "{{amount}} quota remaining": "Còn lại {{amount}} hạn mức",
     "Lottery Settings": "Cài đặt quay thưởng",
     "Recharge Lottery": "Quay thưởng nạp tiền",
     "Save lottery settings": "Lưu cài đặt quay thưởng",
@@ -5830,7 +5829,10 @@
     "Total prizes never exceed event recharges × this ratio. Keep it below your gross margin to stay profitable.": "Tổng giải thưởng không vượt quá tổng nạp × tỷ lệ này. Giữ thấp hơn biên lợi nhuận gộp.",
     "Reserve quota": "Hạn mức dự phòng",
     "Quota held back from the prize budget, e.g. to cover server costs": "Hạn mức trừ khỏi ngân sách giải thưởng, ví dụ chi phí máy chủ",
-    "Every {{threshold}} recharged during the event earns one draw. Prizes: {{prizes}} quota, credited instantly. No personal draw limit.": "Mỗi {{threshold}} nạp trong sự kiện được 1 lượt quay. Giải: {{prizes}} hạn mức, cộng ngay. Không giới hạn lượt.",
-    "Admin preview: time limit bypassed": "Xem trước quản trị: bỏ qua giới hạn thời gian"
+    "Admin preview: time limit bypassed": "Xem trước quản trị: bỏ qua giới hạn thời gian",
+    "Every {{threshold}} recharged during the event earns one draw. Every draw wins quota, credited instantly. No personal draw limit.": "Mỗi {{threshold}} nạp trong sự kiện được 1 lượt quay. Lượt nào cũng trúng hạn mức, cộng ngay. Không giới hạn lượt.",
+    "Preview draw": "Quay thử",
+    "Preview only, nothing was credited": "Chỉ xem trước, chưa cộng gì",
+    "Admin preview result: no quota credited, no stock used": "Kết quả xem trước: không cộng hạn mức, không trừ kho"
   }
 }

@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -272,6 +273,45 @@ func lotteryPoolCost(prizes []LotteryPrize) float64 {
 		}
 	}
 	return cost
+}
+
+// PreviewLottery 管理员预览：用真实库存和用户系数跑一次加权抽取，但忽略预算、
+// 不扣库存、不入账、不写记录，只用于查看效果。
+func PreviewLottery(userId int) (LotteryDraw, error) {
+	if !operation_setting.GetLotterySetting().Enabled {
+		return LotteryDraw{}, ErrLotteryInactive
+	}
+	if err := ensureLotteryPrizes(DB); err != nil {
+		return LotteryDraw{}, err
+	}
+	var prizes []LotteryPrize
+	if err := DB.Order("amount").Find(&prizes).Error; err != nil {
+		return LotteryDraw{}, err
+	}
+	if lotteryPoolCost(prizes) <= 0 {
+		return LotteryDraw{}, ErrLotteryPoolExhausted
+	}
+	recharge, err := lotteryRechargeMoney(DB, userId, operation_setting.GetLotterySetting())
+	if err != nil {
+		return LotteryDraw{}, err
+	}
+	usage, activeDays, err := lotteryUsageStats(DB, userId, common.GetTimestamp()-14*86400)
+	if err != nil {
+		return LotteryDraw{}, err
+	}
+	userFactor := lotteryUserFactor(recharge, usage, activeDays)
+	weights := lotteryPrizeWeights(prizes, userFactor, 2, math.Inf(1))
+	chosen := pickLotteryPrize(weights, rand.Float64())
+	if chosen < 0 {
+		return LotteryDraw{}, ErrLotteryPoolExhausted
+	}
+	quota, err := common.WalletQuotaFromDecimalStrict(
+		decimal.NewFromFloat(prizes[chosen].Amount).Mul(decimal.NewFromFloat(common.QuotaPerUnit)),
+	)
+	if err != nil {
+		return LotteryDraw{}, err
+	}
+	return LotteryDraw{UserId: userId, Amount: prizes[chosen].Amount, Quota: quota, UserFactor: userFactor, BudgetFactor: 2, StockSnapshot: lotteryStockSnapshot(prizes)}, nil
 }
 
 // GetLotteryStatus 返回用户视角的活动状态（不加锁，只读）
