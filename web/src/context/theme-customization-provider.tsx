@@ -37,11 +37,13 @@ import {
   THEME_PRESET_VALUES,
   THEME_RADIUS_VALUES,
   THEME_SCALE_VALUES,
+  THEME_SKIN_VALUES,
   type ThemeCustomization,
   type ThemeFont,
   type ThemePreset,
   type ThemeRadius,
   type ThemeScale,
+  type ThemeSkin,
 } from '@/lib/theme-customization'
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365 // 1 year
@@ -69,6 +71,7 @@ function applyAttribute(name: string, value: string | null) {
 type ThemeCustomizationContextType = {
   defaults: ThemeCustomization
   customization: ThemeCustomization
+  setSkin: (skin: ThemeSkin) => void
   setPreset: (preset: ThemePreset) => void
   setFont: (font: ThemeFont) => void
   setRadius: (radius: ThemeRadius) => void
@@ -84,6 +87,7 @@ type ThemeCustomizationContextType = {
 const FALLBACK_CONTEXT: ThemeCustomizationContextType = {
   defaults: DEFAULT_THEME_CUSTOMIZATION,
   customization: DEFAULT_THEME_CUSTOMIZATION,
+  setSkin: () => {},
   setPreset: () => {},
   setFont: () => {},
   setRadius: () => {},
@@ -98,6 +102,13 @@ const ThemeCustomizationContext =
 export function ThemeCustomizationProvider(props: {
   children: React.ReactNode
 }) {
+  const [skin, _setSkin] = useState<ThemeSkin>(() =>
+    readCookie<ThemeSkin>(
+      THEME_COOKIE_KEYS.skin,
+      THEME_SKIN_VALUES,
+      DEFAULT_THEME_CUSTOMIZATION.skin
+    )
+  )
   const [preset, _setPreset] = useState<ThemePreset>(() =>
     readCookie<ThemePreset>(
       THEME_COOKIE_KEYS.preset,
@@ -140,6 +151,12 @@ export function ThemeCustomizationProvider(props: {
     applyAttribute('data-theme-preset', preset)
   }, [preset])
 
+  // 皮肤与颜色预设相互独立：lulu-site.css / lulu-controls.css 中的装饰规则
+  // 只挂在 `data-theme-skin='lulu'` 上，颜色 token 仍由 `data-theme-preset` 决定。
+  useLayoutEffect(() => {
+    applyAttribute('data-theme-skin', skin)
+  }, [skin])
+
   // Font is the one axis where we resolve before writing the attribute:
   // the persisted preference may be `default`, but CSS works in terms of
   // the concrete `sans`/`serif` choice that should drive the cascade.
@@ -167,6 +184,15 @@ export function ThemeCustomizationProvider(props: {
   useEffect(() => {
     applyAttribute('data-theme-content-layout', contentLayout)
   }, [contentLayout])
+
+  const setSkin = useCallback((value: ThemeSkin) => {
+    _setSkin(value)
+    if (value === DEFAULT_THEME_CUSTOMIZATION.skin) {
+      removeCookie(THEME_COOKIE_KEYS.skin)
+    } else {
+      setCookie(THEME_COOKIE_KEYS.skin, value, COOKIE_MAX_AGE)
+    }
+  }, [])
 
   const setPreset = useCallback((value: ThemePreset) => {
     _setPreset(value)
@@ -214,17 +240,19 @@ export function ThemeCustomizationProvider(props: {
   }, [])
 
   const resetCustomization = useCallback(() => {
+    setSkin(DEFAULT_THEME_CUSTOMIZATION.skin)
     setPreset(DEFAULT_THEME_CUSTOMIZATION.preset)
     setFont(DEFAULT_THEME_CUSTOMIZATION.font)
     setRadius(DEFAULT_THEME_CUSTOMIZATION.radius)
     setScale(DEFAULT_THEME_CUSTOMIZATION.scale)
     setContentLayout(DEFAULT_THEME_CUSTOMIZATION.contentLayout)
-  }, [setPreset, setFont, setRadius, setScale, setContentLayout])
+  }, [setSkin, setPreset, setFont, setRadius, setScale, setContentLayout])
 
   const value = useMemo<ThemeCustomizationContextType>(
     () => ({
       defaults: DEFAULT_THEME_CUSTOMIZATION,
-      customization: { preset, font, radius, scale, contentLayout },
+      customization: { skin, preset, font, radius, scale, contentLayout },
+      setSkin,
       setPreset,
       setFont,
       setRadius,
@@ -233,11 +261,13 @@ export function ThemeCustomizationProvider(props: {
       resetCustomization,
     }),
     [
+      skin,
       preset,
       font,
       radius,
       scale,
       contentLayout,
+      setSkin,
       setPreset,
       setFont,
       setRadius,

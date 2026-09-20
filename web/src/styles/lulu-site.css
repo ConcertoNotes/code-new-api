@@ -16,12 +16,24 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-/* Shared station skin. Tokens reach routed pages and body-mounted portals. */
+/* Shared station skin.
+ *
+ * Two independent axes drive this file:
+ * - `data-theme-preset='lulu'` — the Lulu Island color palette (tokens, page
+ *   backgrounds). Chosen from the color preset grid like any other palette.
+ * - `data-theme-skin='lulu'`   — the decorative layer (rounded display font,
+ *   pill radii, gradient buttons, peeking mascots, auth artwork). The Original
+ *   skin (`classic`) drops every rule in that group so the interface looks like
+ *   upstream new-api while keeping the station's wording.
+ *
+ * Tokens reach routed pages and body-mounted portals. */
 :root {
   --lulu-rounded:
     'YouYuan', '幼圆', 'Yuanti SC', 'Hiragino Maru Gothic ProN',
     'Microsoft YaHei', 'Public Sans', sans-serif;
 }
+
+/* ---------- Palette: Lulu Island color preset ---------- */
 body:not([data-theme-preset]),
 body[data-theme-preset='lulu'],
 .dark body[data-theme-preset='lulu'] {
@@ -116,25 +128,12 @@ body[data-theme-preset='lulu']
     [data-slot='sheet-content']
   ) {
   background-image: linear-gradient(135deg, #32614926, transparent 65%);
-  border-radius: 22px;
 }
 body[data-theme-preset='lulu'] [data-slot='card'] {
   background-color: color-mix(in srgb, var(--card) 94%, transparent);
 }
-body[data-theme-preset='lulu'] .lulu-page-heading {
-  padding-top: 34px;
-  padding-bottom: 20px;
-  background: linear-gradient(90deg, #1c4d3333, transparent);
-}
-body[data-theme-preset='lulu'] [data-slot='section-page-content'] {
-  padding-top: 24px;
-}
-body[data-theme-preset='lulu'] {
-  --lulu-pagination-clip: 14px;
-}
 body[data-theme-preset='lulu'] [data-slot='table-container'] {
-  border: 1px solid #739c6733;
-  border-radius: 18px;
+  border-color: #739c6733;
   background: #082920d9;
 }
 body[data-theme-preset='lulu']
@@ -142,19 +141,48 @@ body[data-theme-preset='lulu']
   background-color: #15392e;
 }
 body[data-theme-preset='lulu'] [data-slot='tabs-list'] {
-  border-radius: 16px;
   background-color: #153b33;
 }
 html:has(body[data-theme-preset='lulu']) {
   background-color: #031817;
   color-scheme: dark;
 }
-body[data-theme-preset='lulu']
+
+/* ---------- Decoration: Lulu skin ---------- */
+body[data-theme-skin='lulu'] .lulu-page-heading {
+  padding-top: 34px;
+  padding-bottom: 20px;
+  background: linear-gradient(90deg, #1c4d3333, transparent);
+}
+body[data-theme-skin='lulu'] [data-slot='section-page-content'] {
+  padding-top: 24px;
+}
+body[data-theme-skin='lulu'] {
+  --lulu-pagination-clip: 14px;
+}
+body[data-theme-skin='lulu']
+  :is(
+    [data-slot='card'],
+    [data-slot='dialog-content'],
+    [data-slot='alert-dialog-content'],
+    [data-slot='sheet-content']
+  ) {
+  border-radius: 22px;
+}
+body[data-theme-skin='lulu'] [data-slot='table-container'] {
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 18px;
+}
+body[data-theme-skin='lulu'] [data-slot='tabs-list'] {
+  border-radius: 16px;
+}
+body[data-theme-skin='lulu']
   :is(h1, h2, h3, [data-slot='card-title'], [data-slot='dialog-title']) {
   font-family: var(--lulu-rounded);
   letter-spacing: 0.025em;
 }
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   :is(
     [data-slot='card'],
     [data-slot='dialog-content'],
@@ -169,30 +197,28 @@ body[data-theme-preset='lulu']
     0 12px 36px #001b1933,
     inset 0 1px #e4f8d908;
 }
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   :is(input, textarea, [data-slot='select-trigger']) {
   border-radius: 14px;
 }
 /* All native controls share soft corners; specialized tab/checkbox semantics remain intact. */
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   button:not([role='checkbox']):not([role='switch']):not([role='radio']) {
   border-radius: 16px;
   font-family: var(--lulu-rounded);
 }
-body[data-theme-preset='lulu'] button[aria-pressed='true'] {
-  box-shadow: inset 0 -2px #b7edcd;
+body[data-theme-skin='lulu'] button[aria-pressed='true'] {
+  box-shadow: inset 0 -2px var(--primary);
 }
-body[data-theme-preset='lulu'] [data-sidebar='menu-button'] {
+body[data-theme-skin='lulu'] [data-sidebar='menu-button'] {
   border-radius: 15px;
 }
-body[data-theme-preset='lulu']
-  [data-sidebar='menu-button'][data-active='true'] {
-  box-shadow: inset 3px 0 #b9e8bc;
+body[data-theme-skin='lulu'] [data-sidebar='menu-button'][data-active='true'] {
+  box-shadow: inset 3px 0 var(--sidebar-primary);
 }
 
-.lulu-control,
-.lulu-button,
-.lulu-header-cta {
+body[data-theme-skin='lulu']
+  :is(.lulu-control, .lulu-button, .lulu-header-cta) {
   border-radius: 18px 18px 15px 15px / 19px 19px 13px 13px;
   font-family: var(--lulu-rounded);
   font-weight: 600;
@@ -208,9 +234,8 @@ body[data-theme-preset='lulu']
 .lulu-copy {
   position: relative;
 }
-.lulu-control-primary,
-.lulu-button-primary,
-.lulu-header-cta {
+body[data-theme-skin='lulu']
+  :is(.lulu-control-primary, .lulu-button-primary, .lulu-header-cta) {
   background: linear-gradient(135deg, #e0f3bd, #a9e5c2);
   color: #123b2b;
   border: 1px solid #e6fbd24d;
@@ -218,42 +243,43 @@ body[data-theme-preset='lulu']
     inset 0 2px #faffdf66,
     0 3px 0 #4d947754;
 }
-.lulu-control-outline,
-.lulu-control-secondary,
-.lulu-button-glass {
+body[data-theme-skin='lulu']
+  :is(.lulu-control-outline, .lulu-control-secondary, .lulu-button-glass) {
   border-color: #638571;
   box-shadow:
     inset 0 1px #edffcc0d,
     0 3px 0 #00171326;
 }
-.lulu-control-destructive {
+body[data-theme-skin='lulu'] .lulu-control-destructive {
   border-color: color-mix(in srgb, var(--destructive) 45%, transparent);
 }
-.lulu-control-icon {
+body[data-theme-skin='lulu'] .lulu-control-icon {
   border-radius: 42% 42% 36% 36%;
 }
-body[data-theme-preset='lulu'] button[data-range-middle='true'] {
+body[data-theme-skin='lulu'] button[data-range-middle='true'] {
   border-radius: 0;
 }
-.lulu-control:disabled,
-.lulu-control[aria-disabled='true'] {
+body[data-theme-skin='lulu']
+  :is(.lulu-control:disabled, .lulu-control[aria-disabled='true']) {
   box-shadow: none;
 }
-.lulu-control:focus-visible,
-.lulu-button:focus-visible,
-.lulu-header-cta:focus-visible {
+body[data-theme-skin='lulu']
+  :is(.lulu-control, .lulu-button, .lulu-header-cta):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 4px;
 }
 @media (hover: hover) {
-  .lulu-control:not(:disabled):not([aria-disabled='true']):hover,
-  .lulu-button:hover,
-  .lulu-header-cta:hover {
+  body[data-theme-skin='lulu']
+    :is(
+      .lulu-control:not(:disabled):not([aria-disabled='true']),
+      .lulu-button,
+      .lulu-header-cta
+    ):hover {
     transform: translateY(-2px);
   }
 }
-.lulu-control:not(:disabled):active,
-.lulu-button:active {
+body[data-theme-skin='lulu']
+  :is(.lulu-control:not(:disabled), .lulu-button):active {
   transform: translateY(1px) scale(0.98);
 }
 .lulu-brand-mascot {
@@ -302,13 +328,14 @@ body[data-theme-preset='lulu'] button[data-range-middle='true'] {
     transform: none;
   }
 }
-.lulu-auth {
+/* Auth pages: forest backdrop and bobbing mascot belong to the Lulu skin only. */
+body[data-theme-skin='lulu'] .lulu-auth {
   isolation: isolate;
   background:
     linear-gradient(90deg, #031817d9, #082b26bd),
     url('../../public/lulu/hero/hero-bg.webp') center / cover;
 }
-.lulu-auth::before {
+body[data-theme-skin='lulu'] .lulu-auth::before {
   content: '';
   position: absolute;
   z-index: -1;
@@ -321,7 +348,7 @@ body[data-theme-preset='lulu'] button[data-range-middle='true'] {
     no-repeat;
   animation: lulu-site-bob 7s ease-in-out infinite;
 }
-.lulu-auth-panel {
+body[data-theme-skin='lulu'] .lulu-auth-panel {
   background: #092a25ed;
   border: 1px solid #739c6745;
   border-radius: 30px;
@@ -333,10 +360,10 @@ body[data-theme-preset='lulu'] button[data-range-middle='true'] {
   }
 }
 @media (max-width: 800px) {
-  .lulu-auth::before {
+  body[data-theme-skin='lulu'] .lulu-auth::before {
     display: none;
   }
-  .lulu-auth-panel {
+  body[data-theme-skin='lulu'] .lulu-auth-panel {
     margin-block: 24px;
   }
 }

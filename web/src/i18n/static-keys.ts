@@ -32,6 +32,10 @@ export const STATIC_I18N_KEYS = [
   'Docs',
   'About',
 
+  // Theme drawer: UI skin labels (see THEME_SKINS in lib/theme-customization.ts)
+  'skin.lulu',
+  'skin.classic',
+
   // Sidebar views (drill-in workspaces)
   'System Settings',
   'Back to Dashboard',

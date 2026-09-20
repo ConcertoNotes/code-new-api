@@ -17,17 +17,19 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 
-/* Decorative PNGs cover shared and native controls, including portal content.
+/* Peeking mascots only exist on the Lulu skin (`data-theme-skin='lulu'`); the
+ * Original skin keeps upstream controls untouched regardless of color preset.
+ * Decorative PNGs cover shared and native controls, including portal content.
  * Keep positioning in the base layer so absolute password/close controls win.
  * Empty pseudo content leaves accessible names, refs and Base UI composition intact. */
 @layer base {
-  body[data-theme-preset='lulu']
+  body[data-theme-skin='lulu']
     :where(button, .lulu-control, .lulu-button, .lulu-header-cta) {
     position: relative;
   }
 }
 
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   :where(button, .lulu-control, .lulu-button, .lulu-header-cta):not(
     [role='checkbox'],
     [role='switch'],
@@ -56,14 +58,14 @@ body[data-theme-preset='lulu']
   transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   :where(.lulu-control-primary, .lulu-button, .lulu-header-cta) {
   --lulu-peek-width: 44px;
   --lulu-peek-overlap: 7px;
 }
 
 /* Dense controls get a small perch that stays inside their own horizontal bounds. */
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   :where(
     .lulu-control-icon,
     [data-size='xs'],
@@ -85,44 +87,44 @@ body[data-theme-preset='lulu']
 }
 
 /* A dedicated group decoration takes precedence over its child decorations. */
-body[data-theme-preset='lulu'] .lulu-page-heading .lulu-control {
+body[data-theme-skin='lulu'] .lulu-page-heading .lulu-control {
   --lulu-peek-width: 36px;
   --lulu-peek-overlap: 7px;
 }
-body[data-theme-preset='lulu'] .lulu-page-heading .lulu-control-primary {
+body[data-theme-skin='lulu'] .lulu-page-heading .lulu-control-primary {
   --lulu-peek-width: 44px;
 }
-body[data-theme-preset='lulu'] .lulu-page-heading .lulu-control-icon {
+body[data-theme-skin='lulu'] .lulu-page-heading .lulu-control-icon {
   --lulu-peek-width: 20px;
   --lulu-peek-overlap: 5px;
 }
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   header
   :where(button, .lulu-control, .lulu-header-cta) {
   --lulu-peek-width: 16px;
   --lulu-peek-overlap: 7px;
 }
 
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   .lulu-toolbar-wrapper
   :where(button, .lulu-control, .lulu-button)::before {
   content: none;
 }
 
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   [class~='@container/pagination']
   :where(button, .lulu-control) {
   --lulu-peek-width: 20px;
   --lulu-peek-overlap: 5px;
 }
 /* Inline truncated data values keep their clipping; the adjacent copy action is decorated. */
-body[data-theme-preset='lulu']
+body[data-theme-skin='lulu']
   :where(button, .lulu-control):is(.truncate, .overflow-hidden)::before {
   content: none;
 }
 
 @media (hover: hover) {
-  body[data-theme-preset='lulu']
+  body[data-theme-skin='lulu']
     :where(button, .lulu-control, .lulu-button, .lulu-header-cta):not(
       :disabled
     ):not([aria-disabled='true']):hover::before {
@@ -131,11 +133,11 @@ body[data-theme-preset='lulu']
 }
 
 @media (max-width: 640px) {
-  body[data-theme-preset='lulu'] :where(.lulu-control-primary, .lulu-button) {
+  body[data-theme-skin='lulu'] :where(.lulu-control-primary, .lulu-button) {
     --lulu-peek-width: 32px;
     --lulu-peek-overlap: 6px;
   }
-  body[data-theme-preset='lulu']
+  body[data-theme-skin='lulu']
     :where(.lulu-control-icon, [data-size='xs'], [data-size='sm']) {
     --lulu-peek-width: 20px;
     --lulu-peek-overlap: 5px;
@@ -143,7 +145,7 @@ body[data-theme-preset='lulu']
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body[data-theme-preset='lulu']
+  body[data-theme-skin='lulu']
     :where(button, .lulu-control, .lulu-button, .lulu-header-cta)::before {
     transition: none !important;
     transform: none !important;

@@ -90,6 +90,20 @@ export const THEME_PRESETS = [
 ] as const
 
 export type ThemePreset = (typeof THEME_PRESETS)[number]['value']
+
+/**
+ * UI 皮肤（装饰层）。颜色由 `preset` 决定，皮肤只控制噜噜岛的装饰元素：
+ * 按钮上的探头吉祥物、圆体字、超大圆角、渐变按钮、登录页背景插画、首页落地页等。
+ *
+ * - `lulu` — 噜噜版，保留全部装饰。
+ * - `classic` — 原版，还原上游 new-api 的界面外观，仅保留站点文案。
+ */
+export type ThemeSkin = 'lulu' | 'classic'
+
+export const THEME_SKINS: readonly { value: ThemeSkin; labelKey: string }[] = [
+  { value: 'lulu', labelKey: 'skin.lulu' },
+  { value: 'classic', labelKey: 'skin.classic' },
+]
 export type ThemeRadius = 'default' | 'none' | 'sm' | 'md' | 'lg' | 'xl'
 export type ThemeScale = 'default' | 'sm' | 'lg' | 'xl'
 export type ContentLayout = 'full' | 'centered'
@@ -117,6 +131,7 @@ export type ThemeFont = 'default' | 'sans' | 'serif'
 export type ResolvedThemeFont = Exclude<ThemeFont, 'default'>
 
 export type ThemeCustomization = {
+  skin: ThemeSkin
   preset: ThemePreset
   font: ThemeFont
   radius: ThemeRadius
@@ -125,6 +140,7 @@ export type ThemeCustomization = {
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
+  skin: 'lulu',
   preset: 'lulu',
   font: 'default',
   radius: 'default',
@@ -135,6 +151,11 @@ export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
 export const THEME_PRESET_VALUES = new Set(
   THEME_PRESETS.map((p) => p.value)
 ) as ReadonlySet<ThemePreset>
+
+export const THEME_SKIN_VALUES: ReadonlySet<ThemeSkin> = new Set([
+  'lulu',
+  'classic',
+])
 
 export const THEME_FONT_VALUES: ReadonlySet<ThemeFont> = new Set([
   'default',
@@ -164,6 +185,7 @@ export const CONTENT_LAYOUT_VALUES: ReadonlySet<ContentLayout> = new Set([
 ])
 
 export const THEME_COOKIE_KEYS = {
+  skin: 'lulu_theme_skin',
   preset: 'lulu_theme_preset',
   font: 'theme_font',
   radius: 'theme_radius',

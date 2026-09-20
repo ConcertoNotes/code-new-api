@@ -24,10 +24,12 @@ import '@/styles/lulu-home.css'
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
 import { RichContent } from '@/components/rich-content'
+import { useThemeCustomization } from '@/context/theme-customization-provider'
 import { useTheme } from '@/context/theme-provider'
 import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { CTA, Features, Hero, HowItWorks, Stats } from './components'
 import { ModernLanding } from './components/modern-landing'
 import { useHomePageContent } from './hooks'
 
@@ -35,6 +37,7 @@ export function Home() {
   const { i18n, t } = useTranslation()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const { resolvedTheme } = useTheme()
+  const skin = useThemeCustomization().customization.skin
   const { auth } = useAuthStore()
   const isAuthenticated = !!auth.user
   const { content, isLoaded, isUrl } = useHomePageContent()
@@ -118,6 +121,20 @@ export function Home() {
             className='custom-home-content'
           />
         </div>
+      </PublicLayout>
+    )
+  }
+
+  // 原版皮肤：沿用上游 new-api 的落地页，避免噜噜岛的萤火虫、灯笼与吉祥物。
+  if (skin === 'classic') {
+    return (
+      <PublicLayout showMainContainer={false}>
+        <Hero isAuthenticated={isAuthenticated} />
+        <Stats />
+        <Features />
+        <HowItWorks />
+        <CTA isAuthenticated={isAuthenticated} />
+        <Footer />
       </PublicLayout>
     )
   }

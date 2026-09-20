@@ -55,10 +55,12 @@ import { useTheme } from '@/context/theme-provider'
 import {
   type ContentLayout,
   THEME_PRESETS,
+  THEME_SKINS,
   type ThemeFont,
   type ThemePreset,
   type ThemeRadius,
   type ThemeScale,
+  type ThemeSkin,
 } from '@/lib/theme-customization'
 import { cn } from '@/lib/utils'
 
@@ -105,6 +107,7 @@ export function ConfigDrawer() {
           </SheetDescription>
         </SheetHeader>
         <div className={sideDrawerFormClassName()}>
+          <SkinConfig />
           <ThemeConfig />
           <PresetConfig />
           <FontConfig />
@@ -208,6 +211,101 @@ function RadioGroupItem(props: {
         {props.item.label}
       </div>
     </Item>
+  )
+}
+
+/**
+ * 皮肤预览：两张小卡片模拟同一个按钮在“噜噜版 / 原版”下的样子。
+ * 噜噜版带探头吉祥物与胶囊按钮，原版只有一个普通的方角按钮。
+ */
+function SkinPreview(props: { skin: ThemeSkin }) {
+  const isLulu = props.skin === 'lulu'
+  return (
+    <div
+      aria-hidden='true'
+      className='absolute inset-2 flex flex-col justify-end gap-1.5'
+    >
+      <span className='bg-foreground/40 block h-1.5 w-2/3 rounded-sm' />
+      <span className='bg-foreground/25 block h-[2px] w-full rounded-full' />
+      <div className='relative mt-0.5 flex items-center gap-1.5'>
+        {isLulu && (
+          <img
+            src='/lulu/lulu-peek.png'
+            alt=''
+            draggable={false}
+            className='absolute -top-2.5 left-4 h-auto w-4'
+          />
+        )}
+        <span
+          className={cn(
+            'bg-primary block h-3 w-8',
+            isLulu ? 'rounded-full' : 'rounded-[2px]'
+          )}
+        />
+        <span
+          className={cn(
+            'border-foreground/40 block h-3 w-6 border',
+            isLulu ? 'rounded-full' : 'rounded-[2px]'
+          )}
+        />
+      </div>
+    </div>
+  )
+}
+
+function SkinConfig() {
+  const { t } = useTranslation()
+  const { defaults, customization, setSkin } = useThemeCustomization()
+  return (
+    <div>
+      <SectionTitle
+        title={t('UI style')}
+        showReset={customization.skin !== defaults.skin}
+        onReset={() => setSkin(defaults.skin)}
+      />
+      <Radio
+        value={customization.skin}
+        onValueChange={(v) => setSkin(v as ThemeSkin)}
+        className='grid w-full max-w-md grid-cols-2 gap-4'
+        aria-label={t('Select UI style')}
+        aria-describedby='skin-description'
+      >
+        {THEME_SKINS.map((option) => (
+          <Item
+            key={option.value}
+            value={option.value}
+            className='group flex flex-col items-stretch outline-none'
+            aria-label={t(option.labelKey)}
+          >
+            <div
+              className={cn(
+                'ring-border relative h-12 rounded-md ring-[1px] transition',
+                'group-data-checked:ring-primary group-data-checked:shadow-md',
+                'group-focus-visible:ring-2',
+                'group-hover:ring-primary/60'
+              )}
+            >
+              <CircleCheck
+                className={cn(
+                  'fill-primary absolute top-0 right-0 z-10 size-5 translate-x-1/2 -translate-y-1/2 stroke-white',
+                  'group-data-unchecked:hidden'
+                )}
+                aria-hidden='true'
+              />
+              <SkinPreview skin={option.value} />
+            </div>
+            <div className='mt-1.5 truncate text-center text-xs'>
+              {t(option.labelKey)}
+            </div>
+          </Item>
+        ))}
+      </Radio>
+      <div id='skin-description' className='sr-only'>
+        {t(
+          'Lulu edition keeps the mascot decorations; Original restores the plain interface and keeps only the site wording.'
+        )}
+      </div>
+    </div>
   )
 }
 
