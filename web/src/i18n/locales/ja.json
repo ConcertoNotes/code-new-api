@@ -1013,7 +1013,7 @@
     "Select UI style": "UI スタイルを選択",
     "skin.lulu": "ルル版",
     "skin.classic": "オリジナル",
-    "Lulu edition keeps the mascot decorations; Original restores the plain interface and keeps only the site wording.": "ルル版はマスコット装飾を残し、オリジナルはシンプルな画面に戻してサイトの文言だけを保持します。",
+    "Lulu edition keeps the mascot decorations and playful wording; Original restores the plain upstream interface and wording.": "ルル版はマスコット装飾と遊び心のある文言を残し、オリジナルは上流のシンプルな画面と元の文言に戻します。",
     "Color:": "色:",
     "Comfortable": "快適",
     "Coming Soon!": "近日公開！",

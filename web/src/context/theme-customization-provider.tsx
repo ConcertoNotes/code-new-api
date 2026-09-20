@@ -26,6 +26,7 @@ import {
   useState,
 } from 'react'
 
+import { applyI18nSkin } from '@/i18n/skin'
 import { getCookie, removeCookie, setCookie } from '@/lib/cookies'
 import {
   CONTENT_LAYOUT_VALUES,
@@ -153,8 +154,10 @@ export function ThemeCustomizationProvider(props: {
 
   // 皮肤与颜色预设相互独立：lulu-site.css / lulu-controls.css 中的装饰规则
   // 只挂在 `data-theme-skin='lulu'` 上，颜色 token 仍由 `data-theme-preset` 决定。
+  // 同时切换站点文案：原版皮肤使用上游 new-api 的原始措辞。
   useLayoutEffect(() => {
     applyAttribute('data-theme-skin', skin)
+    applyI18nSkin(skin)
   }, [skin])
 
   // Font is the one axis where we resolve before writing the attribute:

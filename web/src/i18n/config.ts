@@ -28,6 +28,7 @@ import ru from './locales/ru.json'
 import vi from './locales/vi.json'
 import zhTW from './locales/zh-TW.json'
 import zhCN from './locales/zh.json'
+import { applyI18nSkin, readThemeSkinCookie } from './skin'
 
 export const resources = {
   en,
@@ -52,6 +53,10 @@ i18n
     interpolation: {
       escapeValue: false, // not needed for react as it escapes by default
     },
+    react: {
+      // 皮肤切换会通过 addResourceBundle 替换文案（见 ./skin.ts），需要监听 store 事件重渲染
+      bindI18nStore: 'added',
+    },
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
@@ -60,5 +65,9 @@ i18n
       convertDetectedLanguage,
     },
   })
+
+// 首屏渲染前就按已保存的皮肤替换文案；组件要等挂载后才会订阅 store 事件，
+// 只靠 provider 的副作用切换会漏掉首屏已经渲染出来的文案。
+applyI18nSkin(readThemeSkinCookie())
 
 export default i18n

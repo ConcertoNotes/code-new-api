@@ -302,7 +302,7 @@ function SkinConfig() {
       </Radio>
       <div id='skin-description' className='sr-only'>
         {t(
-          'Lulu edition keeps the mascot decorations; Original restores the plain interface and keeps only the site wording.'
+          'Lulu edition keeps the mascot decorations and playful wording; Original restores the plain upstream interface and wording.'
         )}
       </div>
     </div>
