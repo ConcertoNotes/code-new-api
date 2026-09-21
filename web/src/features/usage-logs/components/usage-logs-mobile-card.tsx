@@ -351,6 +351,17 @@ function CommonLogsCard<TData>({
           cell={cells.get('token_name')}
           valueClassName='[&_.flex-col]:max-w-none [&_.flex-col>*:not(:first-child)]:text-[11px] [&_.flex-col>*:not(:first-child)]:leading-none'
         />
+        {/* Admin-only column; SummaryField renders nothing when absent */}
+        {rowData &&
+          isDisplayableLogType(rowData.type) &&
+          parseLogOther(rowData.other)?.client_user_agent && (
+            <SummaryField
+              label={t('User Agent')}
+              cell={cells.get('client')}
+              className='col-span-2'
+              valueClassName='[&_[data-testid=client-user-agent-cell]]:max-w-none'
+            />
+          )}
         {rowData ? (
           <MobileStreamTimingField log={rowData} />
         ) : (

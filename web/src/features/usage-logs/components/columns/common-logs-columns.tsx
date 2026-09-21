@@ -58,9 +58,11 @@ import {
   isPerCallBilling,
 } from '../../lib/utils'
 import type { LogOtherData } from '../../types'
+import { ClientUserAgentCell } from '../client-user-agent-cell'
 import { DetailsDialog } from '../dialogs/details-dialog'
 import { LogCostDisplay } from '../log-cost-display'
 import { ModelBadge } from '../model-badge'
+import { ReasoningEffortHint } from '../reasoning-effort-hint'
 import { TimingMetricsCell, StreamTpsCell } from '../timing-metrics-cell'
 import { UpstreamModelHint } from '../upstream-model-hint'
 import { useUsageLogsContext } from '../usage-logs-provider'
@@ -544,6 +546,20 @@ export function useCommonLogsColumns(
             </button>
           )
         },
+      },
+      {
+        id: 'client',
+        header: t('User Agent'),
+        accessorFn: (row) => parseLogOther(row.other)?.client_user_agent ?? '',
+        cell: function ClientCell({ row }) {
+          const log = row.original
+          if (!isDisplayableLogType(log.type)) return null
+          const userAgent = parseLogOther(log.other)?.client_user_agent
+          if (!userAgent) return null
+          return <ClientUserAgentCell userAgent={userAgent} />
+        },
+        meta: { label: t('User Agent') },
+        size: 180,
       }
     )
   }
@@ -619,11 +635,18 @@ export function useCommonLogsColumns(
         if (!isDisplayableLogType(log.type)) return null
 
         const modelInfo = formatModelName(log)
+        const other = parseLogOther(log.other)
         // The backend strips admin_info for non-admins; gate on isAdmin too so
         // the upstream-model hint can never surface for regular users.
         const upstreamAudit = isAdmin
-          ? getUpstreamModelAudit(log.model_name, parseLogOther(log.other))
+          ? getUpstreamModelAudit(log.model_name, other)
           : null
+        // Reasoning effort stays in the details dialog for everyone; the
+        // at-a-glance badge in the list is an admin-only convenience.
+        const reasoningEffort = isAdmin ? other?.reasoning_effort : undefined
+        const upstreamReasoningEffort = isAdmin
+          ? other?.admin_info?.upstream_reasoning_effort
+          : undefined
 
         return (
           <div className='flex w-fit max-w-full flex-col gap-0.5'>
@@ -631,6 +654,12 @@ export function useCommonLogsColumns(
               modelName={modelInfo.name}
               actualModel={modelInfo.actualModel}
             />
+            {reasoningEffort && (
+              <ReasoningEffortHint
+                effort={reasoningEffort}
+                upstreamEffort={upstreamReasoningEffort}
+              />
+            )}
             <UpstreamModelHint audit={upstreamAudit} />
           </div>
         )
