@@ -589,4 +589,18 @@ export const STATIC_I18N_KEYS = [
   'One integration for every model',
   'Predictable routing and failover',
   'Every request tracked for billing',
+
+  // Usage logs: admin upstream model audit (see lib/model-audit.ts and
+  // dialogs/admin-diagnostics-sections.tsx)
+  'Not declared',
+  'Model Match',
+  'Model Variant',
+  'Model Mismatch',
+  'Input Tokens',
+  'Output Tokens',
+  'Total Tokens',
+  'Cache Read',
+  'Cache Creation',
+  'Cache Write',
+  'Reasoning Tokens',
 ] as const

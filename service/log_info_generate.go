@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/base64"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -13,6 +14,7 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
+	"github.com/QuantumNous/new-api/setting/model_setting"
 	hosttypes "github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
@@ -105,7 +107,136 @@ func AppendRelayLogAdminInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo,
 		other.SetAdmin("local_count_tokens", true)
 	}
 
+	appendRequestRoutingAdminInfo(relayInfo, other)
+	appendUpstreamAuditAdminInfo(ctx, relayInfo, other)
 	AppendChannelAffinityAdminInfo(ctx, other)
+}
+
+// appendRequestRoutingAdminInfo 记录本次尝试的路由 / 请求侧诊断：渠道类型与地址、
+// 重试序号、模型映射链、发往上游的推理强度、本地估算 token、预扣额度、透传与
+// Header 覆盖（仅记录键名，不记录值）以及处理节点与版本。全部为管理员可见。
+func appendRequestRoutingAdminInfo(relayInfo *relaycommon.RelayInfo, other *model.LogOther) {
+	other.SetAdmin("node_name", common.NodeName)
+	other.SetAdmin("version", common.Version)
+	if relayInfo == nil {
+		return
+	}
+	other.SetAdmin("retry_index", relayInfo.RetryIndex)
+	if relayInfo.ChannelMeta != nil {
+		other.SetAdmin("channel_type", relayInfo.ChannelType)
+		if relayInfo.ChannelBaseUrl != "" {
+			other.SetAdmin("channel_base_url", relayInfo.ChannelBaseUrl)
+		}
+		if relayInfo.UpstreamModelName != "" {
+			other.SetAdmin("sent_model", relayInfo.UpstreamModelName)
+		}
+		if relayInfo.ChannelSetting.PassThroughBodyEnabled || model_setting.GetGlobalSettings().PassThroughRequestEnabled {
+			other.SetAdmin("pass_through_body", true)
+		}
+		if len(relayInfo.HeadersOverride) > 0 {
+			keys := make([]string, 0, len(relayInfo.HeadersOverride))
+			for key := range relayInfo.HeadersOverride {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+			other.SetAdmin("header_override_keys", keys)
+		}
+	}
+	if chain := buildModelMappingChain(relayInfo); chain != "" {
+		other.SetAdmin("model_mapping_chain", chain)
+	}
+	if state := relayInfo.ReasoningState(); state != nil && state.Effort != "" && state.Effort != relayInfo.ReasoningEffort {
+		other.SetAdmin("upstream_reasoning_effort", state.Effort)
+	}
+	if estimated := relayInfo.GetEstimatePromptTokens(); estimated > 0 {
+		other.SetAdmin("estimated_prompt_tokens", estimated)
+	}
+	if relayInfo.FinalPreConsumedQuota > 0 {
+		other.SetAdmin("pre_consumed_quota", relayInfo.FinalPreConsumedQuota)
+	}
+}
+
+// buildModelMappingChain 生成 "客户端请求模型 → 发往上游模型 → 计费模型" 链路；
+// 相邻两段相同则折叠，最终只有一段时返回空串（无需展示）。
+func buildModelMappingChain(relayInfo *relaycommon.RelayInfo) string {
+	if relayInfo == nil {
+		return ""
+	}
+	segments := []string{relayInfo.OriginModelName}
+	if upstream := relayInfo.GetUpstreamModelName(); upstream != "" && upstream != segments[len(segments)-1] {
+		segments = append(segments, upstream)
+	}
+	if billing := relayInfo.GetBillingModelName(); billing != "" && billing != relayInfo.OriginModelName && billing != segments[len(segments)-1] {
+		segments = append(segments, billing)
+	}
+	if len(segments) < 2 || segments[0] == "" {
+		return ""
+	}
+	return strings.Join(segments, " → ")
+}
+
+// appendUpstreamAuditAdminInfo 记录上游 HTTP 往返事实以及"上游响应模型是否与
+// 发往上游的模型一致"的比对结果。响应中未声明模型时不写入 mismatch 字段（三态）。
+func appendUpstreamAuditAdminInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, other *model.LogOther) {
+	audit := relaycommon.GetUpstreamResponseAudit(ctx)
+	if audit == nil {
+		return
+	}
+	summary := audit.Summary()
+	other.SetAdmin("upstream", audit.AdminInfo(summary))
+	if summary.Model == "" {
+		return
+	}
+	other.SetAdmin("upstream_response_model", summary.Model)
+	if summary.ModelConflict {
+		other.SetAdmin("upstream_response_model_conflict", true)
+	}
+	sentModel := ""
+	if relayInfo != nil {
+		sentModel = relayInfo.GetUpstreamModelName()
+		if sentModel == "" {
+			sentModel = relayInfo.OriginModelName
+		}
+	}
+	other.SetAdmin("upstream_model_mismatch", sentModel == "" || !relaycommon.UpstreamModelsMatchForAudit(sentModel, summary.Model))
+}
+
+// AppendUpstreamUsageAdminInfo 记录上游原始 usage 快照（未经本地估算 / 修正），
+// 便于管理员核对计费 token 与上游声明是否一致。
+func AppendUpstreamUsageAdminInfo(other *model.LogOther, usage *dto.Usage) {
+	if other == nil || usage == nil {
+		return
+	}
+	snapshot := map[string]any{
+		"prompt_tokens":     usage.PromptTokens,
+		"completion_tokens": usage.CompletionTokens,
+		"total_tokens":      usage.TotalTokens,
+	}
+	if usage.InputTokens > 0 {
+		snapshot["input_tokens"] = usage.InputTokens
+	}
+	if usage.OutputTokens > 0 {
+		snapshot["output_tokens"] = usage.OutputTokens
+	}
+	if usage.PromptTokensDetails.CachedTokens > 0 {
+		snapshot["cached_tokens"] = usage.PromptTokensDetails.CachedTokens
+	}
+	if usage.PromptTokensDetails.CachedCreationTokens > 0 {
+		snapshot["cache_creation_tokens"] = usage.PromptTokensDetails.CachedCreationTokens
+	}
+	if usage.PromptTokensDetails.CacheWriteTokens > 0 {
+		snapshot["cache_write_tokens"] = usage.PromptTokensDetails.CacheWriteTokens
+	}
+	if usage.CompletionTokenDetails.ReasoningTokens > 0 {
+		snapshot["reasoning_tokens"] = usage.CompletionTokenDetails.ReasoningTokens
+	}
+	if usage.UsageSource != "" {
+		snapshot["source"] = usage.UsageSource
+	}
+	if usage.UsageSemantic != "" {
+		snapshot["semantic"] = usage.UsageSemantic
+	}
+	other.SetAdmin("upstream_usage", snapshot)
 }
 
 func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, modelRatio, groupRatio, completionRatio float64,

@@ -217,6 +217,8 @@ func (info *RelayInfo) InitChannelMeta(c *gin.Context) {
 	info.SendResponseCount = 0
 	info.ClaudeToChatStreamState = nil
 	info.ChatToGeminiStreamState = nil
+	// 上游审计按尝试重建，避免上一次尝试的端点/状态码串入本次日志。
+	SetUpstreamResponseAudit(c, nil)
 	channelType := common.GetContextKeyInt(c, constant.ContextKeyChannelType)
 	paramOverride := common.GetContextKeyStringMap(c, constant.ContextKeyChannelParamOverride)
 	headerOverride := common.GetContextKeyStringMap(c, constant.ContextKeyChannelHeaderOverride)

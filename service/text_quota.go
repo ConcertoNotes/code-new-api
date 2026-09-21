@@ -506,6 +506,7 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		other = GenerateTextOtherInfo(ctx, relayInfo, summary.ModelRatio, summary.GroupRatio, summary.CompletionRatio, summary.CacheTokens, summary.CacheRatio, summary.ModelPrice, relayInfo.PriceData.GroupRatioInfo.GroupSpecialRatio)
 	}
 	appendUsageBillingPathForLog(other, common.GetContextKeyBool(ctx, constant.ContextKeyLocalCountTokens), originUsage)
+	AppendUpstreamUsageAdminInfo(other, originUsage)
 	if suppressedQuota > 0 {
 		other.SetAdmin("billing_suppressed", "client_gone_without_upstream_usage")
 		other.SetAdmin("billing_suppressed_quota", suppressedQuota)

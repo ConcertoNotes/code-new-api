@@ -50,6 +50,7 @@ import {
   isViolationFeeLog,
   renderAuditContent,
 } from '../../lib/format'
+import { getUpstreamModelAudit } from '../../lib/model-audit'
 import {
   isDisplayableLogType,
   isTimingLogType,
@@ -61,6 +62,7 @@ import { DetailsDialog } from '../dialogs/details-dialog'
 import { LogCostDisplay } from '../log-cost-display'
 import { ModelBadge } from '../model-badge'
 import { TimingMetricsCell, StreamTpsCell } from '../timing-metrics-cell'
+import { UpstreamModelHint } from '../upstream-model-hint'
 import { useUsageLogsContext } from '../usage-logs-provider'
 
 interface DetailSegment {
@@ -617,13 +619,19 @@ export function useCommonLogsColumns(
         if (!isDisplayableLogType(log.type)) return null
 
         const modelInfo = formatModelName(log)
+        // The backend strips admin_info for non-admins; gate on isAdmin too so
+        // the upstream-model hint can never surface for regular users.
+        const upstreamAudit = isAdmin
+          ? getUpstreamModelAudit(log.model_name, parseLogOther(log.other))
+          : null
 
         return (
-          <div className='flex w-fit flex-col gap-0.5'>
+          <div className='flex w-fit max-w-full flex-col gap-0.5'>
             <ModelBadge
               modelName={modelInfo.name}
               actualModel={modelInfo.actualModel}
             />
+            <UpstreamModelHint audit={upstreamAudit} />
           </div>
         )
       },

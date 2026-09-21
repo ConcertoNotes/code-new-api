@@ -70,6 +70,9 @@ const (
 	ContextKeyLanguage ContextKey = "language"
 	ContextKeyIsStream ContextKey = "is_stream"
 
+	// ContextKeyUpstreamResponseAudit 保存当前尝试的上游 HTTP 往返审计信息（仅管理员日志可见）
+	ContextKeyUpstreamResponseAudit ContextKey = "upstream_response_audit"
+
 	// ContextKeyAuditLogged marks that the current request has already recorded
 	// a manage/operation audit log inside the handler. When set, the admin-audit
 	// fallback in authHelper (finishAdminAudit) skips its record to avoid

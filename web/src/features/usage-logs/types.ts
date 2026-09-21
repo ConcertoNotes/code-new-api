@@ -108,6 +108,36 @@ export const USAGE_BILLING_PATH = {
 export type UsageBillingPath =
   (typeof USAGE_BILLING_PATH)[keyof typeof USAGE_BILLING_PATH]
 
+export interface UpstreamUsageSnapshot {
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
+  input_tokens?: number
+  output_tokens?: number
+  cached_tokens?: number
+  cache_creation_tokens?: number
+  cache_write_tokens?: number
+  reasoning_tokens?: number
+  source?: string
+  semantic?: string
+}
+
+export interface UpstreamExchangeInfo {
+  endpoint?: string
+  method?: string
+  status_code?: number
+  proto?: string
+  content_type?: string
+  ttfb_ms?: number
+  duration_ms?: number
+  request_bytes?: number
+  response_bytes?: number
+  processing_ms?: number
+  ratelimit?: Record<string, string>
+  finish_reason?: string
+  service_tier?: string
+}
+
 export interface ToolSurchargeItem {
   name: string
   count: number
@@ -146,6 +176,28 @@ export interface LogOtherData {
     // Reject / intercept reason (admin only)
     reject_reason?: string
     task_plugin?: TaskPluginInfo
+    // Model audit (admin only): the model actually sent upstream, the model
+    // the upstream response declared, and whether they differ. The mismatch
+    // flag is absent when the upstream response declared no model.
+    sent_model?: string
+    upstream_response_model?: string
+    upstream_model_mismatch?: boolean
+    upstream_response_model_conflict?: boolean
+    model_mapping_chain?: string
+    billing_model?: string
+    upstream_reasoning_effort?: string
+    // Request routing diagnostics (admin only)
+    retry_index?: number
+    channel_type?: number
+    channel_base_url?: string
+    pass_through_body?: boolean
+    header_override_keys?: string[]
+    estimated_prompt_tokens?: number
+    pre_consumed_quota?: number
+    // Raw usage as declared by the upstream before local adjustments
+    upstream_usage?: UpstreamUsageSnapshot
+    // Facts about the upstream HTTP exchange of the final attempt
+    upstream?: UpstreamExchangeInfo
   }
   root_info?: {
     task_plugin?: TaskPluginRuntimeInfo
