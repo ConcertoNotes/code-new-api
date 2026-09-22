@@ -343,3 +343,63 @@ func TestPreviewLotteryHasNoSideEffects(t *testing.T) {
 	assert.Equal(t, int64(0), draws, "预览不能写抽奖记录")
 	assert.Equal(t, int64(0), lotteryDrawsUsed(t, admin.Id))
 }
+
+func TestLotteryAdminOverviewAggregatesWinnersAndStock(t *testing.T) {
+	truncateTables(t)
+	withLotteryActivity(t, 1, 0)
+	now := common.GetTimestamp()
+	alice := User{Username: "lottery-alice", Quota: 0, AffCode: "lotali"}
+	bob := User{Username: "lottery-bob", Quota: 0, AffCode: "lotbob"}
+	require.NoError(t, DB.Create(&alice).Error)
+	require.NoError(t, DB.Create(&bob).Error)
+	seedLotteryTopUp(t, alice.Id, 40, now-60, PaymentProviderEpay, common.TopUpStatusSuccess)
+	seedLotteryTopUp(t, bob.Id, 20, now-60, PaymentProviderEpay, common.TopUpStatusSuccess)
+
+	a1, err := DrawLottery(alice.Id, false)
+	require.NoError(t, err)
+	a2, err := DrawLottery(alice.Id, false)
+	require.NoError(t, err)
+	b1, err := DrawLottery(bob.Id, false)
+	require.NoError(t, err)
+
+	overview, err := GetLotteryAdminOverview(50)
+	require.NoError(t, err)
+	assert.InDelta(t, 60, overview.TotalRecharge, 1e-9)
+	assert.Equal(t, int64(3), overview.DrawCount)
+	assert.Equal(t, int64(2), overview.WinnerCount)
+	assert.InDelta(t, a1.Amount+a2.Amount+b1.Amount, overview.IssuedAmount, 1e-9)
+	assert.Equal(t, int64(a1.Quota+a2.Quota+b1.Quota), overview.IssuedQuota)
+	var remaining int
+	for _, p := range overview.Prizes {
+		remaining += p.Stock
+	}
+	assert.Equal(t, 135-3, remaining, "剩余奖券 = 初始 − 已抽")
+
+	require.Len(t, overview.Winners, 2)
+	byName := map[string]LotteryWinner{}
+	for _, w := range overview.Winners {
+		byName[w.Username] = w
+	}
+	assert.Equal(t, int64(2), byName["lottery-alice"].Draws)
+	assert.InDelta(t, a1.Amount+a2.Amount, byName["lottery-alice"].TotalAmount, 1e-9)
+	assert.Equal(t, int64(1), byName["lottery-bob"].Draws)
+	assert.InDelta(t, b1.Amount, byName["lottery-bob"].TotalAmount, 1e-9)
+
+	items, total, err := GetLotteryDrawsForAdmin("", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), total)
+	require.Len(t, items, 3)
+	assert.Equal(t, b1.Id, items[0].Id, "最新记录排在最前")
+	assert.Equal(t, "lottery-bob", items[0].Username)
+
+	items, total, err = GetLotteryDrawsForAdmin("alice", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(2), total)
+	for _, item := range items {
+		assert.Equal(t, alice.Id, item.UserId)
+	}
+
+	_, total, err = GetLotteryDrawsForAdmin("nobody", 0, 10)
+	require.NoError(t, err)
+	assert.Equal(t, int64(0), total)
+}

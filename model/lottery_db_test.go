@@ -167,6 +167,21 @@ func TestLotteryOnRealDatabases(t *testing.T) {
 			}
 			assert.Equal(t, credited, sumQuota)
 			assert.InDelta(t, 3, wonAmount, 1e-9)
+
+			// 管理员监控聚合在真实数据库上的 GROUP BY / DISTINCT 语法必须可用
+			overview, err := GetLotteryAdminOverview(50)
+			require.NoError(t, err)
+			assert.Equal(t, int64(4), overview.DrawCount)
+			assert.Equal(t, int64(4), overview.WinnerCount)
+			require.Len(t, overview.Winners, 4)
+			for _, w := range overview.Winners {
+				assert.NotEmpty(t, w.Username)
+				assert.Equal(t, int64(1), w.Draws)
+			}
+			page, total, err := GetLotteryDrawsForAdmin("lottery-crowd", 0, 2)
+			require.NoError(t, err)
+			assert.Equal(t, int64(3), total)
+			assert.Len(t, page, 2)
 		})
 	}
 }

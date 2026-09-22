@@ -139,6 +139,8 @@ func SetApiRouter(router *gin.Engine) {
 			{
 				adminRoute.GET("/", controller.GetAllUsers)
 				adminRoute.GET("/topup", controller.GetAllTopUps)
+				adminRoute.GET("/lottery/admin/overview", controller.GetLotteryAdminOverview)
+				adminRoute.GET("/lottery/admin/draws", controller.GetLotteryAdminDraws)
 				adminRoute.POST("/topup/complete", controller.AdminCompleteTopUp)
 				adminRoute.GET("/search", controller.SearchUsers)
 				adminRoute.GET("/group-access-options", controller.GetUserGroupAccessOptions)

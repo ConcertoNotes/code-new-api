@@ -511,3 +511,135 @@ func GetLotteryRecords(userId int, limit int) ([]LotteryDraw, error) {
 func LotteryActivityTime(ts int64) string {
 	return time.Unix(ts, 0).In(time.FixedZone("Asia/Shanghai", 8*3600)).Format(time.RFC3339)
 }
+
+// LotteryWinner 管理员监控用：某个用户的累计中奖汇总
+type LotteryWinner struct {
+	UserId      int     `json:"user_id"`
+	Username    string  `json:"username"`
+	Draws       int64   `json:"draws"`
+	TotalAmount float64 `json:"total_amount"`
+	TotalQuota  int64   `json:"total_quota"`
+	LastDrawAt  int64   `json:"last_draw_at"`
+}
+
+// LotteryAdminOverview 管理员监控面板的聚合数据
+type LotteryAdminOverview struct {
+	Prizes          []LotteryPrize  `json:"prizes"`
+	TotalRecharge   float64         `json:"total_recharge"`
+	BudgetRemaining float64         `json:"budget_remaining"`
+	IssuedAmount    float64         `json:"issued_amount"`
+	IssuedQuota     int64           `json:"issued_quota"`
+	DrawCount       int64           `json:"draw_count"`
+	WinnerCount     int64           `json:"winner_count"`
+	Winners         []LotteryWinner `json:"winners"`
+}
+
+// LotteryDrawWithUser 带用户名的抽奖记录，供管理员列表使用
+type LotteryDrawWithUser struct {
+	LotteryDraw
+	Username string `json:"username"`
+}
+
+// lotteryAttachUsernames 批量补齐用户名，避免逐行查询
+func lotteryAttachUsernames(userIds []int) (map[int]string, error) {
+	names := map[int]string{}
+	if len(userIds) == 0 {
+		return names, nil
+	}
+	var users []User
+	if err := DB.Select("id, username").Where("id IN ?", userIds).Find(&users).Error; err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		names[u.Id] = u.Username
+	}
+	return names, nil
+}
+
+// GetLotteryAdminOverview 汇总剩余奖券、预算、已发放以及按用户聚合的中奖榜（按累计额度倒序，最多 limit 人）
+func GetLotteryAdminOverview(limit int) (LotteryAdminOverview, error) {
+	s := operation_setting.GetLotterySetting()
+	overview := LotteryAdminOverview{}
+	if err := ensureLotteryPrizes(DB); err != nil {
+		return overview, err
+	}
+	if err := DB.Order("amount").Find(&overview.Prizes).Error; err != nil {
+		return overview, err
+	}
+	var err error
+	if overview.TotalRecharge, err = lotteryRechargeMoney(DB, 0, s); err != nil {
+		return overview, err
+	}
+	if overview.BudgetRemaining, err = lotteryBudgetRemaining(DB, s); err != nil {
+		return overview, err
+	}
+	if overview.IssuedAmount, err = lotteryIssuedAmount(DB, 0); err != nil {
+		return overview, err
+	}
+	if err = DB.Model(&LotteryDraw{}).Select("COALESCE(SUM(quota), 0)").Scan(&overview.IssuedQuota).Error; err != nil {
+		return overview, err
+	}
+	if err = DB.Model(&LotteryDraw{}).Count(&overview.DrawCount).Error; err != nil {
+		return overview, err
+	}
+	if err = DB.Model(&LotteryDraw{}).Distinct("user_id").Count(&overview.WinnerCount).Error; err != nil {
+		return overview, err
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	if err = DB.Model(&LotteryDraw{}).
+		Select("user_id, COUNT(*) AS draws, SUM(amount) AS total_amount, SUM(quota) AS total_quota, MAX(created_at) AS last_draw_at").
+		Group("user_id").Order("total_amount DESC, user_id ASC").Limit(limit).
+		Scan(&overview.Winners).Error; err != nil {
+		return overview, err
+	}
+	ids := make([]int, 0, len(overview.Winners))
+	for _, w := range overview.Winners {
+		ids = append(ids, w.UserId)
+	}
+	names, err := lotteryAttachUsernames(ids)
+	if err != nil {
+		return overview, err
+	}
+	for i := range overview.Winners {
+		overview.Winners[i].Username = names[overview.Winners[i].UserId]
+	}
+	return overview, nil
+}
+
+// GetLotteryDrawsForAdmin 分页返回全站抽奖记录（按时间倒序），keyword 按用户名模糊过滤
+func GetLotteryDrawsForAdmin(keyword string, startIdx int, pageSize int) ([]LotteryDrawWithUser, int64, error) {
+	query := DB.Model(&LotteryDraw{})
+	if keyword != "" {
+		var userIds []int
+		if err := DB.Model(&User{}).Where("username LIKE ?", "%"+keyword+"%").Pluck("id", &userIds).Error; err != nil {
+			return nil, 0, err
+		}
+		if len(userIds) == 0 {
+			return []LotteryDrawWithUser{}, 0, nil
+		}
+		query = query.Where("user_id IN ?", userIds)
+	}
+	var total int64
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+	var draws []LotteryDraw
+	if err := query.Order("id DESC").Offset(startIdx).Limit(pageSize).Find(&draws).Error; err != nil {
+		return nil, 0, err
+	}
+	ids := make([]int, 0, len(draws))
+	for _, d := range draws {
+		ids = append(ids, d.UserId)
+	}
+	names, err := lotteryAttachUsernames(ids)
+	if err != nil {
+		return nil, 0, err
+	}
+	items := make([]LotteryDrawWithUser, 0, len(draws))
+	for _, d := range draws {
+		items = append(items, LotteryDrawWithUser{LotteryDraw: d, Username: names[d.UserId]})
+	}
+	return items, total, nil
+}

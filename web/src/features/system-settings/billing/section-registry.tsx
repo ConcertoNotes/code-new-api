@@ -19,6 +19,7 @@ For commercial licensing, please contact support@quantumnous.com
 import { parseCurrencyDisplayType } from '@/lib/currency'
 
 import { CheckinSettingsSection } from '../general/checkin-settings-section'
+import { LotteryMonitorSection } from '../general/lottery-monitor-section'
 import { LotterySettingsSection } from '../general/lottery-settings-section'
 import { PricingSection } from '../general/pricing-section'
 import { QuotaSettingsSection } from '../general/quota-settings-section'
@@ -210,16 +211,19 @@ const BILLING_SECTIONS = [
     id: 'lottery',
     titleKey: 'Recharge Lottery',
     build: (settings: BillingSettings) => (
-      <LotterySettingsSection
-        defaultValues={{
-          enabled: settings['lottery_setting.enabled'],
-          startTime: settings['lottery_setting.start_time'],
-          endTime: settings['lottery_setting.end_time'],
-          thresholdMoney: settings['lottery_setting.threshold_money'],
-          payoutRatio: settings['lottery_setting.payout_ratio'],
-          reserveQuota: settings['lottery_setting.reserve_quota'],
-        }}
-      />
+      <>
+        <LotteryMonitorSection />
+        <LotterySettingsSection
+          defaultValues={{
+            enabled: settings['lottery_setting.enabled'],
+            startTime: settings['lottery_setting.start_time'],
+            endTime: settings['lottery_setting.end_time'],
+            thresholdMoney: settings['lottery_setting.threshold_money'],
+            payoutRatio: settings['lottery_setting.payout_ratio'],
+            reserveQuota: settings['lottery_setting.reserve_quota'],
+          }}
+        />
+      </>
     ),
   },
 ] as const

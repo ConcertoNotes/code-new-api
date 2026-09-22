@@ -118,3 +118,26 @@ func GetLotteryRecords(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"items": items})
 }
+
+// GetLotteryAdminOverview 管理员监控：剩余奖券、预算、已发放和中奖榜
+func GetLotteryAdminOverview(c *gin.Context) {
+	overview, err := model.GetLotteryAdminOverview(100)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, overview)
+}
+
+// GetLotteryAdminDraws 管理员监控：全站抽奖记录分页列表
+func GetLotteryAdminDraws(c *gin.Context) {
+	pageInfo := common.GetPageQuery(c)
+	items, total, err := model.GetLotteryDrawsForAdmin(c.Query("keyword"), pageInfo.GetStartIdx(), pageInfo.GetPageSize())
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	pageInfo.SetTotal(int(total))
+	pageInfo.SetItems(items)
+	common.ApiSuccess(c, pageInfo)
+}
