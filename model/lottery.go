@@ -559,7 +559,8 @@ func lotteryAttachUsernames(userIds []int) (map[int]string, error) {
 // GetLotteryAdminOverview 汇总剩余奖券、预算、已发放以及按用户聚合的中奖榜（按累计额度倒序，最多 limit 人）
 func GetLotteryAdminOverview(limit int) (LotteryAdminOverview, error) {
 	s := operation_setting.GetLotterySetting()
-	overview := LotteryAdminOverview{}
+	// 切片显式初始化，保证 JSON 输出为 [] 而不是 null
+	overview := LotteryAdminOverview{Prizes: []LotteryPrize{}, Winners: []LotteryWinner{}}
 	if err := ensureLotteryPrizes(DB); err != nil {
 		return overview, err
 	}

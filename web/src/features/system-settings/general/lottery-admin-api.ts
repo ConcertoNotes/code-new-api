@@ -57,7 +57,9 @@ export async function getLotteryAdminOverview(): Promise<LotteryAdminOverview> {
     '/api/user/lottery/admin/overview'
   )
   if (!res.data.success) throw new Error(res.data.message ?? 'request failed')
-  return res.data.data
+  const data = res.data.data
+  // 后端 nil 切片会序列化成 null，这里统一兜底成空数组
+  return { ...data, prizes: data.prizes ?? [], winners: data.winners ?? [] }
 }
 
 export async function getLotteryAdminDraws(params: {
@@ -76,5 +78,5 @@ export async function getLotteryAdminDraws(params: {
     }
   )
   if (!res.data.success) throw new Error(res.data.message ?? 'request failed')
-  return res.data.data
+  return { ...res.data.data, items: res.data.data.items ?? [] }
 }

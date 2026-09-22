@@ -159,6 +159,25 @@ describe('LotteryMonitorSection', () => {
     expect(screen.getByText('No draws yet')).toBeInTheDocument()
   })
 
+  it('renders an empty pool without crashing when nobody has drawn yet', async () => {
+    mocks.getLotteryAdminOverview.mockResolvedValue({
+      ...overview,
+      draw_count: 0,
+      winner_count: 0,
+      winners: [],
+    })
+    mocks.getLotteryAdminDraws.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 20,
+    })
+    renderSection()
+
+    await screen.findByRole('table', { name: 'Remaining tickets' })
+    expect(screen.getAllByText('No draws yet')).toHaveLength(2)
+  })
+
   it('shows an error when the overview request fails', async () => {
     mocks.getLotteryAdminOverview.mockRejectedValue(new Error('boom'))
     mocks.getLotteryAdminDraws.mockResolvedValue({
