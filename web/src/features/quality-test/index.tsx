@@ -167,71 +167,74 @@ export function QualityTest() {
     )
   }
 
+  // SectionPageLayout 只渲染自身插槽，弹窗必须放在布局之外
   return (
-    <SectionPageLayout>
-      <SectionPageLayout.Title>
-        <span className='inline-flex items-center gap-2'>
-          {t('Degradation Check')}
-          <Badge variant='outline' className='font-mono'>
-            <FlaskConical aria-hidden='true' />
-            HTML / SVG
-          </Badge>
-        </span>
-      </SectionPageLayout.Title>
-      <SectionPageLayout.Actions>
-        <span className='text-muted-foreground inline-flex items-center gap-1.5 text-xs'>
-          <span
-            aria-hidden='true'
-            className={cn(
-              'size-1.5 rounded-full bg-current',
-              activeJobs.length > 0 && 'animate-pulse text-sky-500'
-            )}
-          />
-          {t('{{count}} / {{limit}} running', {
-            count: activeJobs.length,
-            limit: concurrencyLimit,
-          })}
-        </span>
-        <Tabs
-          value={view}
-          onValueChange={(value) => goTo({ view: value as QualityTestView })}
-        >
-          <TabsList>
-            <TabsTrigger value='studio'>
+    <>
+      <SectionPageLayout>
+        <SectionPageLayout.Title>
+          <span className='inline-flex items-center gap-2'>
+            {t('Degradation Check')}
+            <Badge variant='outline' className='font-mono'>
               <FlaskConical aria-hidden='true' />
-              {t('Test studio')}
-            </TabsTrigger>
-            <TabsTrigger value='presets'>
-              <BookmarkPlus aria-hidden='true' />
-              {t('Prompt presets')}
-            </TabsTrigger>
-            <TabsTrigger value='history'>
-              <History aria-hidden='true' />
-              {t('Test records')}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </SectionPageLayout.Actions>
-      <SectionPageLayout.Content>
-        <div className='flex flex-col gap-4'>
-          <p className='text-muted-foreground text-xs sm:text-sm'>
-            {t(
-              'Run the same HTML animation prompt to compare how groups, channels, models and reasoning efforts actually perform.'
+              HTML / SVG
+            </Badge>
+          </span>
+        </SectionPageLayout.Title>
+        <SectionPageLayout.Actions>
+          <span className='text-muted-foreground inline-flex items-center gap-1.5 text-xs'>
+            <span
+              aria-hidden='true'
+              className={cn(
+                'size-1.5 rounded-full bg-current',
+                activeJobs.length > 0 && 'animate-pulse text-sky-500'
+              )}
+            />
+            {t('{{count}} / {{limit}} running', {
+              count: activeJobs.length,
+              limit: concurrencyLimit,
+            })}
+          </span>
+          <Tabs
+            value={view}
+            onValueChange={(value) => goTo({ view: value as QualityTestView })}
+          >
+            <TabsList>
+              <TabsTrigger value='studio'>
+                <FlaskConical aria-hidden='true' />
+                {t('Test studio')}
+              </TabsTrigger>
+              <TabsTrigger value='presets'>
+                <BookmarkPlus aria-hidden='true' />
+                {t('Prompt presets')}
+              </TabsTrigger>
+              <TabsTrigger value='history'>
+                <History aria-hidden='true' />
+                {t('Test records')}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </SectionPageLayout.Actions>
+        <SectionPageLayout.Content>
+          <div className='flex flex-col gap-4'>
+            <p className='text-muted-foreground text-xs sm:text-sm'>
+              {t(
+                'Run the same HTML animation prompt to compare how groups, channels, models and reasoning efforts actually perform.'
+              )}
+            </p>
+            {jobsQuery.error && (
+              <div role='alert' className='text-destructive text-sm'>
+                {jobsQuery.error.message}
+              </div>
             )}
-          </p>
-          {jobsQuery.error && (
-            <div role='alert' className='text-destructive text-sm'>
-              {jobsQuery.error.message}
-            </div>
-          )}
-          <ActiveJobs
-            jobs={activeJobs}
-            selectedId={selectedJobId}
-            onSelect={(id) => goTo({ view: 'studio', job: id })}
-          />
-          {content}
-        </div>
-      </SectionPageLayout.Content>
+            <ActiveJobs
+              jobs={activeJobs}
+              selectedId={selectedJobId}
+              onSelect={(id) => goTo({ view: 'studio', job: id })}
+            />
+            {content}
+          </div>
+        </SectionPageLayout.Content>
+      </SectionPageLayout>
 
       <ResultDialog
         id={modalId}
@@ -278,6 +281,6 @@ export function QualityTest() {
           if (deletingPreset) deletePresetMutation.mutate(deletingPreset.id)
         }}
       />
-    </SectionPageLayout>
+    </>
   )
 }
