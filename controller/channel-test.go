@@ -69,7 +69,20 @@ func resolveChannelTestUserID(c *gin.Context) (int, error) {
 	return rootUser.Id, nil
 }
 
+// channelTestOptions 让降智检测等场景复用渠道测试管线：自定义请求体、流式输出接收器与日志标记。
+type channelTestOptions struct {
+	// request 为空时使用默认的探活请求
+	request dto.Request
+	// writer 为空时写入内存 recorder 并校验响应体；非空时由调用方自行解析输出
+	writer     http.ResponseWriter
+	logContent string
+}
+
 func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool) testResult {
+	return runChannelTest(ctx, channel, testUserID, testModel, endpointType, isStream, channelTestOptions{})
+}
+
+func runChannelTest(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool, options channelTestOptions) testResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -90,8 +103,13 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 			localErr: fmt.Errorf("%s channel test is not supported", channelTypeName),
 		}
 	}
-	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
+	var recorder *httptest.ResponseRecorder
+	writer := options.writer
+	if writer == nil {
+		recorder = httptest.NewRecorder()
+		writer = recorder
+	}
+	c, _ := gin.CreateTestContext(writer)
 
 	testModel = strings.TrimSpace(testModel)
 	if testModel == "" {
@@ -227,7 +245,10 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 		}
 	}
 
-	request := buildTestRequest(testModel, endpointType, channel, isStream)
+	request := options.request
+	if request == nil {
+		request = buildTestRequest(testModel, endpointType, channel, isStream)
+	}
 
 	info, err := relaycommon.GenRelayInfo(c, relayFormat, request, nil)
 
@@ -241,6 +262,10 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 
 	info.IsChannelTest = true
 	info.InitChannelMeta(c)
+	// 与正式转发（relay/compatible_handler.go）一致：请求要求 usage 时在流末尾回传
+	if openaiRequest, ok := request.(*dto.GeneralOpenAIRequest); ok && openaiRequest.StreamOptions != nil {
+		info.ShouldIncludeUsage = openaiRequest.StreamOptions.IncludeUsage
+	}
 
 	err = attachTestBillingRequestInput(info, request)
 	if err != nil {
@@ -479,20 +504,22 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 			newAPIError: types.NewOpenAIError(usageErr, types.ErrorCodeBadResponseBody, http.StatusInternalServerError),
 		}
 	}
-	result := w.Result()
-	respBody, err := readTestResponseBody(result.Body, isStream)
-	if err != nil {
-		return testResult{
-			context:     c,
-			localErr:    err,
-			newAPIError: types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError),
+	var respBody []byte
+	if recorder != nil {
+		respBody, err = readTestResponseBody(recorder.Result().Body, isStream)
+		if err != nil {
+			return testResult{
+				context:     c,
+				localErr:    err,
+				newAPIError: types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError),
+			}
 		}
-	}
-	if bodyErr := validateTestResponseBody(respBody, isStream); bodyErr != nil {
-		return testResult{
-			context:     c,
-			localErr:    bodyErr,
-			newAPIError: types.NewOpenAIError(bodyErr, types.ErrorCodeBadResponseBody, http.StatusInternalServerError),
+		if bodyErr := validateTestResponseBody(respBody, isStream); bodyErr != nil {
+			return testResult{
+				context:     c,
+				localErr:    bodyErr,
+				newAPIError: types.NewOpenAIError(bodyErr, types.ErrorCodeBadResponseBody, http.StatusInternalServerError),
+			}
 		}
 	}
 	info.SetEstimatePromptTokens(usage.PromptTokens)
@@ -502,20 +529,26 @@ func testChannel(ctx context.Context, channel *model.Channel, testUserID int, te
 	milliseconds := tok.Sub(tik).Milliseconds()
 	consumedTime := float64(milliseconds) / 1000.0
 	other := buildTestLogOther(c, info, priceData, usage, tieredResult)
+	logContent := options.logContent
+	if logContent == "" {
+		logContent = "模型测试"
+	}
 	model.RecordConsumeLog(c, testUserID, model.RecordConsumeLogParams{
 		ChannelId:        channel.Id,
 		PromptTokens:     usage.PromptTokens,
 		CompletionTokens: usage.CompletionTokens,
 		ModelName:        info.OriginModelName,
-		TokenName:        "模型测试",
+		TokenName:        logContent,
 		Quota:            quota,
-		Content:          "模型测试",
+		Content:          logContent,
 		UseTimeSeconds:   int(consumedTime),
 		IsStream:         info.IsStream,
 		Group:            info.UsingGroup,
 		Other:            other,
 	})
-	common.SysLog(fmt.Sprintf("testing channel #%d, response: \n%s", channel.Id, string(respBody)))
+	if recorder != nil {
+		common.SysLog(fmt.Sprintf("testing channel #%d, response: \n%s", channel.Id, string(respBody)))
+	}
 	return testResult{
 		context:     c,
 		localErr:    nil,

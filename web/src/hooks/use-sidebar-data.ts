@@ -22,6 +22,7 @@ import {
   CreditCard,
   FileText,
   FlaskConical,
+  Gauge,
   HandCoins,
   Key,
   LayoutDashboard,
@@ -134,6 +135,12 @@ export function useSidebarData(): SidebarData {
         id: 'admin',
         title: t('Estate Management'),
         items: [
+          {
+            title: t('Degradation Check'),
+            url: '/quality-test',
+            icon: Gauge,
+            requiredRole: ROLE.ADMIN,
+          },
           {
             title: t('Channels'),
             url: '/channels',

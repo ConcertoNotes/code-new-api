@@ -346,6 +346,8 @@ func migrateDB() error {
 		&LotteryPrize{},
 		&LotteryDraw{},
 		&LotteryAccount{},
+		&QualityTestJob{},
+		&QualityTestPrompt{},
 		&QuotaData{},
 		&Task{},
 		&TaskPlugin{},

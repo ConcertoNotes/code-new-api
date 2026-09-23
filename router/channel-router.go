@@ -34,6 +34,29 @@ func registerChannelRoutes(apiRouter *gin.RouterGroup) {
 			route.handler,
 		)
 	}
+
+	// 降智检测：预览页只是静态沙箱文档，由 iframe 直接加载，不需要登录态
+	apiRouter.GET("/quality_test/preview", controller.ServeQualityTestPreview)
+	qualityTestRoute := apiRouter.Group("/quality_test")
+	qualityTestRoute.Use(middleware.AdminAuth())
+	for _, route := range qualityTestPermissionRoutes {
+		qualityTestRoute.Handle(route.method, route.path,
+			middleware.RequirePermission(route.permission),
+			route.handler,
+		)
+	}
+}
+
+var qualityTestPermissionRoutes = []permissionRoute{
+	{method: http.MethodGet, path: "/options", permission: authz.ChannelRead, handler: controller.GetQualityTestOptions},
+	{method: http.MethodGet, path: "/jobs", permission: authz.ChannelRead, handler: controller.ListQualityTests},
+	{method: http.MethodPost, path: "/jobs", permission: authz.ChannelOperate, handler: controller.CreateQualityTestJob},
+	{method: http.MethodGet, path: "/jobs/:id", permission: authz.ChannelRead, handler: controller.GetQualityTest},
+	{method: http.MethodPost, path: "/jobs/:id/cancel", permission: authz.ChannelOperate, handler: controller.CancelQualityTest},
+	{method: http.MethodGet, path: "/prompts", permission: authz.ChannelRead, handler: controller.ListQualityTestPrompts},
+	{method: http.MethodPost, path: "/prompts", permission: authz.ChannelOperate, handler: controller.CreateQualityTestPrompt},
+	{method: http.MethodPut, path: "/prompts/:id", permission: authz.ChannelOperate, handler: controller.UpdateQualityTestPrompt},
+	{method: http.MethodDelete, path: "/prompts/:id", permission: authz.ChannelOperate, handler: controller.DeleteQualityTestPrompt},
 }
 
 var channelPermissionRoutes = []permissionRoute{
