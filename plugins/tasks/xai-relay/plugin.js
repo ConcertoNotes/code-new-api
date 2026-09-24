@@ -7,7 +7,8 @@ export const meta = {
     zh: "通过上游 new-api 网关的 /v1/video/generations 接口调用 Grok Imagine 视频生成",
   },
   version: "1.1.1",
-  channelTypes: [60], // New API — an upstream gateway relaying grok-imagine-* over /v1/video/generations
+  // Bound to New API (type 60) channels through setting.task_extend_plugin_keys;
+  // plugins may not declare the New API channel type.
   author: { name: "QuantumNous" },
   models: ["grok-imagine-video", "grok-imagine-video-1.5"],
   fetchMode: "per_task",

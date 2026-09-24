@@ -67,7 +67,6 @@ func TestBuiltInVendorPluginsDeclareNativeRoutesAndLegacyChannelTypes(t *testing
 		{54, "doubao"},
 		{55, "sora"},
 		{48, "xai"},
-		{60, "xai-relay"},
 	}
 	for _, channelType := range channelTypes {
 		plugin, found := generation.GetByChannelType(channelType.value)
