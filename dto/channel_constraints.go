@@ -40,7 +40,8 @@ const (
 	FilterTaskPluginIdentity ChannelFilterKind = "task_plugin_identity"
 	FilterExcludedChannels   ChannelFilterKind = "excluded_channels"
 	// FilterChannelBreaker 跳过处于熔断冷却中的渠道；当它会清空全部候选时自动失效（兜底放行）
-	FilterChannelBreaker ChannelFilterKind = "channel_breaker"
+	FilterChannelBreaker     ChannelFilterKind = "channel_breaker"
+	FilterResponsesWebSocket ChannelFilterKind = "responses_websocket"
 )
 
 type ChannelFilter struct {
@@ -48,6 +49,7 @@ type ChannelFilter struct {
 	Kind                   ChannelFilterKind
 	RequestPath            string
 	TaskPluginKey          string
+	TaskPluginKeys         []string
 	TaskPluginChannelTypes []int
 }
 

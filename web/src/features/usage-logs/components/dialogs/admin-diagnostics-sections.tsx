@@ -30,7 +30,7 @@ import {
   type UpstreamModelAuditStatus,
 } from '../../lib/model-audit'
 import type { LogOtherData, UpstreamUsageSnapshot } from '../../types'
-import { DetailRow, DetailSection } from './detail-primitives'
+import { DetailRow, DetailSection } from './log-detail-layout'
 
 const MODEL_AUDIT_BADGE_VARIANT: Record<
   UpstreamModelAuditStatus,

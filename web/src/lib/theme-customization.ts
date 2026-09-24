@@ -184,6 +184,7 @@ export const CONTENT_LAYOUT_VALUES: ReadonlySet<ContentLayout> = new Set([
   'centered',
 ])
 
+// Skin stays cookie-backed so i18n/skin.ts can read it before React mounts.
 export const THEME_COOKIE_KEYS = {
   skin: 'lulu_theme_skin',
   preset: 'lulu_theme_preset',

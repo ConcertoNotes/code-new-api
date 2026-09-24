@@ -16,6 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { splitPluginBillingExprKey } from '@/features/pricing/lib/plugin-pricing'
 
 export type ModelPricingMapValues = {
   ModelPrice: string
@@ -31,6 +32,7 @@ export type ModelPricingMapValues = {
   BillingMode: string
   BillingExpr: string
   GroupBillingExpr: string
+  PluginBillingExpr?: string
 }
 
 const modelPricingMapFields = [
@@ -70,6 +72,15 @@ export function removeModelPricing(
     delete models[modelName]
   }
   nextValues.GroupBillingExpr = JSON.stringify(groups, null, 2)
+
+  if (values.PluginBillingExpr !== undefined) {
+    const variants = JSON.parse(values.PluginBillingExpr || '{}') as Record<string, string>
+    if (!variants || typeof variants !== 'object' || Array.isArray(variants)) throw new Error('Invalid JSON')
+    for (const variant of Object.keys(variants)) {
+      if (splitPluginBillingExprKey(variant)?.[1] === modelName) delete variants[variant]
+    }
+    nextValues.PluginBillingExpr = JSON.stringify(variants)
+  }
 
   return nextValues
 }

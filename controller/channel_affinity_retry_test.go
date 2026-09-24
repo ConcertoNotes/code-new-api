@@ -7,6 +7,7 @@ import (
 
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,7 +29,7 @@ func TestShouldRetryWithAffinitySkipRetryStillFailsOverOnChannelFailure(t *testi
 		t.Run(testCase.name, func(t *testing.T) {
 			c := newPinRetryContext()
 			c.Set("channel_affinity_skip_retry_on_failure", true)
-			assert.Equal(t, testCase.want, shouldRetry(c, testCase.err, 1))
+			assert.Equal(t, testCase.want, service.ShouldRetryRelayError(c, testCase.err, 1))
 		})
 	}
 }
@@ -36,9 +37,9 @@ func TestShouldRetryWithAffinitySkipRetryStillFailsOverOnChannelFailure(t *testi
 func TestShouldRetryTaskRelayWithAffinitySkipRetryStillFailsOverOnUpstreamFailure(t *testing.T) {
 	c := newPinRetryContext()
 	c.Set("channel_affinity_skip_retry_on_failure", true)
-	assert.True(t, shouldRetryTaskRelay(c, 1, &dto.TaskError{StatusCode: http.StatusBadGateway}, 1))
+	assert.Equal(t, "retry", decideTaskRetry(c, &dto.TaskError{StatusCode: http.StatusBadGateway}, 1).Action)
 
 	local := newPinRetryContext()
 	local.Set("channel_affinity_skip_retry_on_failure", true)
-	assert.False(t, shouldRetryTaskRelay(local, 1, &dto.TaskError{StatusCode: http.StatusBadGateway, LocalError: true}, 1))
+	assert.NotEqual(t, "retry", decideTaskRetry(local, &dto.TaskError{StatusCode: http.StatusBadGateway, LocalError: true}, 1).Action)
 }
