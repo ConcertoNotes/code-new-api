@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"maps"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/profit_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -236,6 +238,18 @@ func SyncOptions(frequency int) {
 func validateOptionValue(key string, value string) error {
 	if err := operation_setting.ValidateQuotaOption(key, value); err != nil {
 		return err
+	}
+	if key == operation_setting.LotteryNextPrizeOptionKey {
+		amount, err := operation_setting.ParseLotteryNextPrizeAmount(value)
+		if err != nil || amount == 0 {
+			return err
+		}
+		// 指定奖励必须能换算成正的钱包额度，否则抽奖时入账失败会让所有抽奖一直回滚
+		quota, err := common.WalletQuotaFromDecimalStrict(decimal.NewFromFloat(amount).Mul(decimal.NewFromFloat(common.QuotaPerUnit)))
+		if err != nil || quota <= 0 {
+			return fmt.Errorf("%s is out of range", key)
+		}
+		return nil
 	}
 	if key == "billing_setting.group_billing_expr" {
 		return billing_setting.ValidateGroupBillingExpr(value)

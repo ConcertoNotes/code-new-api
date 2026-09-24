@@ -314,6 +314,41 @@ func PreviewLottery(userId int) (LotteryDraw, error) {
 	return LotteryDraw{UserId: userId, Amount: prizes[chosen].Amount, Quota: quota, UserFactor: userFactor, BudgetFactor: 2, StockSnapshot: lotteryStockSnapshot(prizes)}, nil
 }
 
+// lotteryDesignatedPrize 读取数据库中管理员指定的下一次奖励额度及其原始配置值；未指定或值非法时额度为 0
+func lotteryDesignatedPrize(tx *gorm.DB) (float64, string, error) {
+	var option Option
+	if err := tx.Where(&Option{Key: operation_setting.LotteryNextPrizeOptionKey}).Limit(1).Find(&option).Error; err != nil {
+		return 0, "", err
+	}
+	if option.Value == "" {
+		return 0, "", nil
+	}
+	amount, err := operation_setting.ParseLotteryNextPrizeAmount(option.Value)
+	if err != nil {
+		return 0, option.Value, nil
+	}
+	return amount, option.Value, nil
+}
+
+// takeLotteryDesignatedPrize 在抽奖事务内消费指定奖励：用 CAS 把配置归零，
+// 并发抽奖只有一个能拿到；抽奖事务回滚时指定奖励随之保留。
+func takeLotteryDesignatedPrize(tx *gorm.DB) (float64, error) {
+	amount, raw, err := lotteryDesignatedPrize(tx)
+	if err != nil || amount <= 0 {
+		return 0, err
+	}
+	res := tx.Model(&Option{}).
+		Where(&Option{Key: operation_setting.LotteryNextPrizeOptionKey, Value: raw}).
+		Update("value", "0")
+	if res.Error != nil {
+		return 0, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return 0, nil
+	}
+	return amount, nil
+}
+
 // GetLotteryStatus 返回用户视角的活动状态（不加锁，只读）
 func GetLotteryStatus(userId int) (LotteryStatusInfo, error) {
 	s := operation_setting.GetLotterySetting()
@@ -405,6 +440,7 @@ func DrawLottery(userId int, ignoreWindow bool) (LotteryDraw, error) {
 		return LotteryDraw{}, err
 	}
 	var result LotteryDraw
+	designated := false
 	err := DB.Transaction(func(tx *gorm.DB) error {
 		if err := ensureLotteryPrizes(tx); err != nil {
 			return err
@@ -427,29 +463,44 @@ func DrawLottery(userId int, ignoreWindow bool) (LotteryDraw, error) {
 		if err := lockForUpdate(tx).Order("amount").Find(&prizes).Error; err != nil {
 			return err
 		}
-		poolCost := lotteryPoolCost(prizes)
-		if poolCost <= 0 {
-			return ErrLotteryPoolExhausted
-		}
-		budgetRemaining, err := lotteryBudgetRemaining(tx, s)
+		designatedAmount, err := takeLotteryDesignatedPrize(tx)
 		if err != nil {
 			return err
 		}
-		budgetFactor := budgetRemaining / poolCost
-		if budgetFactor < 0 {
-			budgetFactor = 0
+		var prize LotteryPrize
+		var userFactor, budgetFactor float64
+		if designatedAmount > 0 {
+			// 管理员指定了本次奖励：跳过预算与权重直接按指定额度发放；恰好命中有库存的档位时同步扣该档库存
+			designated = true
+			prize = LotteryPrize{Amount: designatedAmount}
+			for _, p := range prizes {
+				if p.Amount == designatedAmount && p.Stock > 0 {
+					prize = p
+					break
+				}
+			}
+		} else {
+			poolCost := lotteryPoolCost(prizes)
+			if poolCost <= 0 {
+				return ErrLotteryPoolExhausted
+			}
+			budgetRemaining, err := lotteryBudgetRemaining(tx, s)
+			if err != nil {
+				return err
+			}
+			budgetFactor = max(budgetRemaining/poolCost, 0)
+			usage, activeDays, err := lotteryUsageStats(tx, userId, common.GetTimestamp()-14*86400)
+			if err != nil {
+				return err
+			}
+			userFactor = lotteryUserFactor(recharge, usage, activeDays)
+			weights := lotteryPrizeWeights(prizes, userFactor, budgetFactor, budgetRemaining)
+			chosen := pickLotteryPrize(weights, rand.Float64())
+			if chosen < 0 {
+				return ErrLotteryRefilling
+			}
+			prize = prizes[chosen]
 		}
-		usage, activeDays, err := lotteryUsageStats(tx, userId, common.GetTimestamp()-14*86400)
-		if err != nil {
-			return err
-		}
-		userFactor := lotteryUserFactor(recharge, usage, activeDays)
-		weights := lotteryPrizeWeights(prizes, userFactor, budgetFactor, budgetRemaining)
-		chosen := pickLotteryPrize(weights, rand.Float64())
-		if chosen < 0 {
-			return ErrLotteryRefilling
-		}
-		prize := prizes[chosen]
 
 		// CAS 扣次数：并发请求只有一个能把 draws_used 从读到的值推进
 		res := tx.Model(&LotteryAccount{}).
@@ -461,15 +512,17 @@ func DrawLottery(userId int, ignoreWindow bool) (LotteryDraw, error) {
 		if res.RowsAffected != 1 {
 			return ErrLotteryRetry
 		}
-		// CAS 扣库存：库存被并发抽空时不入账
-		res = tx.Model(&LotteryPrize{}).
-			Where("id = ? AND stock > 0", prize.Id).
-			UpdateColumn("stock", gorm.Expr("stock - 1"))
-		if res.Error != nil {
-			return res.Error
-		}
-		if res.RowsAffected != 1 {
-			return ErrLotteryRetry
+		// CAS 扣库存：库存被并发抽空时不入账；指定奖励未命中档位时不占用奖池库存
+		if prize.Id > 0 {
+			res = tx.Model(&LotteryPrize{}).
+				Where("id = ? AND stock > 0", prize.Id).
+				UpdateColumn("stock", gorm.Expr("stock - 1"))
+			if res.Error != nil {
+				return res.Error
+			}
+			if res.RowsAffected != 1 {
+				return ErrLotteryRetry
+			}
 		}
 
 		quota, err := common.WalletQuotaFromDecimalStrict(
@@ -496,6 +549,12 @@ func DrawLottery(userId int, ignoreWindow bool) (LotteryDraw, error) {
 		return LotteryDraw{}, err
 	}
 	syncCreditUserQuotaCache(userId, result.Quota, "lottery")
+	if designated {
+		if err := updateOptionMap(operation_setting.LotteryNextPrizeOptionKey, "0"); err != nil {
+			common.SysError("failed to reset lottery designated prize in memory: " + err.Error())
+		}
+		common.SysLog(fmt.Sprintf("lottery designated prize %g issued to user %d, draw record %d", result.Amount, userId, result.Id))
+	}
 	RecordLog(userId, LogTypeTopup, fmt.Sprintf("噜噜抽奖中奖，奖励额度 %s（%g 额度），抽奖记录ID %d", logger.LogQuota(result.Quota), result.Amount, result.Id))
 	return result, nil
 }
@@ -532,6 +591,7 @@ type LotteryAdminOverview struct {
 	DrawCount       int64           `json:"draw_count"`
 	WinnerCount     int64           `json:"winner_count"`
 	Winners         []LotteryWinner `json:"winners"`
+	NextPrizeAmount float64         `json:"next_prize_amount"`
 }
 
 // LotteryDrawWithUser 带用户名的抽奖记录，供管理员列表使用
@@ -572,6 +632,9 @@ func GetLotteryAdminOverview(limit int) (LotteryAdminOverview, error) {
 		return overview, err
 	}
 	if overview.BudgetRemaining, err = lotteryBudgetRemaining(DB, s); err != nil {
+		return overview, err
+	}
+	if overview.NextPrizeAmount, _, err = lotteryDesignatedPrize(DB); err != nil {
 		return overview, err
 	}
 	if overview.IssuedAmount, err = lotteryIssuedAmount(DB, 0); err != nil {

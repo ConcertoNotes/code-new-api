@@ -7391,6 +7391,10 @@
     "This SVG uses features that cannot be exported": "This SVG uses features that cannot be exported",
     "The SVG is too large to export": "The SVG is too large to export",
     "The preview is not ready yet": "The preview is not ready yet",
-    "Failed to export the SVG": "Failed to export the SVG"
+    "Failed to export the SVG": "Failed to export the SVG",
+    "Designated next prize": "Chỉ định giải thưởng lần tới",
+    "The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.": "Lượt quay thật tiếp theo của bất kỳ người dùng nào sẽ trúng đúng số tiền này (bỏ qua ngân sách), sau đó tự động đặt lại. Để trống để giữ quay ngẫu nhiên mặc định.",
+    "Not set (default random draw)": "Chưa đặt (quay ngẫu nhiên mặc định)",
+    "Prize amount (quota)": "Số tiền thưởng (hạn mức)"
   }
 }

@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/table'
 
 import { SettingsSection } from '../components/settings-section'
+import { useUpdateOption } from '../hooks/use-update-option'
 import {
   getLotteryAdminDraws,
   getLotteryAdminOverview,
@@ -23,6 +24,7 @@ import {
 } from './lottery-admin-api'
 
 const PAGE_SIZE = 20
+const NEXT_PRIZE_OPTION_KEY = 'lottery_setting.next_prize_amount'
 
 const formatAmount = (value: number) =>
   Number.isInteger(value) ? String(value) : value.toFixed(2)
@@ -85,6 +87,80 @@ function PrizeStockTable(props: { overview: LotteryAdminOverview }) {
         </TableRow>
       </TableBody>
     </Table>
+  )
+}
+
+function DesignatedPrizeControl(props: {
+  current: number
+  onSaved: () => void
+}) {
+  const { t } = useTranslation()
+  const updateOption = useUpdateOption()
+  const [amount, setAmount] = useState('')
+  const parsed = Number(amount)
+  const valid = amount.trim() !== '' && Number.isFinite(parsed) && parsed > 0
+
+  const save = async (value: string) => {
+    try {
+      await updateOption.mutateAsync({ key: NEXT_PRIZE_OPTION_KEY, value })
+    } catch {
+      // useUpdateOption 已统一提示错误
+      return
+    }
+    setAmount('')
+    props.onSaved()
+  }
+
+  return (
+    <div className='space-y-2 rounded-lg border p-3'>
+      <div>
+        <p className='text-sm font-medium'>{t('Designated next prize')}</p>
+        <p className='text-muted-foreground text-xs'>
+          {t(
+            'The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.'
+          )}
+        </p>
+      </div>
+      <p className='text-sm'>
+        {t('Current')}:{' '}
+        <span className='font-medium'>
+          {props.current > 0
+            ? t('{{amount}} quota', { amount: formatAmount(props.current) })
+            : t('Not set (default random draw)')}
+        </span>
+      </p>
+      <div className='flex flex-wrap items-center gap-2'>
+        <Input
+          type='number'
+          min={0}
+          step='0.01'
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder={t('Prize amount (quota)')}
+          aria-label={t('Designated next prize')}
+          className='max-w-xs'
+        />
+        <Button
+          type='button'
+          size='sm'
+          disabled={!valid || updateOption.isPending}
+          onClick={() => save(String(parsed))}
+        >
+          {t('Set')}
+        </Button>
+        {props.current > 0 && (
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            disabled={updateOption.isPending}
+            onClick={() => save('0')}
+          >
+            {t('Clear')}
+          </Button>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -181,6 +257,11 @@ export function LotteryMonitorSection() {
               value={String(overview.data.winner_count)}
             />
           </div>
+
+          <DesignatedPrizeControl
+            current={overview.data.next_prize_amount}
+            onSaved={() => overview.refetch()}
+          />
 
           <PrizeStockTable overview={overview.data} />
 

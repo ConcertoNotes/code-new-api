@@ -25,6 +25,8 @@ export interface LotteryAdminOverview {
   draw_count: number
   winner_count: number
   winners: LotteryAdminWinner[]
+  /** 管理员指定的下一次抽奖奖励额度，0 表示按默认规则抽取 */
+  next_prize_amount: number
 }
 
 export interface LotteryAdminDraw {
@@ -59,7 +61,12 @@ export async function getLotteryAdminOverview(): Promise<LotteryAdminOverview> {
   if (!res.data.success) throw new Error(res.data.message ?? 'request failed')
   const data = res.data.data
   // 后端 nil 切片会序列化成 null，这里统一兜底成空数组
-  return { ...data, prizes: data.prizes ?? [], winners: data.winners ?? [] }
+  return {
+    ...data,
+    prizes: data.prizes ?? [],
+    winners: data.winners ?? [],
+    next_prize_amount: data.next_prize_amount ?? 0,
+  }
 }
 
 export async function getLotteryAdminDraws(params: {

@@ -403,3 +403,46 @@ func TestLotteryAdminOverviewAggregatesWinnersAndStock(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, int64(0), total)
 }
+
+func TestDrawLotteryIssuesDesignatedPrizeOnceThenFallsBack(t *testing.T) {
+	truncateTables(t)
+	// 回馈比例 1%：默认规则下预算连最小奖都发不起，用来证明指定奖励绕过预算且只生效一次
+	withLotteryActivity(t, 0.01, 0)
+	savedOptions := common.OptionMap
+	common.OptionMap = map[string]string{}
+	t.Cleanup(func() { common.OptionMap = savedOptions })
+	now := common.GetTimestamp()
+	user := User{Username: "lottery-designated", Quota: 0, AffCode: "lotdes"}
+	require.NoError(t, DB.Create(&user).Error)
+	seedLotteryTopUp(t, user.Id, 60, now-60, PaymentProviderEpay, common.TopUpStatusSuccess)
+	key := operation_setting.LotteryNextPrizeOptionKey
+	require.NoError(t, DB.Create(&Option{Key: key, Value: "3"}).Error)
+
+	first, err := DrawLottery(user.Id, false)
+	require.NoError(t, err)
+	assert.InDelta(t, 3, first.Amount, 1e-9, "指定金额不在档位内也按指定金额发放")
+	assert.Equal(t, int(3*common.QuotaPerUnit), first.Quota)
+	var totalStock int64
+	require.NoError(t, DB.Model(&LotteryPrize{}).Select("COALESCE(SUM(stock), 0)").Scan(&totalStock).Error)
+	assert.Equal(t, int64(135), totalStock, "未命中档位时不占用奖池库存")
+	var option Option
+	require.NoError(t, DB.Where(&Option{Key: key}).First(&option).Error)
+	assert.Equal(t, "0", option.Value, "指定奖励被消费后自动归零")
+	assert.Equal(t, "0", common.OptionMap[key])
+
+	_, err = DrawLottery(user.Id, false)
+	assert.ErrorIs(t, err, ErrLotteryRefilling, "未指定时恢复默认规则")
+
+	require.NoError(t, DB.Model(&Option{}).Where(&Option{Key: key}).Update("value", "5").Error)
+	second, err := DrawLottery(user.Id, false)
+	require.NoError(t, err)
+	assert.InDelta(t, 5, second.Amount, 1e-9)
+	var prize LotteryPrize
+	require.NoError(t, DB.Where("amount = ?", 5).First(&prize).Error)
+	assert.Equal(t, prize.InitialStock-1, prize.Stock, "命中档位时扣减该档库存")
+
+	var refreshed User
+	require.NoError(t, DB.First(&refreshed, user.Id).Error)
+	assert.Equal(t, first.Quota+second.Quota, refreshed.Quota)
+	assert.Equal(t, int64(2), lotteryDrawsUsed(t, user.Id))
+}

@@ -68,7 +68,7 @@ func TestLotteryOnRealDatabases(t *testing.T) {
 			require.NoError(t, db.AutoMigrate(&legacyLotteryDraw{}))
 			require.NoError(t, db.Create(&legacyLotteryDraw{UserId: 42, Amount: 1, CreatedAt: 1}).Error)
 			for i := 0; i < 2; i++ {
-				require.NoError(t, db.AutoMigrate(&User{}, &TopUp{}, &Log{}, &QuotaData{}, &LotteryPrize{}, &LotteryDraw{}, &LotteryAccount{}))
+				require.NoError(t, db.AutoMigrate(&User{}, &TopUp{}, &Log{}, &QuotaData{}, &LotteryPrize{}, &LotteryDraw{}, &LotteryAccount{}, &Option{}))
 			}
 			var legacy LotteryDraw
 			require.NoError(t, db.Where("user_id = ?", 42).First(&legacy).Error)

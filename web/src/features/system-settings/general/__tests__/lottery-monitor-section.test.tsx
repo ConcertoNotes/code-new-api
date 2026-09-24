@@ -8,11 +8,17 @@ import { LotteryMonitorSection } from '../lottery-monitor-section'
 const mocks = vi.hoisted(() => ({
   getLotteryAdminOverview: vi.fn(),
   getLotteryAdminDraws: vi.fn(),
+  updateSystemOption: vi.fn(),
 }))
 
 vi.mock('../lottery-admin-api', () => ({
   getLotteryAdminOverview: mocks.getLotteryAdminOverview,
   getLotteryAdminDraws: mocks.getLotteryAdminDraws,
+}))
+
+vi.mock('../../api', () => ({
+  updateSystemOption: mocks.updateSystemOption,
+  updatePasskeyDomains: vi.fn(),
 }))
 
 const overview = {
@@ -28,6 +34,7 @@ const overview = {
   issued_quota: 3500000,
   draw_count: 3,
   winner_count: 2,
+  next_prize_amount: 0,
   winners: [
     {
       user_id: 7,
@@ -62,6 +69,7 @@ function renderSection() {
 afterEach(() => {
   mocks.getLotteryAdminOverview.mockReset()
   mocks.getLotteryAdminDraws.mockReset()
+  mocks.updateSystemOption.mockReset()
 })
 
 describe('LotteryMonitorSection', () => {
@@ -190,6 +198,34 @@ describe('LotteryMonitorSection', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Failed to load lottery overview'
+    )
+  })
+
+  it('saves a designated next prize amount', async () => {
+    mocks.getLotteryAdminOverview.mockResolvedValue(overview)
+    mocks.getLotteryAdminDraws.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      page_size: 20,
+    })
+    mocks.updateSystemOption.mockResolvedValue({ success: true })
+    renderSection()
+
+    expect(
+      await screen.findByText('Not set (default random draw)')
+    ).toBeInTheDocument()
+    await userEvent.type(
+      screen.getByRole('spinbutton', { name: 'Designated next prize' }),
+      '3'
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Set' }))
+
+    await waitFor(() =>
+      expect(mocks.updateSystemOption).toHaveBeenCalledWith({
+        key: 'lottery_setting.next_prize_amount',
+        value: '3',
+      })
     )
   })
 })

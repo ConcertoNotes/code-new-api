@@ -7391,6 +7391,10 @@
     "This SVG uses features that cannot be exported": "This SVG uses features that cannot be exported",
     "The SVG is too large to export": "The SVG is too large to export",
     "The preview is not ready yet": "The preview is not ready yet",
-    "Failed to export the SVG": "Failed to export the SVG"
+    "Failed to export the SVG": "Failed to export the SVG",
+    "Designated next prize": "Prochain lot désigné",
+    "The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.": "Le prochain tirage réel, quel que soit l'utilisateur, gagne exactement ce montant (hors budget), puis le réglage se réinitialise. Laissez vide pour conserver le tirage aléatoire par défaut.",
+    "Not set (default random draw)": "Non défini (tirage aléatoire par défaut)",
+    "Prize amount (quota)": "Montant du lot (quota)"
   }
 }

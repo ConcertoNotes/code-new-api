@@ -7391,6 +7391,10 @@
     "This SVG uses features that cannot be exported": "This SVG uses features that cannot be exported",
     "The SVG is too large to export": "The SVG is too large to export",
     "The preview is not ready yet": "The preview is not ready yet",
-    "Failed to export the SVG": "Failed to export the SVG"
+    "Failed to export the SVG": "Failed to export the SVG",
+    "Designated next prize": "Назначенный следующий приз",
+    "The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.": "Следующий реальный розыгрыш любого пользователя выиграет ровно эту сумму (без учёта бюджета), после чего настройка сбрасывается. Оставьте пустым для обычного случайного розыгрыша.",
+    "Not set (default random draw)": "Не задано (обычный случайный розыгрыш)",
+    "Prize amount (quota)": "Сумма приза (квота)"
   }
 }

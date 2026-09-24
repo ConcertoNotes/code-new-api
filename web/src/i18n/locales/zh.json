@@ -7391,6 +7391,10 @@
     "This SVG uses features that cannot be exported": "该 SVG 使用了无法导出的特性",
     "The SVG is too large to export": "SVG 过大，无法导出",
     "The preview is not ready yet": "预览尚未就绪",
-    "Failed to export the SVG": "导出 SVG 失败"
+    "Failed to export the SVG": "导出 SVG 失败",
+    "Designated next prize": "指定下一次中奖金额",
+    "The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.": "下一位用户的真实抽奖将直接抽中并发放该金额（不受预算限制），发放后自动清除。未设置时按默认规则随机抽取。",
+    "Not set (default random draw)": "未设置（按默认规则随机抽取）",
+    "Prize amount (quota)": "奖励金额（额度）"
   }
 }
