@@ -28,6 +28,14 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { getUserModels } from '@/lib/api'
 
+import {
+  buildSwitchImportUrl,
+  SWITCH_IMPORT_APPS_BY_TARGET,
+  type SwitchImportApp,
+  type SwitchImportScheme,
+  type SwitchImportTarget,
+} from '../../lib/switch-import'
+
 const APP_CONFIGS = {
   claude: {
     label: 'Claude',
@@ -49,9 +57,45 @@ const APP_CONFIGS = {
     defaultName: 'My Gemini',
     modelFields: [{ key: 'model', labelKey: 'Primary Model', required: true }],
   },
-} as const
+  grok: {
+    label: 'Grok',
+    defaultName: 'Grok',
+    modelFields: [{ key: 'model', labelKey: 'Primary Model', required: true }],
+  },
+} as const satisfies Record<
+  SwitchImportApp,
+  {
+    label: string
+    defaultName: string
+    modelFields: readonly {
+      key: string
+      labelKey: string
+      required: boolean
+    }[]
+  }
+>
 
-type AppType = keyof typeof APP_CONFIGS
+type AppType = SwitchImportApp
+
+const IMPORT_TARGETS = {
+  'cc-switch': {
+    scheme: 'ccswitch',
+    titleKey: 'Import to CC Switch',
+    actionKey: 'Open CC Switch',
+  },
+  'var-switch': {
+    scheme: 'varswitch',
+    titleKey: 'Import to VarSwitch',
+    actionKey: 'Open VarSwitch',
+  },
+} as const satisfies Record<
+  string,
+  {
+    scheme: SwitchImportScheme
+    titleKey: string
+    actionKey: string
+  }
+>
 
 function getServerAddress(): string {
   try {
@@ -66,42 +110,21 @@ function getServerAddress(): string {
   return window.location.origin
 }
 
-function buildCCSwitchURL(
-  app: string,
-  name: string,
-  models: Record<string, string>,
-  apiKey: string
-): string {
-  const serverAddress = getServerAddress()
-  const endpoint = app === 'codex' ? serverAddress + '/v1' : serverAddress
-  const params = new URLSearchParams()
-  params.set('resource', 'provider')
-  params.set('app', app)
-  params.set('name', name)
-  params.set('endpoint', endpoint)
-  params.set('apiKey', apiKey)
-  for (const [k, v] of Object.entries(models)) {
-    if (v) params.set(k, v)
-  }
-  params.set('homepage', serverAddress)
-  params.set('enabled', 'true')
-  return `ccswitch://v1/import?${params.toString()}`
-}
-
 interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   tokenKey: string
+  target: SwitchImportTarget
 }
 
-export function CCSwitchDialog(props: Props) {
+export function SwitchImportDialog(props: Props) {
   const { t } = useTranslation()
   const [app, setApp] = useState<AppType>('claude')
   const [name, setName] = useState<string>(APP_CONFIGS.claude.defaultName)
   const [models, setModels] = useState<Record<string, string>>({})
 
   const { data: modelsData } = useQuery({
-    queryKey: ['user-models-ccswitch'],
+    queryKey: ['user-models-switch-import'],
     queryFn: getUserModels,
     enabled: props.open,
     staleTime: 5 * 60 * 1000,
@@ -124,6 +147,8 @@ export function CCSwitchDialog(props: Props) {
   }, [props.open])
 
   const currentConfig = APP_CONFIGS[app]
+  const importTarget = IMPORT_TARGETS[props.target]
+  const availableApps = SWITCH_IMPORT_APPS_BY_TARGET[props.target]
 
   const handleAppChange = (val: string) => {
     const appVal = val as AppType
@@ -140,7 +165,14 @@ export function CCSwitchDialog(props: Props) {
     const key = props.tokenKey.startsWith('sk-')
       ? props.tokenKey
       : `sk-${props.tokenKey}`
-    const url = buildCCSwitchURL(app, name, models, key)
+    const url = buildSwitchImportUrl({
+      scheme: importTarget.scheme,
+      app,
+      name,
+      models,
+      apiKey: key,
+      serverAddress: getServerAddress(),
+    })
     window.open(url, '_blank')
     props.onOpenChange(false)
   }
@@ -149,7 +181,7 @@ export function CCSwitchDialog(props: Props) {
     <Dialog
       open={props.open}
       onOpenChange={props.onOpenChange}
-      title={t('Import to CC Switch')}
+      title={t(importTarget.titleKey)}
       contentClassName='sm:max-w-md'
       contentHeight='auto'
       bodyClassName={
@@ -160,7 +192,7 @@ export function CCSwitchDialog(props: Props) {
           <Button variant='outline' onClick={() => props.onOpenChange(false)}>
             {t('Cancel')}
           </Button>
-          <Button onClick={handleSubmit}>{t('Open CC Switch')}</Button>
+          <Button onClick={handleSubmit}>{t(importTarget.actionKey)}</Button>
         </>
       }
     >
@@ -170,21 +202,20 @@ export function CCSwitchDialog(props: Props) {
           <RadioGroup
             value={app}
             onValueChange={handleAppChange}
-            className='flex gap-4'
+            className='flex flex-wrap gap-4'
           >
-            {(
-              Object.entries(APP_CONFIGS) as [
-                AppType,
-                (typeof APP_CONFIGS)[AppType],
-              ][]
-            ).map(([key, cfg]) => (
-              <div key={key} className='flex items-center gap-2'>
-                <RadioGroupItem value={key} id={`app-${key}`} />
-                <Label htmlFor={`app-${key}`} className='cursor-pointer'>
-                  {cfg.label}
-                </Label>
-              </div>
-            ))}
+            {availableApps.map((key) => {
+              const config = APP_CONFIGS[key]
+
+              return (
+                <div key={key} className='flex items-center gap-2'>
+                  <RadioGroupItem value={key} id={`app-${key}`} />
+                  <Label htmlFor={`app-${key}`} className='cursor-pointer'>
+                    {t(config.label)}
+                  </Label>
+                </div>
+              )
+            })}
           </RadioGroup>
         </div>
 
@@ -196,7 +227,7 @@ export function CCSwitchDialog(props: Props) {
             onValueChange={setName}
             placeholder={currentConfig.defaultName}
             emptyText=''
-            allowCustomValue={true}
+            allowCustomValue
           />
         </div>
 
