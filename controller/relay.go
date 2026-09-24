@@ -168,7 +168,11 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 		}
 		service.AppendUsedChannel(c, channel.Id)
 		if relayInfo.GroupBillingExpressions != nil && relayInfo.GroupBillingSelectedGroup != relayInfo.UsingGroup {
-			updatedPrice, priceErr := helper.ModelPriceHelper(c, relayInfo, tokens, meta)
+			meta := &types.TokenCountMeta{}
+			if relayInfo.Request != nil {
+				meta = relayInfo.Request.GetTokenCountMeta()
+			}
+			updatedPrice, priceErr := helper.ModelPriceHelper(c, relayInfo, relayInfo.GetEstimatePromptTokens(), meta)
 			if priceErr != nil {
 				newAPIError = types.NewErrorWithStatusCode(priceErr, types.ErrorCodeModelPriceError, http.StatusBadRequest, types.ErrOptionWithSkipRetry())
 				break
