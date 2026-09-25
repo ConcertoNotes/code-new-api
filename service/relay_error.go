@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -85,9 +87,13 @@ func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *t
 		if c.Request != nil && c.Request.URL != nil {
 			other.SetPublic("request_path", c.Request.URL.Path)
 		}
-		other.SetPublic("error_type", err.GetErrorType())
-		other.SetPublic("error_code", err.GetErrorCode())
-		other.SetPublic("status_code", err.StatusCode)
+		logErr := MaskUpstreamQuotaError(err)
+		if logErr != err {
+			other.SetAdmin("upstream_error", err.MaskSensitiveErrorWithStatusCode())
+		}
+		other.SetPublic("error_type", logErr.GetErrorType())
+		other.SetPublic("error_code", logErr.GetErrorCode())
+		other.SetPublic("status_code", logErr.StatusCode)
 		AppendRelayLogAdminInfo(c, relayInfo, other)
 		AppendClientInfo(relayInfo, other)
 		AppendResponseModelLogInfo(relayInfo, other)
@@ -97,6 +103,44 @@ func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *t
 			startTime = time.Now()
 		}
 		useTimeSeconds := int(time.Since(startTime).Seconds())
-		model.RecordErrorLog(c, userId, channelError.ChannelId, modelName, tokenName, err.MaskSensitiveErrorWithStatusCode(), tokenId, useTimeSeconds, common.GetContextKeyBool(c, constant.ContextKeyIsStream), userGroup, other)
+		model.RecordErrorLog(c, userId, channelError.ChannelId, modelName, tokenName, logErr.MaskSensitiveErrorWithStatusCode(), tokenId, useTimeSeconds, common.GetContextKeyBool(c, constant.ContextKeyIsStream), userGroup, other)
 	}
+}
+
+// upstreamQuotaExhaustedMarkers are the balance messages an upstream gateway
+// (typically another new-api) returns when our account on it runs out.
+var upstreamQuotaExhaustedMarkers = []string{
+	"用户额度不足",
+	"预扣费额度失败",
+	"令牌额度已用尽",
+	"user quota is not enough",
+	"token quota is not enough",
+	"insufficient_user_quota",
+	"pre_consume_token_quota_failed",
+}
+
+// MaskUpstreamQuotaError hides an upstream account's balance exhaustion from
+// the requesting user. Upstream gateways use the same wording as our own
+// wallet check, so passing it through would tell the user their balance is
+// empty. Our own quota errors are local NewAPIError values and are kept.
+func MaskUpstreamQuotaError(err *types.NewAPIError) *types.NewAPIError {
+	if err == nil {
+		return nil
+	}
+	code := err.GetErrorCode()
+	if err.GetErrorType() == types.ErrorTypeNewAPIError &&
+		(code == types.ErrorCodeInsufficientUserQuota || code == types.ErrorCodePreConsumeTokenQuotaFailed) {
+		return err
+	}
+	message := strings.ToLower(err.Error() + " " + string(code))
+	for _, marker := range upstreamQuotaExhaustedMarkers {
+		if strings.Contains(message, marker) {
+			return types.WithOpenAIError(types.OpenAIError{
+				Message: "上游服务暂时不可用，请稍后重试或联系管理员",
+				Type:    "upstream_error",
+				Code:    types.ErrorCodeBadResponseStatusCode,
+			}, http.StatusServiceUnavailable)
+		}
+	}
+	return err
 }

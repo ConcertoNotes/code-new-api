@@ -213,3 +213,26 @@ func TestRequestPolicyEventsReachLogAdminInfo(t *testing.T) {
 	AppendRelayLogAdminInfo(untouched, nil, other)
 	assert.NotContains(t, other.Snapshot()["admin_info"], "request_policy", "requests without decisions do not carry an empty record")
 }
+
+func TestMaskUpstreamQuotaError(t *testing.T) {
+	localQuota := types.NewErrorWithStatusCode(errors.New("用户额度不足, 剩余额度: ＄-0.021124"), types.ErrorCodeInsufficientUserQuota, http.StatusForbidden, types.ErrOptionWithSkipRetry())
+	upstreamQuota := types.WithOpenAIError(types.OpenAIError{
+		Message: "用户额度不足, 剩余额度: ＄-0.021124 (request id: 202609250219484284264278268d9d6FeTTO25j)",
+		Type:    "new_api_error",
+		Code:    "insufficient_user_quota",
+	}, http.StatusForbidden)
+	upstreamClaudeQuota := types.WithClaudeError(types.ClaudeError{Message: "token quota is not enough, token remain quota: ＄0", Type: "new_api_error"}, http.StatusForbidden)
+	unrelated := types.WithOpenAIError(types.OpenAIError{Message: "model not found", Code: "model_not_found"}, http.StatusNotFound)
+
+	assert.Same(t, localQuota, MaskUpstreamQuotaError(localQuota))
+	assert.Same(t, unrelated, MaskUpstreamQuotaError(unrelated))
+	assert.Nil(t, MaskUpstreamQuotaError(nil))
+
+	for _, upstream := range []*types.NewAPIError{upstreamQuota, upstreamClaudeQuota} {
+		masked := MaskUpstreamQuotaError(upstream)
+		assert.Equal(t, http.StatusServiceUnavailable, masked.StatusCode)
+		assert.Equal(t, types.ErrorCodeBadResponseStatusCode, masked.GetErrorCode())
+		assert.NotContains(t, masked.ToOpenAIError().Message, "额度")
+		assert.NotContains(t, masked.ToClaudeError().Message, "quota")
+	}
+}
