@@ -7405,6 +7405,9 @@
     "USDT gateway endpoint": "Адрес шлюза USDT",
     "USDT gateway merchant ID": "ID продавца шлюза USDT",
     "USDT gateway secret key": "Секретный ключ шлюза USDT",
-    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Совместимый с Epay шлюз USDT, например BEpusdt. Способы оплаты, тип которых начинается с usdt. (например, usdt.trc20), используют этот шлюз. На страницах на упрощённом китайском показываются остальные способы оплаты, на всех остальных языках — USDT."
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Совместимый с Epay шлюз USDT, например BEpusdt. Способы оплаты, тип которых начинается с usdt. (например, usdt.trc20), используют этот шлюз. На страницах на упрощённом китайском показываются остальные способы оплаты, на всех остальных языках — USDT.",
+    "≈ {{amount}} USDT": "≈ {{amount}} USDT",
+    "USDT rate (CNY per USDT)": "Курс USDT (CNY за USDT)",
+    "Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate.": "Передаётся с каждым заказом USDT и используется для оценки суммы в USDT в кошельке. Укажите 0, чтобы использовать курс шлюза."
   }
 }

@@ -70,6 +70,7 @@ const defaultBillingSettings: BillingSettings = {
   UsdtPayAddress: '',
   UsdtEpayId: '',
   UsdtEpayKey: '',
+  UsdtRate: 0,
   Price: 7.3,
   MinTopUp: 1,
   CustomCallbackAddress: '',

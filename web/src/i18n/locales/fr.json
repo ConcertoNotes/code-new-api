@@ -7405,6 +7405,9 @@
     "USDT gateway endpoint": "Adresse de la passerelle USDT",
     "USDT gateway merchant ID": "ID marchand de la passerelle USDT",
     "USDT gateway secret key": "Clé secrète de la passerelle USDT",
-    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Passerelle USDT compatible Epay, comme BEpusdt. Les moyens de paiement dont le type commence par usdt. (par exemple usdt.trc20) utilisent cette passerelle. Les pages en chinois simplifié affichent les autres moyens de paiement ; toutes les autres langues affichent USDT."
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Passerelle USDT compatible Epay, comme BEpusdt. Les moyens de paiement dont le type commence par usdt. (par exemple usdt.trc20) utilisent cette passerelle. Les pages en chinois simplifié affichent les autres moyens de paiement ; toutes les autres langues affichent USDT.",
+    "≈ {{amount}} USDT": "≈ {{amount}} USDT",
+    "USDT rate (CNY per USDT)": "Taux USDT (CNY par USDT)",
+    "Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate.": "Envoyé avec chaque commande USDT et utilisé pour l'estimation USDT du portefeuille. Mettez 0 pour utiliser le taux de la passerelle."
   }
 }

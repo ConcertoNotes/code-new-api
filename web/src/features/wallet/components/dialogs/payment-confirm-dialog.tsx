@@ -33,7 +33,12 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatLocalCurrencyAmount } from '@/lib/currency'
 
 import { DEFAULT_DISCOUNT_RATE } from '../../constants'
-import { formatCurrency, getPaymentIcon } from '../../lib'
+import {
+  estimateUsdtAmount,
+  formatCurrency,
+  getPaymentIcon,
+  isUsdtPayment,
+} from '../../lib'
 import type { PaymentMethod } from '../../types'
 
 interface PaymentConfirmDialogProps {
@@ -47,6 +52,7 @@ interface PaymentConfirmDialogProps {
   processing: boolean
   discountRate?: number
   usdExchangeRate?: number
+  usdtRate?: number
 }
 
 export function PaymentConfirmDialog({
@@ -60,11 +66,16 @@ export function PaymentConfirmDialog({
   processing,
   discountRate = DEFAULT_DISCOUNT_RATE,
   usdExchangeRate = 1,
+  usdtRate,
 }: PaymentConfirmDialogProps) {
   const { t } = useTranslation()
   const hasDiscount = discountRate > 0 && discountRate < 1 && paymentAmount > 0
   const originalAmount = hasDiscount ? paymentAmount / discountRate : 0
   const discountAmount = hasDiscount ? originalAmount - paymentAmount : 0
+  const usdtEstimate =
+    paymentMethod && isUsdtPayment(paymentMethod.type)
+      ? estimateUsdtAmount(paymentAmount, usdtRate)
+      : null
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -103,6 +114,13 @@ export function PaymentConfirmDialog({
                 <span className='text-2xl font-semibold'>
                   {formatCurrency(paymentAmount)}
                 </span>
+                {usdtEstimate !== null && (
+                  <span className='text-muted-foreground text-sm'>
+                    {t('≈ {{amount}} USDT', {
+                      amount: formatCurrency(usdtEstimate),
+                    })}
+                  </span>
+                )}
                 {hasDiscount && (
                   <span className='text-muted-foreground text-sm line-through'>
                     {formatCurrency(originalAmount)}

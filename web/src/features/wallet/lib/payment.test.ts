@@ -21,6 +21,7 @@ import { describe, expect, test } from 'vitest'
 import { PAYMENT_TYPES } from '../constants'
 import {
   dispatchSelectedPayment,
+  estimateUsdtAmount,
   filterPayMethodsByLanguage,
   isStripePayment,
   isWaffoPayment,
@@ -62,6 +63,18 @@ describe('pay methods by interface language', () => {
       alipay,
       stripe,
     ])
+  })
+})
+
+describe('USDT estimate', () => {
+  test('matches the gateway amount at 0.01 USDT precision', () => {
+    expect(estimateUsdtAmount(10, 6.64)).toBe(1.51)
+    expect(estimateUsdtAmount(66.5, 6.65)).toBe(10)
+  })
+
+  test('is hidden without a configured rate', () => {
+    expect(estimateUsdtAmount(10, 0)).toBeNull()
+    expect(estimateUsdtAmount(10, undefined)).toBeNull()
   })
 })
 

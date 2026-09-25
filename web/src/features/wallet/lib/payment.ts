@@ -102,6 +102,20 @@ export function isUsdtPayment(paymentType: string): boolean {
   return paymentType.startsWith('usdt.')
 }
 
+/**
+ * Estimate the USDT a CNY payment costs, rounded to the gateway's 0.01 USDT
+ * precision. Returns null when no USDT rate is configured.
+ */
+export function estimateUsdtAmount(
+  payMoney: number,
+  usdtRate?: number
+): number | null {
+  if (!usdtRate || usdtRate <= 0 || !Number.isFinite(payMoney)) return null
+  if (payMoney <= 0) return null
+  const orderMoney = Math.round(payMoney * 100) / 100
+  return Math.round((orderMoney / usdtRate) * 100) / 100
+}
+
 const NON_EPAY_PAYMENT_TYPES: readonly string[] = [
   PAYMENT_TYPES.STRIPE,
   PAYMENT_TYPES.CREEM,

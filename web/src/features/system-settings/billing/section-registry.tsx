@@ -146,6 +146,7 @@ const BILLING_SECTIONS = [
           UsdtPayAddress: settings.UsdtPayAddress,
           UsdtEpayId: settings.UsdtEpayId,
           UsdtEpayKey: settings.UsdtEpayKey,
+          UsdtRate: settings.UsdtRate,
           Price: settings.Price,
           MinTopUp: settings.MinTopUp,
           CustomCallbackAddress: settings.CustomCallbackAddress,

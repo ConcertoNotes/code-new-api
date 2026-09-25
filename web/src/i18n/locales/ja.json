@@ -7405,6 +7405,9 @@
     "USDT gateway endpoint": "USDT ゲートウェイのアドレス",
     "USDT gateway merchant ID": "USDT ゲートウェイの加盟店 ID",
     "USDT gateway secret key": "USDT ゲートウェイのシークレットキー",
-    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "BEpusdt などの Epay 互換 USDT ゲートウェイです。タイプが usdt. で始まる支払い方法（例：usdt.trc20）はこのゲートウェイを使用します。簡体字中国語のページではその他の支払い方法を、それ以外の言語では USDT を表示します。"
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "BEpusdt などの Epay 互換 USDT ゲートウェイです。タイプが usdt. で始まる支払い方法（例：usdt.trc20）はこのゲートウェイを使用します。簡体字中国語のページではその他の支払い方法を、それ以外の言語では USDT を表示します。",
+    "≈ {{amount}} USDT": "≈ {{amount}} USDT",
+    "USDT rate (CNY per USDT)": "USDT レート（CNY / USDT）",
+    "Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate.": "すべての USDT 注文に送信され、ウォレットの USDT 見積もりにも使われます。0 にするとゲートウェイのレートを使用します。"
   }
 }

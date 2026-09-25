@@ -7405,6 +7405,9 @@
     "USDT gateway endpoint": "Địa chỉ cổng USDT",
     "USDT gateway merchant ID": "ID người bán cổng USDT",
     "USDT gateway secret key": "Khóa bí mật cổng USDT",
-    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Cổng USDT tương thích Epay, ví dụ BEpusdt. Các phương thức thanh toán có loại bắt đầu bằng usdt. (ví dụ usdt.trc20) sẽ dùng cổng này. Trang tiếng Trung giản thể hiển thị các phương thức thanh toán khác; mọi ngôn ngữ khác hiển thị USDT."
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Cổng USDT tương thích Epay, ví dụ BEpusdt. Các phương thức thanh toán có loại bắt đầu bằng usdt. (ví dụ usdt.trc20) sẽ dùng cổng này. Trang tiếng Trung giản thể hiển thị các phương thức thanh toán khác; mọi ngôn ngữ khác hiển thị USDT.",
+    "≈ {{amount}} USDT": "≈ {{amount}} USDT",
+    "USDT rate (CNY per USDT)": "Tỷ giá USDT (CNY mỗi USDT)",
+    "Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate.": "Được gửi kèm mỗi đơn USDT và dùng để ước tính USDT trong ví. Đặt 0 để dùng tỷ giá của cổng."
   }
 }

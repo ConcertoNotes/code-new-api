@@ -43,6 +43,8 @@ import {
   getPaymentIcon,
   getMinTopupAmount,
   calculatePresetPricing,
+  estimateUsdtAmount,
+  isUsdtPayment,
 } from '../lib'
 import type {
   PaymentMethod,
@@ -138,6 +140,11 @@ export function RechargeFormCard({
   const hasAnyTopup = hasConfigurableTopup || enableCreemTopup
   const hasStandardPaymentMethods =
     Array.isArray(topupInfo?.pay_methods) && topupInfo.pay_methods.length > 0
+  const usdtEstimate = topupInfo?.pay_methods?.some((method) =>
+    isUsdtPayment(method.type)
+  )
+    ? estimateUsdtAmount(paymentAmount, topupInfo.usdt_rate)
+    : null
   const hasWaffoPaymentMethods =
     Array.isArray(waffoPayMethods) && waffoPayMethods.length > 0
   const minTopup = getMinTopupAmount(topupInfo)
@@ -307,6 +314,13 @@ export function RechargeFormCard({
                     ) : (
                       <span className='text-sm font-semibold'>
                         {formatCurrency(paymentAmount)}
+                        {usdtEstimate !== null && (
+                          <span className='text-muted-foreground ml-1 font-normal'>
+                            {t('≈ {{amount}} USDT', {
+                              amount: formatCurrency(usdtEstimate),
+                            })}
+                          </span>
+                        )}
                       </span>
                     )}
                   </div>

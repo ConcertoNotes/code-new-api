@@ -7405,6 +7405,9 @@
     "USDT gateway endpoint": "USDT 閘道位址",
     "USDT gateway merchant ID": "USDT 閘道商戶 ID",
     "USDT gateway secret key": "USDT 閘道金鑰",
-    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "相容易支付協定的 USDT 閘道（如 BEpusdt）。類型以 usdt. 開頭的支付方式（例如 usdt.trc20）走此閘道。簡體中文頁面顯示其他支付方式，其他語言頁面顯示 USDT。"
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "相容易支付協定的 USDT 閘道（如 BEpusdt）。類型以 usdt. 開頭的支付方式（例如 usdt.trc20）走此閘道。簡體中文頁面顯示其他支付方式，其他語言頁面顯示 USDT。",
+    "≈ {{amount}} USDT": "≈ {{amount}} USDT",
+    "USDT rate (CNY per USDT)": "USDT 匯率（人民幣 / USDT）",
+    "Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate.": "每筆 USDT 訂單都按此匯率計價，錢包裡的 USDT 估算也用它。填 0 則使用閘道自己的匯率。"
   }
 }

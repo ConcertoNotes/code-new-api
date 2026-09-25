@@ -126,6 +126,8 @@ export interface TopupInfo {
   enable_stripe_topup: boolean
   /** Available payment methods */
   pay_methods: PaymentMethod[]
+  /** CNY per USDT rate for USDT gateway orders (0 when unset) */
+  usdt_rate?: number
   /** Minimum topup amount for online topup */
   min_topup: number
   /** Minimum topup amount for Stripe */

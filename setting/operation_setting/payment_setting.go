@@ -46,6 +46,11 @@ var UsdtPayAddress = ""
 var UsdtEpayId = ""
 var UsdtEpayKey = ""
 
+// UsdtRate is the CNY per USDT rate sent with every USDT gateway order, so the
+// wallet estimate and the checkout amount share one setting. 0 leaves the rate
+// to the gateway.
+var UsdtRate = 0.0
+
 func IsUsdtPayMethod(method string) bool {
 	return strings.HasPrefix(method, "usdt.")
 }

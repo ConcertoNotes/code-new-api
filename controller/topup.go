@@ -113,6 +113,7 @@ func GetTopUpInfo(c *gin.Context) {
 		}(),
 		"creem_products":          setting.CreemProducts,
 		"pay_methods":             payMethods,
+		"usdt_rate":               operation_setting.UsdtRate,
 		"min_topup":               operation_setting.MinTopUp,
 		"stripe_min_topup":        setting.StripeMinTopUp,
 		"waffo_min_topup":         setting.WaffoMinTopUp,
@@ -151,6 +152,16 @@ func GetEpayClient(paymentMethod string) *epay.Client {
 		return nil
 	}
 	return withUrl
+}
+
+// pinUsdtRate adds the configured USDT rate to a USDT gateway order and signs
+// it again, so the checkout charges exactly what the wallet estimated.
+func pinUsdtRate(paymentMethod string, params map[string]string) map[string]string {
+	if !operation_setting.IsUsdtPayMethod(paymentMethod) || operation_setting.UsdtRate <= 0 {
+		return params
+	}
+	params["rate"] = strconv.FormatFloat(operation_setting.UsdtRate, 'f', -1, 64)
+	return epay.GenerateParams(params, operation_setting.UsdtEpayKey)
 }
 
 func getPayMoney(amount int64, group string) float64 {
@@ -329,6 +340,7 @@ func RequestEpay(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "拉起支付失败"})
 		return
 	}
+	params = pinUsdtRate(req.PaymentMethod, params)
 	amount := req.Amount
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
 		dAmount := decimal.NewFromInt(int64(amount))

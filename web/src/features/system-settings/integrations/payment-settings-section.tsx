@@ -110,6 +110,7 @@ const paymentSchema = z.object({
   }, 'Provide a valid callback URL starting with http:// or https://'),
   UsdtEpayId: z.string(),
   UsdtEpayKey: z.string(),
+  UsdtRate: z.coerce.number().min(0),
   Price: z.coerce.number().min(0),
   MinTopUp: z.coerce.number().min(0),
   CustomCallbackAddress: z
@@ -432,6 +433,7 @@ export function PaymentSettingsSection({
       UsdtPayAddress: removeTrailingSlash(values.UsdtPayAddress),
       UsdtEpayId: values.UsdtEpayId.trim(),
       UsdtEpayKey: values.UsdtEpayKey.trim(),
+      UsdtRate: values.UsdtRate,
       Price: values.Price,
       MinTopUp: values.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(values.CustomCallbackAddress),
@@ -477,6 +479,7 @@ export function PaymentSettingsSection({
       UsdtPayAddress: removeTrailingSlash(initialRef.current.UsdtPayAddress),
       UsdtEpayId: initialRef.current.UsdtEpayId.trim(),
       UsdtEpayKey: initialRef.current.UsdtEpayKey.trim(),
+      UsdtRate: initialRef.current.UsdtRate,
       Price: initialRef.current.Price,
       MinTopUp: initialRef.current.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(
@@ -547,6 +550,10 @@ export function PaymentSettingsSection({
       sanitized.UsdtEpayKey !== initial.UsdtEpayKey
     ) {
       updates.push({ key: 'UsdtEpayKey', value: sanitized.UsdtEpayKey })
+    }
+
+    if (sanitized.UsdtRate !== initial.UsdtRate) {
+      updates.push({ key: 'UsdtRate', value: sanitized.UsdtRate })
     }
 
     if (sanitized.Price !== initial.Price) {
@@ -1294,7 +1301,7 @@ export function PaymentSettingsSection({
                   </p>
                 </div>
 
-                <div className='grid gap-6 md:grid-cols-3'>
+                <div className='grid gap-6 md:grid-cols-2'>
                   <FormField
                     control={form.control}
                     name='UsdtPayAddress'
@@ -1355,6 +1362,30 @@ export function PaymentSettingsSection({
                         </FormControl>
                         <FormDescription>
                           {t('Leave blank unless rotating the secret')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='UsdtRate'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('USDT rate (CNY per USDT)')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            step='0.01'
+                            min={0}
+                            {...safeNumberFieldProps(field)}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t(
+                            'Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate.'
+                          )}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

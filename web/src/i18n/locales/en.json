@@ -7405,6 +7405,9 @@
     "USDT gateway endpoint": "USDT gateway endpoint",
     "USDT gateway merchant ID": "USDT gateway merchant ID",
     "USDT gateway secret key": "USDT gateway secret key",
-    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT."
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.",
+    "≈ {{amount}} USDT": "≈ {{amount}} USDT",
+    "USDT rate (CNY per USDT)": "USDT rate (CNY per USDT)",
+    "Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate.": "Sent with every USDT order and used for the wallet USDT estimate. Set 0 to use the gateway rate."
   }
 }
