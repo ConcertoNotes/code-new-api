@@ -115,8 +115,14 @@ export async function requestPayment(
   const res = await api.post('/api/user/pay', request, {
     skipBusinessError: true,
   } as Record<string, unknown>)
+  // Epay failures answer {message: 'error', data: '<reason>'}; surface the reason.
+  const failureReason =
+    res.data.message === 'error' && typeof res.data.data === 'string'
+      ? res.data.data
+      : undefined
   return {
     ...res.data,
+    message: failureReason || res.data.message,
     url: res.data.url || (res as unknown as { url?: string }).url,
   }
 }
