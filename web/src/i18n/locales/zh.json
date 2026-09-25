@@ -7395,6 +7395,11 @@
     "Designated next prize": "指定下一次中奖金额",
     "The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.": "下一位用户的真实抽奖将直接抽中并发放该金额（不受预算限制），发放后自动清除。未设置时按默认规则随机抽取。",
     "Not set (default random draw)": "未设置（按默认规则随机抽取）",
-    "Prize amount (quota)": "奖励金额（额度）"
+    "Prize amount (quota)": "奖励金额（额度）",
+    "User visible groups": "用户可见分组",
+    "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "先选择一个用户，然后勾选该用户能看到和使用的分组。未勾选的分组对该用户隐藏。一个都不勾选时按默认规则显示。",
+    "Search and select a user to edit visible groups.": "搜索并选择一个用户来设置可见分组。",
+    "The user's own group ({{group}}) always stays visible.": "该用户自身所属分组（{{group}}）始终可见。",
+    "Visible groups saved": "可见分组已保存"
   }
 }

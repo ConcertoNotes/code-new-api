@@ -261,6 +261,9 @@ func validateOptionValue(key string, value string) error {
 	if key == "group_ratio_setting.group_user_allowlist" {
 		return ratio_setting.ValidateGroupUserAllowlistJSON(value)
 	}
+	if key == "group_ratio_setting.user_visible_groups" {
+		return ratio_setting.ValidateUserVisibleGroupsJSON(value)
+	}
 	if key == "VideoGenerationPrice" {
 		return ratio_setting.ValidateVideoGenerationPriceJSON(value)
 	}

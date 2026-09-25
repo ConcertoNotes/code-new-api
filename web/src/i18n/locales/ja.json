@@ -7395,6 +7395,11 @@
     "Designated next prize": "次回の当選額を指定",
     "The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.": "次にいずれかのユーザーが行う実際の抽選で、この金額が当選・付与されます（予算制限なし）。付与後は自動的に解除されます。未設定の場合は通常どおりランダム抽選です。",
     "Not set (default random draw)": "未設定（通常のランダム抽選）",
-    "Prize amount (quota)": "当選額（クォータ）"
+    "Prize amount (quota)": "当選額（クォータ）",
+    "User visible groups": "ユーザー表示グループ",
+    "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "ユーザーを選択し、そのユーザーが表示・利用できるグループにチェックを入れてください。チェックしていないグループはこのユーザーには表示されません。何もチェックしない場合はデフォルトの表示ルールが適用されます。",
+    "Search and select a user to edit visible groups.": "ユーザーを検索して選択し、表示グループを編集します。",
+    "The user's own group ({{group}}) always stays visible.": "ユーザー自身のグループ（{{group}}）は常に表示されます。",
+    "Visible groups saved": "表示グループを保存しました"
   }
 }

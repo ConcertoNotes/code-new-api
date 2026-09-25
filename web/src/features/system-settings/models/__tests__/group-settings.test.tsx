@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import {
   fireEvent,
   render,
@@ -66,15 +67,20 @@ function Fixture(props: {
     defaultValues: { ...defaults, ...props.initial },
     resolver: zodResolver(schema),
   })
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  )
   return (
-    <SettingsPageProvider actionsContainer={actions}>
-      <div ref={setActions} />
-      <GroupRatioForm
-        form={form}
-        onSave={props.onSave ?? (async () => {})}
-        isSaving={props.isSaving ?? false}
-      />
-    </SettingsPageProvider>
+    <QueryClientProvider client={queryClient}>
+      <SettingsPageProvider actionsContainer={actions}>
+        <div ref={setActions} />
+        <GroupRatioForm
+          form={form}
+          onSave={props.onSave ?? (async () => {})}
+          isSaving={props.isSaving ?? false}
+        />
+      </SettingsPageProvider>
+    </QueryClientProvider>
   )
 }
 

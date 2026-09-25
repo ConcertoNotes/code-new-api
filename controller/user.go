@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,6 +20,7 @@ import (
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/ratio_setting"
 
 	"github.com/QuantumNous/new-api/constant"
 
@@ -460,6 +462,79 @@ func GetUser(c *gin.Context) {
 		"data":    user,
 	})
 	return
+}
+
+type UpdateUserVisibleGroupsRequest struct {
+	Groups []string `json:"groups"`
+}
+
+func GetUserVisibleGroups(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	user, err := model.GetUserById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !canManageTargetRole(c.GetInt("role"), user.Role) {
+		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+		return
+	}
+	groups, ok := ratio_setting.GetGroupRatioSetting().UserVisibleGroups.Get(user.Id)
+	if !ok {
+		groups = []string{}
+	}
+	common.ApiSuccess(c, gin.H{
+		"groups":     groups,
+		"user_group": user.Group,
+	})
+}
+
+func UpdateUserVisibleGroups(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	var req UpdateUserVisibleGroupsRequest
+	if err := common.DecodeJson(c.Request.Body, &req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	user, err := model.GetUserById(id, false)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if !canManageTargetRole(c.GetInt("role"), user.Role) {
+		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
+		return
+	}
+	groups := make([]string, 0, len(req.Groups))
+	for _, group := range req.Groups {
+		group = strings.TrimSpace(group)
+		if group == "" || group == "auto" || !ratio_setting.ContainsGroupRatio(group) {
+			common.ApiErrorMsg(c, fmt.Sprintf("分组 %s 不存在", group))
+			return
+		}
+		if slices.Contains(groups, group) {
+			continue
+		}
+		groups = append(groups, group)
+	}
+	if err := model.SetUserVisibleGroups(user.Id, groups); err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAuditFor(c, user.Id, "user.visible_groups.update", map[string]any{
+		"username": user.Username,
+		"id":       user.Id,
+		"groups":   groups,
+	})
+	common.ApiSuccess(c, gin.H{"groups": groups})
 }
 
 type TransferAffQuotaRequest struct {

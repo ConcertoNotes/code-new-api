@@ -242,7 +242,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               />
             }
             groupSpecialUsableGroup={values.GroupSpecialUsableGroup ?? ''}
-            groupUserAllowlist={values.GroupUserAllowlist ?? ''}
             onChange={(field, value) =>
               handleFieldChange(field as keyof GroupFormValues, value)
             }

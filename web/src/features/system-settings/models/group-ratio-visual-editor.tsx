@@ -84,7 +84,7 @@ import { formatNumber } from '@/lib/format'
 
 import { safeJsonParse } from '../utils/json-parser'
 import { GroupSpecialUsableRulesEditor } from './group-special-usable-editor'
-import { GroupUserAllowlistEditor } from './group-user-allowlist-editor'
+import { UserVisibleGroupsEditor } from './user-visible-groups-editor'
 
 export type GroupSettingsSection =
   | 'pricing'
@@ -103,7 +103,6 @@ type GroupRatioVisualEditorProps = {
   autoGroups: string
   maxTokenAutoGroupsField: ReactNode
   groupSpecialUsableGroup: string
-  groupUserAllowlist?: string
   onChange: (field: string, value: string) => void
   onRenameMapChange?: (renames: Record<string, string>) => void
 }
@@ -294,7 +293,6 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
   autoGroups,
   maxTokenAutoGroupsField,
   groupSpecialUsableGroup,
-  groupUserAllowlist,
   onChange,
   onRenameMapChange,
 }: GroupRatioVisualEditorProps) {
@@ -402,18 +400,14 @@ export const GroupRatioVisualEditor = memo(function GroupRatioVisualEditor({
         />
       </TabsContent>
       <TabsContent value='visibility' keepMounted>
+        <UserVisibleGroupsEditor
+          groupOptions={registryNames.filter((name) => name !== 'auto')}
+        />
         <GroupSpecialUsableRulesEditor
           value={groupSpecialUsableGroup}
           groupOptions={registryNames}
           onChange={(value) => onChange('GroupSpecialUsableGroup', value)}
         />
-        {groupUserAllowlist !== undefined && (
-          <GroupUserAllowlistEditor
-            value={groupUserAllowlist}
-            groupOptions={registryNames}
-            onChange={(value) => onChange('GroupUserAllowlist', value)}
-          />
-        )}
       </TabsContent>
       <TabsContent value='auto' keepMounted>
         <Card className={sectionCardClassName}>

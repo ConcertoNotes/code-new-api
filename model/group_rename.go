@@ -120,6 +120,13 @@ func remappedGroupOptionValues(renames map[string]string) (map[string]string, er
 			}
 			return string(data)
 		}},
+		{"group_ratio_setting.user_visible_groups", ratio_setting.RemapUserVisibleGroupsJSON, func() string {
+			data, err := common.Marshal(ratio_setting.GetGroupRatioSetting().UserVisibleGroups.ReadAll())
+			if err != nil {
+				return "{}"
+			}
+			return string(data)
+		}},
 		{"billing_setting.group_billing_expr", billing_setting.RemapGroupBillingExprJSON, func() string {
 			data, err := common.Marshal(billing_setting.GetGroupBillingExprCopy())
 			if err != nil {

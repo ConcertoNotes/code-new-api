@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/QuantumNous/new-api/common"
@@ -86,7 +87,24 @@ func GetUserUsableGroups(userID int, userGroup string) map[string]string {
 			delete(groupsCopy, group)
 		}
 	}
-	return groupsCopy
+	// A per-user visible group list replaces the rules above: the user sees
+	// exactly the listed groups, plus the user's own group.
+	visibleGroups, ok := ratio_setting.GetGroupRatioSetting().UserVisibleGroups.Get(userID)
+	if userID <= 0 || !ok || len(visibleGroups) == 0 {
+		return groupsCopy
+	}
+	restricted := make(map[string]string, len(visibleGroups)+1)
+	for _, group := range slices.Concat(visibleGroups, []string{userGroup}) {
+		if group == "" {
+			continue
+		}
+		if desc, exists := groupsCopy[group]; exists {
+			restricted[group] = desc
+			continue
+		}
+		restricted[group] = setting.GetUsableGroupDescription(group)
+	}
+	return restricted
 }
 
 func GroupInUserUsableGroups(userID int, userGroup, groupName string) bool {

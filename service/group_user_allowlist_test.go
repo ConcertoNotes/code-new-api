@@ -60,3 +60,21 @@ func TestRestrictedOwnUserGroupDoesNotBypassAllowlist(t *testing.T) {
 	assert.Contains(t, GetUserUsableGroups(42, "private"), "private")
 	assert.NotContains(t, GetUserUsableGroups(7, "private"), "private")
 }
+
+func TestGetUserUsableGroupsUserVisibleGroupsLimitsToSelection(t *testing.T) {
+	configureGroupUserAllowlistTest(t)
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default","a":"A","b":"B","c":"C","d":"D"}`))
+	require.NoError(t, ratio_setting.UpdateGroupRatioByJSONString(`{"default":1,"a":1,"b":1,"c":1,"d":1,"private":1}`))
+	visibleGroups := ratio_setting.GetGroupRatioSetting().UserVisibleGroups
+	originalVisibleGroups := visibleGroups.ReadAll()
+	visibleGroups.Clear()
+	visibleGroups.Set(9, []string{"a", "b", "private"})
+	t.Cleanup(func() {
+		visibleGroups.Clear()
+		visibleGroups.AddAll(originalVisibleGroups)
+	})
+
+	assert.Equal(t, map[string]string{"a": "A", "b": "B", "private": "private", "default": "Default"}, GetUserUsableGroups(9, "default"))
+	assert.False(t, IsUserSelectableGroup(9, "default", "c"))
+	assert.Equal(t, map[string]string{"default": "Default", "a": "A", "b": "B", "c": "C", "d": "D"}, GetUserUsableGroups(10, "default"))
+}

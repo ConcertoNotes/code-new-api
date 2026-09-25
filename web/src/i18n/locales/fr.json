@@ -7395,6 +7395,11 @@
     "Designated next prize": "Prochain lot désigné",
     "The next real draw by any user wins exactly this amount (ignoring budget), then it resets automatically. Leave it unset to keep the default random draw.": "Le prochain tirage réel, quel que soit l'utilisateur, gagne exactement ce montant (hors budget), puis le réglage se réinitialise. Laissez vide pour conserver le tirage aléatoire par défaut.",
     "Not set (default random draw)": "Non défini (tirage aléatoire par défaut)",
-    "Prize amount (quota)": "Montant du lot (quota)"
+    "Prize amount (quota)": "Montant du lot (quota)",
+    "User visible groups": "Groupes visibles par utilisateur",
+    "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "Sélectionnez un utilisateur, puis cochez les groupes qu'il peut voir et utiliser. Les groupes non cochés lui sont masqués. Si aucun groupe n'est coché, les règles de visibilité par défaut s'appliquent.",
+    "Search and select a user to edit visible groups.": "Recherchez et sélectionnez un utilisateur pour modifier ses groupes visibles.",
+    "The user's own group ({{group}}) always stays visible.": "Le groupe propre de l'utilisateur ({{group}}) reste toujours visible.",
+    "Visible groups saved": "Groupes visibles enregistrés"
   }
 }

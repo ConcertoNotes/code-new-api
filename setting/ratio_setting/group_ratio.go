@@ -29,12 +29,16 @@ var groupGroupRatioMap = types.NewRWMap[string, map[string]float64]()
 
 var defaultGroupSpecialUsableGroup = map[string]map[string]string{}
 var defaultGroupUserAllowlist = map[string][]int{}
+var defaultUserVisibleGroups = map[int][]string{}
 
 type GroupRatioSetting struct {
 	GroupRatio              *types.RWMap[string, float64]            `json:"group_ratio"`
 	GroupGroupRatio         *types.RWMap[string, map[string]float64] `json:"group_group_ratio"`
 	GroupSpecialUsableGroup *types.RWMap[string, map[string]string]  `json:"group_special_usable_group"`
 	GroupUserAllowlist      *types.RWMap[string, []int]              `json:"group_user_allowlist"`
+	// UserVisibleGroups maps a user ID to the exact groups that user may see and use.
+	// Users without an entry keep the default group visibility rules.
+	UserVisibleGroups       *types.RWMap[int, []string]              `json:"user_visible_groups"`
 }
 
 var groupRatioSetting GroupRatioSetting
@@ -44,6 +48,8 @@ func init() {
 	groupSpecialUsableGroup.AddAll(defaultGroupSpecialUsableGroup)
 	groupUserAllowlist := types.NewRWMap[string, []int]()
 	groupUserAllowlist.AddAll(defaultGroupUserAllowlist)
+	userVisibleGroups := types.NewRWMap[int, []string]()
+	userVisibleGroups.AddAll(defaultUserVisibleGroups)
 
 	groupRatioMap.AddAll(defaultGroupRatio)
 	groupGroupRatioMap.AddAll(defaultGroupGroupRatio)
@@ -51,6 +57,7 @@ func init() {
 	groupRatioSetting = GroupRatioSetting{
 		GroupSpecialUsableGroup: groupSpecialUsableGroup,
 		GroupUserAllowlist:      groupUserAllowlist,
+		UserVisibleGroups:       userVisibleGroups,
 		GroupRatio:              groupRatioMap,
 		GroupGroupRatio:         groupGroupRatioMap,
 	}
@@ -66,6 +73,10 @@ func GetGroupRatioSetting() *GroupRatioSetting {
 	if groupRatioSetting.GroupUserAllowlist == nil {
 		groupRatioSetting.GroupUserAllowlist = types.NewRWMap[string, []int]()
 		groupRatioSetting.GroupUserAllowlist.AddAll(defaultGroupUserAllowlist)
+	}
+	if groupRatioSetting.UserVisibleGroups == nil {
+		groupRatioSetting.UserVisibleGroups = types.NewRWMap[int, []string]()
+		groupRatioSetting.UserVisibleGroups.AddAll(defaultUserVisibleGroups)
 	}
 	return &groupRatioSetting
 }
@@ -88,6 +99,29 @@ func ValidateGroupUserAllowlistJSON(jsonStr string) error {
 				return errors.New("group user allowlist contains a duplicate user ID")
 			}
 			seen[userID] = struct{}{}
+		}
+	}
+	return nil
+}
+
+func ValidateUserVisibleGroupsJSON(jsonStr string) error {
+	visibleGroups := make(map[int][]string)
+	if err := common.Unmarshal([]byte(jsonStr), &visibleGroups); err != nil {
+		return err
+	}
+	for userID, groups := range visibleGroups {
+		if userID <= 0 {
+			return errors.New("user visible groups contains an invalid user ID")
+		}
+		seen := make(map[string]struct{}, len(groups))
+		for _, group := range groups {
+			if group == "" || group == "auto" {
+				return errors.New("user visible groups contains an empty or auto group")
+			}
+			if _, ok := seen[group]; ok {
+				return errors.New("user visible groups contains a duplicate group")
+			}
+			seen[group] = struct{}{}
 		}
 	}
 	return nil
@@ -370,6 +404,35 @@ func RemapGroupUserAllowlistJSON(jsonStr string, renames map[string]string) (str
 		}
 	}
 	RemapGroupKeys(values, renames)
+	data, err := common.Marshal(values)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func RemapUserVisibleGroupsJSON(jsonStr string, renames map[string]string) (string, error) {
+	values := make(map[int][]string)
+	if strings.TrimSpace(jsonStr) != "" {
+		if err := common.UnmarshalJsonStr(jsonStr, &values); err != nil {
+			return "", err
+		}
+	}
+	for userID, groups := range values {
+		seen := make(map[string]struct{}, len(groups))
+		remapped := make([]string, 0, len(groups))
+		for _, group := range groups {
+			if next, ok := renames[group]; ok {
+				group = next
+			}
+			if _, dup := seen[group]; dup {
+				continue
+			}
+			seen[group] = struct{}{}
+			remapped = append(remapped, group)
+		}
+		values[userID] = remapped
+	}
 	data, err := common.Marshal(values)
 	if err != nil {
 		return "", err
