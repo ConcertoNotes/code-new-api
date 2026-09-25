@@ -133,14 +133,20 @@ type AmountRequest struct {
 	Amount int64 `json:"amount"`
 }
 
-func GetEpayClient() *epay.Client {
-	if operation_setting.PayAddress == "" || operation_setting.EpayId == "" || operation_setting.EpayKey == "" {
+// GetEpayClient returns the Epay gateway client for the given pay method:
+// "usdt.*" methods use the USDT gateway, everything else the default one.
+func GetEpayClient(paymentMethod string) *epay.Client {
+	payAddress, partnerID, key := operation_setting.PayAddress, operation_setting.EpayId, operation_setting.EpayKey
+	if operation_setting.IsUsdtPayMethod(paymentMethod) {
+		payAddress, partnerID, key = operation_setting.UsdtPayAddress, operation_setting.UsdtEpayId, operation_setting.UsdtEpayKey
+	}
+	if payAddress == "" || partnerID == "" || key == "" {
 		return nil
 	}
 	withUrl, err := epay.NewClient(&epay.Config{
-		PartnerID: operation_setting.EpayId,
-		Key:       operation_setting.EpayKey,
-	}, operation_setting.PayAddress)
+		PartnerID: partnerID,
+		Key:       key,
+	}, payAddress)
 	if err != nil {
 		return nil
 	}
@@ -304,7 +310,7 @@ func RequestEpay(c *gin.Context) {
 	notifyUrl, _ := url.Parse(callBackAddress + "/api/user/epay/notify")
 	tradeNo := fmt.Sprintf("%s%d", common.GetRandomString(6), time.Now().Unix())
 	tradeNo = fmt.Sprintf("USR%dNO%s", id, tradeNo)
-	client := GetEpayClient()
+	client := GetEpayClient(req.PaymentMethod)
 	if client == nil {
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "当前管理员未配置支付信息"})
 		return
@@ -425,7 +431,7 @@ func EpayNotify(c *gin.Context) {
 		_, _ = c.Writer.Write([]byte("fail"))
 		return
 	}
-	client := GetEpayClient()
+	client := GetEpayClient(params["type"])
 	if client == nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("易支付 client 未初始化 path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
 		_, err := c.Writer.Write([]byte("fail"))

@@ -10,6 +10,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/pkg/cachex"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/samber/hot"
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -585,6 +586,12 @@ func CompleteSubscriptionOrder(tradeNo string, providerPayload string, expectedP
 			return ErrSubscriptionOrderNotFound
 		}
 		if expectedPaymentProvider != "" && order.PaymentProvider != expectedPaymentProvider {
+			return ErrPaymentMethodMismatch
+		}
+		// Epay callbacks are verified by the gateway their type selects, so they
+		// may only settle orders created on that same gateway (default vs USDT).
+		if order.PaymentProvider == PaymentProviderEpay && actualPaymentMethod != "" &&
+			operation_setting.IsUsdtPayMethod(actualPaymentMethod) != operation_setting.IsUsdtPayMethod(order.PaymentMethod) {
 			return ErrPaymentMethodMismatch
 		}
 		if order.Status == common.TopUpStatusSuccess {

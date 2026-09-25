@@ -1,6 +1,10 @@
 package operation_setting
 
-import "github.com/QuantumNous/new-api/setting/config"
+import (
+	"strings"
+
+	"github.com/QuantumNous/new-api/setting/config"
+)
 
 type PaymentSetting struct {
 	AmountOptions  []int           `json:"amount_options"`
@@ -33,4 +37,15 @@ func GetPaymentSetting() *PaymentSetting {
 func IsPaymentComplianceConfirmed() bool {
 	return paymentSetting.ComplianceConfirmed &&
 		paymentSetting.ComplianceTermsVersion == CurrentComplianceTermsVersion
+}
+
+// USDT Epay-compatible gateway (e.g. BEpusdt). Pay methods whose type starts
+// with "usdt." (usdt.trc20, usdt.bep20, ...) are sent to this gateway instead
+// of the default Epay gateway.
+var UsdtPayAddress = ""
+var UsdtEpayId = ""
+var UsdtEpayKey = ""
+
+func IsUsdtPayMethod(method string) bool {
+	return strings.HasPrefix(method, "usdt.")
 }

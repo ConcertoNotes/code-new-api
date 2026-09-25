@@ -7400,6 +7400,11 @@
     "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.",
     "Search and select a user to edit visible groups.": "Search and select a user to edit visible groups.",
     "The user's own group ({{group}}) always stays visible.": "The user's own group ({{group}}) always stays visible.",
-    "Visible groups saved": "Visible groups saved"
+    "Visible groups saved": "Visible groups saved",
+    "USDT Epay Gateway": "USDT Epay Gateway",
+    "USDT gateway endpoint": "USDT gateway endpoint",
+    "USDT gateway merchant ID": "USDT gateway merchant ID",
+    "USDT gateway secret key": "USDT gateway secret key",
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT."
   }
 }

@@ -7400,6 +7400,11 @@
     "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "Выберите пользователя, затем отметьте группы, которые он может видеть и использовать. Неотмеченные группы для него скрыты. Если не отмечена ни одна группа, действуют правила видимости по умолчанию.",
     "Search and select a user to edit visible groups.": "Найдите и выберите пользователя, чтобы изменить видимые группы.",
     "The user's own group ({{group}}) always stays visible.": "Собственная группа пользователя ({{group}}) всегда остаётся видимой.",
-    "Visible groups saved": "Видимые группы сохранены"
+    "Visible groups saved": "Видимые группы сохранены",
+    "USDT Epay Gateway": "Шлюз Epay для USDT",
+    "USDT gateway endpoint": "Адрес шлюза USDT",
+    "USDT gateway merchant ID": "ID продавца шлюза USDT",
+    "USDT gateway secret key": "Секретный ключ шлюза USDT",
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Совместимый с Epay шлюз USDT, например BEpusdt. Способы оплаты, тип которых начинается с usdt. (например, usdt.trc20), используют этот шлюз. На страницах на упрощённом китайском показываются остальные способы оплаты, на всех остальных языках — USDT."
   }
 }

@@ -100,9 +100,13 @@ func isEpayTopUpEnabled() bool {
 }
 
 func isEpayWebhookConfigured() bool {
-	return strings.TrimSpace(operation_setting.PayAddress) != "" &&
+	defaultConfigured := strings.TrimSpace(operation_setting.PayAddress) != "" &&
 		strings.TrimSpace(operation_setting.EpayId) != "" &&
 		strings.TrimSpace(operation_setting.EpayKey) != ""
+	usdtConfigured := strings.TrimSpace(operation_setting.UsdtPayAddress) != "" &&
+		strings.TrimSpace(operation_setting.UsdtEpayId) != "" &&
+		strings.TrimSpace(operation_setting.UsdtEpayKey) != ""
+	return defaultConfigured || usdtConfigured
 }
 
 func isEpayWebhookEnabled() bool {

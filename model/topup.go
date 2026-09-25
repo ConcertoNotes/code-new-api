@@ -7,6 +7,7 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
+	"github.com/QuantumNous/new-api/setting/operation_setting"
 
 	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
@@ -190,6 +191,11 @@ func RechargeEpay(tradeNo string, actualPaymentMethod string, callerIp string) (
 			return ErrTopUpNotFound
 		}
 		if topUp.PaymentProvider != PaymentProviderEpay {
+			return ErrPaymentMethodMismatch
+		}
+		// The callback was verified by the gateway its type selects, so it may
+		// only settle orders created on that same gateway (default vs USDT).
+		if actualPaymentMethod != "" && operation_setting.IsUsdtPayMethod(actualPaymentMethod) != operation_setting.IsUsdtPayMethod(topUp.PaymentMethod) {
 			return ErrPaymentMethodMismatch
 		}
 		if topUp.Status == common.TopUpStatusSuccess {

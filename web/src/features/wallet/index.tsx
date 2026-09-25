@@ -47,6 +47,7 @@ import {
   getDefaultPaymentType,
   getMinTopupAmount,
   dispatchSelectedPayment,
+  filterPayMethodsByLanguage,
 } from './lib'
 import { getLotteryStatus, type LotteryStatus } from './lottery-api'
 import type {
@@ -62,7 +63,7 @@ interface WalletProps {
 }
 
 export function Wallet(props: WalletProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const [user, setUser] = useState<UserWalletData | null>(null)
   const [userLoading, setUserLoading] = useState(true)
   const [lotteryStatus, setLotteryStatus] = useState<LotteryStatus | null>(null)
@@ -85,7 +86,22 @@ export function Wallet(props: WalletProps) {
 
   const { status } = useStatus()
   const { currency } = useSystemConfig()
-  const { topupInfo, presetAmounts, loading: topupLoading } = useTopupInfo()
+  const {
+    topupInfo: rawTopupInfo,
+    presetAmounts,
+    loading: topupLoading,
+  } = useTopupInfo()
+  const interfaceLanguage = i18n.resolvedLanguage || i18n.language
+  const topupInfo = useMemo(() => {
+    if (!rawTopupInfo) return rawTopupInfo
+    return {
+      ...rawTopupInfo,
+      pay_methods: filterPayMethodsByLanguage(
+        rawTopupInfo.pay_methods,
+        interfaceLanguage
+      ),
+    }
+  }, [rawTopupInfo, interfaceLanguage])
 
   // Calculate effective exchange rate - when display type is USD, use rate of 1
   const effectiveUsdExchangeRate = useMemo(() => {

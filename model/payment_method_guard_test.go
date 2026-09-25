@@ -353,3 +353,28 @@ func TestRechargeEpayEnforcesFinalWalletQuotaLimit(t *testing.T) {
 		})
 	}
 }
+
+func TestRechargeEpay_RejectsCallbackFromOtherGateway(t *testing.T) {
+	testCases := []struct {
+		name           string
+		storedMethod   string
+		callbackMethod string
+	}{
+		{name: "usdt callback settles alipay order", storedMethod: "alipay", callbackMethod: "usdt.trc20"},
+		{name: "alipay callback settles usdt order", storedMethod: "usdt.trc20", callbackMethod: "alipay"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			truncateTables(t)
+			insertUserForPaymentGuardTest(t, 601, 0)
+			topUp := createEpayTestOrder(t, 601, "epay-gateway-guard", PaymentProviderEpay, common.TopUpStatusPending)
+			require.NoError(t, DB.Model(&topUp).Update("payment_method", tc.storedMethod).Error)
+
+			_, err := RechargeEpay("epay-gateway-guard", tc.callbackMethod, "127.0.0.1")
+			require.ErrorIs(t, err, ErrPaymentMethodMismatch)
+			assert.Equal(t, common.TopUpStatusPending, getTopUpStatusForPaymentGuardTest(t, "epay-gateway-guard"))
+			assert.Equal(t, 0, getUserQuotaForPaymentGuardTest(t, 601))
+		})
+	}
+}

@@ -7400,6 +7400,11 @@
     "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "先选择一个用户，然后勾选该用户能看到和使用的分组。未勾选的分组对该用户隐藏。一个都不勾选时按默认规则显示。",
     "Search and select a user to edit visible groups.": "搜索并选择一个用户来设置可见分组。",
     "The user's own group ({{group}}) always stays visible.": "该用户自身所属分组（{{group}}）始终可见。",
-    "Visible groups saved": "可见分组已保存"
+    "Visible groups saved": "可见分组已保存",
+    "USDT Epay Gateway": "USDT 易支付网关",
+    "USDT gateway endpoint": "USDT 网关地址",
+    "USDT gateway merchant ID": "USDT 网关商户 ID",
+    "USDT gateway secret key": "USDT 网关密钥",
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "兼容易支付协议的 USDT 网关（如 BEpusdt）。类型以 usdt. 开头的支付方式（例如 usdt.trc20）走此网关。简体中文页面显示其他支付方式，其他语言页面显示 USDT。"
   }
 }

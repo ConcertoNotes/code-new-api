@@ -103,6 +103,13 @@ const paymentSchema = z.object({
   }, 'Provide a valid callback URL starting with http:// or https://'),
   EpayId: z.string(),
   EpayKey: z.string(),
+  UsdtPayAddress: z.string().refine((value) => {
+    const trimmed = value.trim()
+    if (!trimmed) return true
+    return /^https?:\/\//.test(trimmed)
+  }, 'Provide a valid callback URL starting with http:// or https://'),
+  UsdtEpayId: z.string(),
+  UsdtEpayKey: z.string(),
   Price: z.coerce.number().min(0),
   MinTopUp: z.coerce.number().min(0),
   CustomCallbackAddress: z
@@ -422,6 +429,9 @@ export function PaymentSettingsSection({
       PayAddress: removeTrailingSlash(values.PayAddress),
       EpayId: values.EpayId.trim(),
       EpayKey: values.EpayKey.trim(),
+      UsdtPayAddress: removeTrailingSlash(values.UsdtPayAddress),
+      UsdtEpayId: values.UsdtEpayId.trim(),
+      UsdtEpayKey: values.UsdtEpayKey.trim(),
       Price: values.Price,
       MinTopUp: values.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(values.CustomCallbackAddress),
@@ -464,6 +474,9 @@ export function PaymentSettingsSection({
       PayAddress: removeTrailingSlash(initialRef.current.PayAddress),
       EpayId: initialRef.current.EpayId.trim(),
       EpayKey: initialRef.current.EpayKey.trim(),
+      UsdtPayAddress: removeTrailingSlash(initialRef.current.UsdtPayAddress),
+      UsdtEpayId: initialRef.current.UsdtEpayId.trim(),
+      UsdtEpayKey: initialRef.current.UsdtEpayKey.trim(),
       Price: initialRef.current.Price,
       MinTopUp: initialRef.current.MinTopUp,
       CustomCallbackAddress: removeTrailingSlash(
@@ -519,6 +532,21 @@ export function PaymentSettingsSection({
 
     if (sanitized.EpayKey && sanitized.EpayKey !== initial.EpayKey) {
       updates.push({ key: 'EpayKey', value: sanitized.EpayKey })
+    }
+
+    if (sanitized.UsdtPayAddress !== initial.UsdtPayAddress) {
+      updates.push({ key: 'UsdtPayAddress', value: sanitized.UsdtPayAddress })
+    }
+
+    if (sanitized.UsdtEpayId !== initial.UsdtEpayId) {
+      updates.push({ key: 'UsdtEpayId', value: sanitized.UsdtEpayId })
+    }
+
+    if (
+      sanitized.UsdtEpayKey &&
+      sanitized.UsdtEpayKey !== initial.UsdtEpayKey
+    ) {
+      updates.push({ key: 'UsdtEpayKey', value: sanitized.UsdtEpayKey })
     }
 
     if (sanitized.Price !== initial.Price) {
@@ -1233,6 +1261,87 @@ export function PaymentSettingsSection({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('Epay secret key')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type='password'
+                            placeholder={t('Enter new key to update')}
+                            autoComplete='new-password'
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          {t('Leave blank unless rotating the secret')}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className='mt-8 space-y-4'>
+                <div>
+                  <h3 className='text-lg font-medium'>
+                    {t('USDT Epay Gateway')}
+                  </h3>
+                  <p className='text-muted-foreground text-sm'>
+                    {t(
+                      'Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.'
+                    )}
+                  </p>
+                </div>
+
+                <div className='grid gap-6 md:grid-cols-3'>
+                  <FormField
+                    control={form.control}
+                    name='UsdtPayAddress'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('USDT gateway endpoint')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder={t('https://pay.example.com')}
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='UsdtEpayId'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('USDT gateway merchant ID')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder='1000'
+                            autoComplete='off'
+                            {...field}
+                            onChange={(event) =>
+                              field.onChange(event.target.value)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name='UsdtEpayKey'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('USDT gateway secret key')}</FormLabel>
                         <FormControl>
                           <Input
                             type='password'

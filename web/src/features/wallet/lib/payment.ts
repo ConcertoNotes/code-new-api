@@ -22,6 +22,8 @@ import {
   DEFAULT_PAYMENT_TYPE,
   DEFAULT_MIN_TOPUP,
 } from '../constants'
+import { normalizeInterfaceLanguage } from '@/i18n/languages'
+
 import type { PaymentMethod, PresetAmount, TopupInfo } from '../types'
 
 // ============================================================================
@@ -91,6 +93,42 @@ export function isWaffoPayment(paymentType: string): boolean {
  */
 export function isWaffoPancakePayment(paymentType: string): boolean {
   return paymentType === PAYMENT_TYPES.WAFFO_PANCAKE
+}
+
+/**
+ * Check if payment method is a USDT gateway method (usdt.trc20, usdt.bep20, ...)
+ */
+export function isUsdtPayment(paymentType: string): boolean {
+  return paymentType.startsWith('usdt.')
+}
+
+const NON_EPAY_PAYMENT_TYPES: readonly string[] = [
+  PAYMENT_TYPES.STRIPE,
+  PAYMENT_TYPES.CREEM,
+  PAYMENT_TYPES.WAFFO,
+  PAYMENT_TYPES.WAFFO_PANCAKE,
+]
+
+/**
+ * Simplified Chinese pages keep the domestic Epay methods (Alipay, WeChat, ...)
+ * and hide USDT; every other interface language pays with USDT instead of the
+ * domestic methods. Non-Epay gateways are left untouched, and the list is kept
+ * as-is when no USDT method is configured.
+ */
+export function filterPayMethodsByLanguage(
+  payMethods: PaymentMethod[],
+  language: string
+): PaymentMethod[] {
+  if (normalizeInterfaceLanguage(language) === 'zhCN') {
+    return payMethods.filter((method) => !isUsdtPayment(method.type))
+  }
+  if (!payMethods.some((method) => isUsdtPayment(method.type))) {
+    return payMethods
+  }
+  return payMethods.filter(
+    (method) =>
+      isUsdtPayment(method.type) || NON_EPAY_PAYMENT_TYPES.includes(method.type)
+  )
 }
 
 export interface PaymentProcessors {

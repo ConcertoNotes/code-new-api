@@ -7400,6 +7400,11 @@
     "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "Sélectionnez un utilisateur, puis cochez les groupes qu'il peut voir et utiliser. Les groupes non cochés lui sont masqués. Si aucun groupe n'est coché, les règles de visibilité par défaut s'appliquent.",
     "Search and select a user to edit visible groups.": "Recherchez et sélectionnez un utilisateur pour modifier ses groupes visibles.",
     "The user's own group ({{group}}) always stays visible.": "Le groupe propre de l'utilisateur ({{group}}) reste toujours visible.",
-    "Visible groups saved": "Groupes visibles enregistrés"
+    "Visible groups saved": "Groupes visibles enregistrés",
+    "USDT Epay Gateway": "Passerelle Epay USDT",
+    "USDT gateway endpoint": "Adresse de la passerelle USDT",
+    "USDT gateway merchant ID": "ID marchand de la passerelle USDT",
+    "USDT gateway secret key": "Clé secrète de la passerelle USDT",
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "Passerelle USDT compatible Epay, comme BEpusdt. Les moyens de paiement dont le type commence par usdt. (par exemple usdt.trc20) utilisent cette passerelle. Les pages en chinois simplifié affichent les autres moyens de paiement ; toutes les autres langues affichent USDT."
   }
 }

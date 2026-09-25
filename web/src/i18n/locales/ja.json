@@ -7400,6 +7400,11 @@
     "Select a user, then check the groups this user can see and use. Unchecked groups are hidden from this user. If no group is checked, the default visibility rules apply.": "ユーザーを選択し、そのユーザーが表示・利用できるグループにチェックを入れてください。チェックしていないグループはこのユーザーには表示されません。何もチェックしない場合はデフォルトの表示ルールが適用されます。",
     "Search and select a user to edit visible groups.": "ユーザーを検索して選択し、表示グループを編集します。",
     "The user's own group ({{group}}) always stays visible.": "ユーザー自身のグループ（{{group}}）は常に表示されます。",
-    "Visible groups saved": "表示グループを保存しました"
+    "Visible groups saved": "表示グループを保存しました",
+    "USDT Epay Gateway": "USDT Epay ゲートウェイ",
+    "USDT gateway endpoint": "USDT ゲートウェイのアドレス",
+    "USDT gateway merchant ID": "USDT ゲートウェイの加盟店 ID",
+    "USDT gateway secret key": "USDT ゲートウェイのシークレットキー",
+    "Epay-compatible USDT gateway such as BEpusdt. Pay methods whose type starts with usdt. (for example usdt.trc20) use this gateway. Simplified Chinese pages show the other pay methods; all other languages show USDT.": "BEpusdt などの Epay 互換 USDT ゲートウェイです。タイプが usdt. で始まる支払い方法（例：usdt.trc20）はこのゲートウェイを使用します。簡体字中国語のページではその他の支払い方法を、それ以外の言語では USDT を表示します。"
   }
 }

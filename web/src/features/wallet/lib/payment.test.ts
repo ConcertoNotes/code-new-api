@@ -21,6 +21,7 @@ import { describe, expect, test } from 'vitest'
 import { PAYMENT_TYPES } from '../constants'
 import {
   dispatchSelectedPayment,
+  filterPayMethodsByLanguage,
   isStripePayment,
   isWaffoPayment,
   isWaffoPancakePayment,
@@ -33,6 +34,34 @@ describe('payment type classification', () => {
     expect(isWaffoPancakePayment(PAYMENT_TYPES.WAFFO_PANCAKE)).toBe(true)
     expect(isWaffoPancakePayment(PAYMENT_TYPES.WAFFO)).toBe(false)
     expect(isStripePayment(PAYMENT_TYPES.STRIPE)).toBe(true)
+  })
+})
+
+describe('pay methods by interface language', () => {
+  const alipay = { name: 'Alipay', type: PAYMENT_TYPES.ALIPAY }
+  const usdt = { name: 'USDT (TRC20)', type: 'usdt.trc20' }
+  const stripe = { name: 'Stripe', type: PAYMENT_TYPES.STRIPE }
+
+  test('Simplified Chinese keeps domestic methods and hides USDT', () => {
+    expect(
+      filterPayMethodsByLanguage([alipay, usdt, stripe], 'zhCN')
+    ).toEqual([alipay, stripe])
+  })
+
+  test.each(['en', 'zhTW', 'ja', 'fr', 'ru', 'vi'])(
+    '%s pays with USDT instead of domestic methods',
+    (language) => {
+      expect(
+        filterPayMethodsByLanguage([alipay, usdt, stripe], language)
+      ).toEqual([usdt, stripe])
+    }
+  )
+
+  test('keeps every method when no USDT method is configured', () => {
+    expect(filterPayMethodsByLanguage([alipay, stripe], 'en')).toEqual([
+      alipay,
+      stripe,
+    ])
   })
 })
 
